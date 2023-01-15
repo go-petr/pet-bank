@@ -3,18 +3,19 @@ package db
 import (
 	"context"
 	"database/sql"
-	"strconv"
+
 	"testing"
 	"time"
 
 	"github.com/go-petr/pet-bank/util"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
 
 func createRandomAccount(t *testing.T) Account {
 	arg := CreateAccountParams{
 		Owner:    util.RandomOwner(),
-		Balance:  util.RandomMoneyAmount(),
+		Balance:  util.RandomMoneyAmountBetween(1_000, 10_000),
 		Currency: util.RandomCurrency(),
 	}
 
@@ -58,7 +59,7 @@ func TestUpdateAccount(t *testing.T) {
 
 	arg := UpdateAccountParams{
 		ID:      account1.ID,
-		Balance: util.RandomMoneyAmount(),
+		Balance: util.RandomMoneyAmountBetween(1_000, 10_000),
 	}
 
 	account2, err := testQueries.UpdateAccount(context.Background(), arg)
@@ -107,24 +108,24 @@ func TestAddAccountBalance(t *testing.T) {
 	account1 := createRandomAccount(t)
 
 	arg := AddAccountBalanceParams{
-		Amount: util.RandomMoneyAmount(),
+		Amount: util.RandomMoneyAmountBetween(100, 1_000),
 		ID:     account1.ID,
 	}
-	acc1Balance, err := strconv.Atoi(account1.Balance)
+	account1Balance, err := decimal.NewFromString(account1.Balance)
 	require.NoError(t, err)
-	deltaBalance, err := strconv.Atoi(arg.Amount)
+	deltaBalance, err := decimal.NewFromString(arg.Amount)
 	require.NoError(t, err)
 
 	account2, err := testQueries.AddAccountBalance(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, account2)
 
-	acc2Balance, err := strconv.Atoi(account2.Balance)
+	account2Balance, err := decimal.NewFromString(account2.Balance)
 	require.NoError(t, err)
 
 	require.Equal(t, account1.ID, account2.ID)
 	require.Equal(t, account1.Owner, account2.Owner)
-	require.Equal(t, acc1Balance+deltaBalance, acc2Balance)
+	require.Equal(t, account1Balance.Add(deltaBalance), account2Balance)
 	require.Equal(t, account1.Currency, account2.Currency)
 	require.Equal(t, account1.CreatedAt, account2.CreatedAt, time.Second)
 }

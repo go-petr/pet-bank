@@ -2,9 +2,9 @@ package db
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,15 +14,15 @@ func TestTransferTx(t *testing.T) {
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
 
-	acc1BalanceBefore, err := strconv.Atoi(account1.Balance)
+	account1BalanceBefore, err := decimal.NewFromString(account1.Balance)
 	require.NoError(t, err)
-	acc2BalanceBefore, err := strconv.Atoi(account2.Balance)
+	account2BalanceBefore, err := decimal.NewFromString(account2.Balance)
 	require.NoError(t, err)
 
 	// run n concurrent transfer transactions
 	n := 5
 	amount := "10"
-	amnt, err := strconv.Atoi(amount)
+	amountDecimal, err := decimal.NewFromString(amount)
 	require.NoError(t, err)
 
 	errs := make(chan error)
@@ -95,18 +95,18 @@ func TestTransferTx(t *testing.T) {
 		require.Equal(t, account2.ID, toAccount.ID)
 
 		// check accounts's balances
-		acc1BalanceAfter, err := strconv.Atoi(fromAccount.Balance)
+		account1BalanceAfter, err := decimal.NewFromString(fromAccount.Balance)
 		require.NoError(t, err)
-		acc2BalanceAfter, err := strconv.Atoi(toAccount.Balance)
+		account2BalanceAfter, err := decimal.NewFromString(toAccount.Balance)
 		require.NoError(t, err)
 
-		diff1 := acc1BalanceBefore - acc1BalanceAfter
-		diff2 := acc2BalanceAfter - acc2BalanceBefore
-		require.Equal(t, diff1, diff2)
-		require.True(t, diff1 > 0)
-		require.True(t, diff1%amnt == 0)
+		diff1 := account1BalanceBefore.Sub(account1BalanceAfter)
+		diff2 := account2BalanceAfter.Sub(account2BalanceBefore)
+		require.Equal(t, diff1.String(), diff2.String())
+		require.True(t, diff1.GreaterThan(decimal.Zero))
+		require.True(t, diff1.Mod(amountDecimal).IsZero())
 
-		k := int(diff1 / amnt)
+		k := int(diff1.Div(amountDecimal).IntPart())
 		require.True(t, k >= 1 && k <= n)
 		require.NotContains(t, existed, k)
 		existed[k] = true
@@ -119,14 +119,12 @@ func TestTransferTx(t *testing.T) {
 	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
 	require.NoError(t, err)
 
-	updatedAcc1Balance, err := strconv.Atoi(updatedAccount1.Balance)
-	require.NoError(t, err)
-
-	updatedAcc2Balance, err := strconv.Atoi(updatedAccount2.Balance)
-	require.NoError(t, err)
-
-	require.Equal(t, acc1BalanceBefore-n*amnt, updatedAcc1Balance)
-	require.Equal(t, acc2BalanceBefore+n*amnt, updatedAcc2Balance)
+	require.Equal(t,
+		account1BalanceBefore.Sub(amountDecimal.Mul(decimal.NewFromInt(int64(n)))).String(),
+		updatedAccount1.Balance)
+	require.Equal(t,
+		account2BalanceBefore.Add(amountDecimal.Mul(decimal.NewFromInt(int64(n)))).String(),
+		updatedAccount2.Balance)
 }
 
 func TestTransferTxDeadlock(t *testing.T) {
