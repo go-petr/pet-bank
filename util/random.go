@@ -16,8 +16,8 @@ func init() {
 const alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 // RandomInt generates a random integer between min and max
-func RandomInt(min, max int64) int64 {
-	return min + rand.Int63n(max-min+1)
+func RandomInt(min, max int32) int32 {
+	return min + rand.Int31n(max-min+1)
 }
 
 // RandomFloat generates a random decimal number between min and max rounded.
@@ -45,7 +45,7 @@ func RandomOwner() string {
 
 // RandomMoneyAmount generates a random amount of money between 1,000 and 10,000
 func RandomMoneyAmountBetween(min, max float64) string {
-	return decimal.NewFromFloat(RandomFloat(min, max)).String() 
+	return decimal.NewFromFloat(RandomFloat(min, max)).String()
 }
 
 // RandomCurrency generates a random currency code
