@@ -50,6 +50,6 @@ func RandomMoneyAmountBetween(min, max float64) string {
 
 // RandomCurrency generates a random currency code
 func RandomCurrency() string {
-	currencies := []string{"USD", "EUR", "RMB"}
+	currencies := []string{USD, EUR, RMB}
 	return currencies[rand.Intn(len(currencies))]
 }
