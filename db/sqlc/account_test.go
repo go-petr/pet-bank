@@ -13,8 +13,11 @@ import (
 )
 
 func createRandomAccount(t *testing.T) Account {
+
+	user := createRandomUser(t)
+
 	arg := CreateAccountParams{
-		Owner:    util.RandomOwner(),
+		Owner:    user.Username,
 		Balance:  util.RandomMoneyAmountBetween(1_000, 10_000),
 		Currency: util.RandomCurrency(),
 	}
@@ -51,7 +54,7 @@ func TestGetAccount(t *testing.T) {
 	require.Equal(t, account1.Owner, account2.Owner)
 	require.Equal(t, account1.Balance, account2.Balance)
 	require.Equal(t, account1.Currency, account2.Currency)
-	require.Equal(t, account1.CreatedAt, account2.CreatedAt, time.Second)
+	require.WithinDuration(t, account1.CreatedAt, account2.CreatedAt, time.Second)
 }
 
 func TestUpdateAccount(t *testing.T) {
