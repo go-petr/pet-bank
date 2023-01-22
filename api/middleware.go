@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/token"
+	"github.com/go-petr/pet-bank/pkg/token"
 )
 
 const (

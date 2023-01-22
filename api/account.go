@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/go-petr/pet-bank/db/sqlc"
-	"github.com/go-petr/pet-bank/token"
+	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/lib/pq"
 )
 
