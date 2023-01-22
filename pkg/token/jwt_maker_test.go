@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/util"
+	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )

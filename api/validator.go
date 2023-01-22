@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/go-petr/pet-bank/util"
+	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/go-playground/validator/v10"
 )
 

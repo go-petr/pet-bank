@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-petr/pet-bank/util"
+	"github.com/go-petr/pet-bank/pkg/util"
 	_ "github.com/lib/pq"
 )
 

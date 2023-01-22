@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	db "github.com/go-petr/pet-bank/db/sqlc"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/util"
+	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/go-playground/validator/v10"
 )
 
