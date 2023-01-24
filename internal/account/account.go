@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	ErrAccountNotFound       = errors.New("Account not found")
 	ErrCurrencyAlreadyExists = errors.New("Account currency already exists")
 	ErrNoOwnerExists         = errors.New("Owner does not exists")
 	ErrOwnerAlreadyExists    = errors.New("Owner already exists")

@@ -233,7 +233,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, user.ErrInternal)
+					Return(user.UserWihtoutPassword{}, util.ErrInternal)
 
 				tokenMaker.EXPECT().
 					CreateToken(gomock.Any(), gomock.Any()).
@@ -265,7 +265,7 @@ func TestCreateUserAPI(t *testing.T) {
 				tokenMaker.EXPECT().
 					CreateToken(gomock.Eq(testUser.Username), gomock.Eq(userHandler.tokenDuration)).
 					Times(1).
-					Return("", user.ErrInternal)
+					Return("", util.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

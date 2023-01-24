@@ -1,5 +1,5 @@
 package util
 
 type ErrResponse struct {
-	Error error `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 }

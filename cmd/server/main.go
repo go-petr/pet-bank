@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	// "github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
 	_ "github.com/lib/pq"
@@ -14,10 +13,10 @@ import (
 	// ah "github.com/go-petr/pet-bank/internal/account/delivery"
 	// ar "github.com/go-petr/pet-bank/internal/account/repo"
 	// as "github.com/go-petr/pet-bank/internal/account/service"
+
 	uh "github.com/go-petr/pet-bank/internal/user/delivery"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	us "github.com/go-petr/pet-bank/internal/user/service"
-	// "github.com/go-petr/pet-bank/internal/middleware"
 )
 
 func main() {
@@ -50,8 +49,10 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 
 	userRepo := ur.NewUserRepo(db)
 	// accountRepo := ar.NewAccountRepo(db)
+
 	userService := us.NewUserService(userRepo)
 	// accountService := as.NewAccountService(accountRepo)
+
 	userHandler := uh.NewUserHandler(userService, tokenMaker, config.AccessTokenDuration)
 	// accountHandler := ah.NewAccountHandler(accountService)
 
@@ -60,9 +61,11 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 	server.POST("/users/login", userHandler.LoginUser)
 
 	// authRoutes := server.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
+
 	// authRoutes.POST("/accounts", accountHandler.CreateAccount)
 	// authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
 	// authRoutes.GET("/accounts", accountHandler.ListAccounts)
+
 	// authRoutes.POST("/transfers", server.createTransfer)
 
 	// if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

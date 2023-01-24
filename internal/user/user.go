@@ -10,7 +10,6 @@ var (
 	ErrEmailALreadyExists    = errors.New("Email already exists")
 	ErrUserNotFound          = errors.New("User not found")
 	ErrWrongPassword         = errors.New("Wrong password")
-	ErrInternal              = errors.New("internal")
 )
 
 type User struct {

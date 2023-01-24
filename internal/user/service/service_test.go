@@ -128,7 +128,7 @@ func TestCreateUser(t *testing.T) {
 							Email:          testUser.Email,
 						}, testPassword)).
 					Times(1).
-					Return(user.User{}, user.ErrInternal)
+					Return(user.User{}, util.ErrInternal)
 			},
 			checkResponse: func(response user.UserWihtoutPassword, err error) {
 				require.Equal(t, user.UserWihtoutPassword{}, response)

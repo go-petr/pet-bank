@@ -105,6 +105,10 @@ func (r *accountRepo) GetAccount(ctx context.Context, id int32) (account.Account
 		&a.Currency,
 		&a.CreatedAt,
 	)
+
+	if err == sql.ErrNoRows {
+		return a, account.ErrAccountNotFound
+	}
 	return a, err
 }
 

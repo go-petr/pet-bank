@@ -171,7 +171,7 @@ func TestDeleteAccount(t *testing.T) {
 
 	accountDeleted, err := testAccountRepo.GetAccount(context.Background(), testAccount.ID)
 	require.Error(t, err)
-	require.EqualError(t, err, sql.ErrNoRows.Error())
+	require.EqualError(t, err, account.ErrAccountNotFound.Error())
 	require.Empty(t, accountDeleted)
 }
 

@@ -48,7 +48,7 @@ type createUserRequest struct {
 func (h *userHandler) CreateUser(ctx *gin.Context) {
 	var req createUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err})
+		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
@@ -56,23 +56,23 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUserNotFound:
-			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err})
+			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 			return
 		case user.ErrUsernameAlreadyExists:
-			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err})
+			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
 			return
 		case user.ErrEmailALreadyExists:
-			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err})
+			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	accessToken, err := h.tokenMaker.CreateToken(req.Username, h.tokenDuration)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
@@ -96,7 +96,7 @@ type loginUserRequest struct {
 func (h *userHandler) LoginUser(ctx *gin.Context) {
 	var req loginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err})
+		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
@@ -104,20 +104,20 @@ func (h *userHandler) LoginUser(ctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUserNotFound:
-			ctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err})
+			ctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
 			return
 		case user.ErrWrongPassword:
-			ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err})
+			ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	accessToken, err := h.tokenMaker.CreateToken(req.Username, h.tokenDuration)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
