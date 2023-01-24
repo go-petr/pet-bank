@@ -5,15 +5,18 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
 	_ "github.com/lib/pq"
 
-	// ah "github.com/go-petr/pet-bank/internal/account/delivery"
-	// ar "github.com/go-petr/pet-bank/internal/account/repo"
-	// as "github.com/go-petr/pet-bank/internal/account/service"
+	ah "github.com/go-petr/pet-bank/internal/account/delivery"
+	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	as "github.com/go-petr/pet-bank/internal/account/service"
 
+	"github.com/go-petr/pet-bank/internal/middleware"
 	uh "github.com/go-petr/pet-bank/internal/user/delivery"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	us "github.com/go-petr/pet-bank/internal/user/service"
@@ -48,29 +51,29 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 	}
 
 	userRepo := ur.NewUserRepo(db)
-	// accountRepo := ar.NewAccountRepo(db)
+	accountRepo := ar.NewAccountRepo(db)
 
 	userService := us.NewUserService(userRepo)
-	// accountService := as.NewAccountService(accountRepo)
+	accountService := as.NewAccountService(accountRepo)
 
 	userHandler := uh.NewUserHandler(userService, tokenMaker, config.AccessTokenDuration)
-	// accountHandler := ah.NewAccountHandler(accountService)
+	accountHandler := ah.NewAccountHandler(accountService)
 
 	server := gin.Default()
 	server.POST("/users", userHandler.CreateUser)
 	server.POST("/users/login", userHandler.LoginUser)
 
-	// authRoutes := server.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
+	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
 
-	// authRoutes.POST("/accounts", accountHandler.CreateAccount)
-	// authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
-	// authRoutes.GET("/accounts", accountHandler.ListAccounts)
+	authRoutes.POST("/accounts", accountHandler.CreateAccount)
+	authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
+	authRoutes.GET("/accounts", accountHandler.ListAccounts)
 
 	// authRoutes.POST("/transfers", server.createTransfer)
 
-	// if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-	// 	v.RegisterValidation("currency", ah.ValidCurrency)
-	// }
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("currency", ah.ValidCurrency)
+	}
 
 	return server
 }
