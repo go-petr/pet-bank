@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/util"
 )
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
@@ -37,10 +38,6 @@ type userResponse struct {
 	} `json:"data,omitempty"`
 }
 
-type ErrResponse struct {
-	Error string `json:"error,omitempty"`
-}
-
 type createUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -51,7 +48,7 @@ type createUserRequest struct {
 func (h *userHandler) CreateUser(ctx *gin.Context) {
 	var req createUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrResponse{Error: err.Error()})
+		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err})
 		return
 	}
 
@@ -59,23 +56,23 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUserNotFound:
-			ctx.JSON(http.StatusBadRequest, ErrResponse{Error: err.Error()})
+			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err})
 			return
 		case user.ErrUsernameAlreadyExists:
-			ctx.JSON(http.StatusConflict, ErrResponse{Error: err.Error()})
+			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err})
 			return
 		case user.ErrEmailALreadyExists:
-			ctx.JSON(http.StatusConflict, ErrResponse{Error: err.Error()})
+			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, ErrResponse{Error: err.Error()})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
 		return
 	}
 
 	accessToken, err := h.tokenMaker.CreateToken(req.Username, h.tokenDuration)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrResponse{Error: err.Error()})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
 		return
 	}
 
@@ -99,7 +96,7 @@ type loginUserRequest struct {
 func (h *userHandler) LoginUser(ctx *gin.Context) {
 	var req loginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrResponse{Error: err.Error()})
+		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err})
 		return
 	}
 
@@ -107,20 +104,20 @@ func (h *userHandler) LoginUser(ctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUserNotFound:
-			ctx.JSON(http.StatusNotFound, ErrResponse{Error: err.Error()})
+			ctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err})
 			return
 		case user.ErrWrongPassword:
-			ctx.JSON(http.StatusUnauthorized, ErrResponse{Error: err.Error()})
+			ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, ErrResponse{Error: err.Error()})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
 		return
 	}
 
 	accessToken, err := h.tokenMaker.CreateToken(req.Username, h.tokenDuration)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrResponse{Error: err.Error()})
+		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err})
 		return
 	}
 
