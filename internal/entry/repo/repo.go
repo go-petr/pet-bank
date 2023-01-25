@@ -2,16 +2,16 @@ package repo
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/entry"
+	"github.com/go-petr/pet-bank/pkg/util"
 )
 
 type EntryRepo struct {
-	db *sql.DB
+	db util.DB
 }
 
-func NewEntryRepo(db *sql.DB) *EntryRepo {
+func NewEntryRepo(db util.DB) *EntryRepo {
 	return &EntryRepo{db: db}
 }
 

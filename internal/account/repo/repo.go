@@ -6,14 +6,15 @@ import (
 	"fmt"
 
 	"github.com/go-petr/pet-bank/internal/account"
+	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/lib/pq"
 )
 
 type AccountRepo struct {
-	db *sql.DB
+	db util.DB
 }
 
-func NewAccountRepo(db *sql.DB) *AccountRepo {
+func NewAccountRepo(db util.DB) *AccountRepo {
 	return &AccountRepo{
 		db: db,
 	}
