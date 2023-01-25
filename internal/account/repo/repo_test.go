@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	testAccountRepo *accountRepo
+	testAccountRepo *AccountRepo
 	testUserRepo    *repo.UserRepo
 )
 

@@ -9,12 +9,12 @@ import (
 	"github.com/lib/pq"
 )
 
-type accountRepo struct {
+type AccountRepo struct {
 	db *sql.DB
 }
 
-func NewAccountRepo(db *sql.DB) *accountRepo {
-	return &accountRepo{
+func NewAccountRepo(db *sql.DB) *AccountRepo {
+	return &AccountRepo{
 		db: db,
 	}
 }
@@ -26,7 +26,7 @@ WHERE id = $2
 RETURNING id, owner, balance, currency, created_at
 `
 
-func (r *accountRepo) AddAccountBalance(ctx context.Context, arg account.AddAccountBalanceParams) (account.Account, error) {
+func (r *AccountRepo) AddAccountBalance(ctx context.Context, arg account.AddAccountBalanceParams) (account.Account, error) {
 
 	row := r.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.ID)
 
@@ -50,7 +50,7 @@ VALUES
 RETURNING id, owner, balance, currency, created_at
 `
 
-func (r *accountRepo) CreateAccount(ctx context.Context, arg account.CreateAccountParams) (account.Account, error) {
+func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccountParams) (account.Account, error) {
 
 	row := r.db.QueryRowContext(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
 
@@ -82,7 +82,7 @@ DELETE FROM accounts
 WHERE id = $1
 `
 
-func (r *accountRepo) DeleteAccount(ctx context.Context, id int32) error {
+func (r *AccountRepo) DeleteAccount(ctx context.Context, id int32) error {
 	_, err := r.db.ExecContext(ctx, deleteAccount, id)
 	return err
 }
@@ -92,7 +92,7 @@ SELECT id, owner, balance, currency, created_at FROM accounts
 WHERE id = $1
 `
 
-func (r *accountRepo) GetAccount(ctx context.Context, id int32) (account.Account, error) {
+func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account, error) {
 
 	row := r.db.QueryRowContext(ctx, getAccount, id)
 
@@ -119,7 +119,7 @@ ORDER BY id
 LIMIT $2 OFFSET $3
 `
 
-func (r *accountRepo) ListAccounts(ctx context.Context, arg account.ListAccountsParams) ([]account.Account, error) {
+func (r *AccountRepo) ListAccounts(ctx context.Context, arg account.ListAccountsParams) ([]account.Account, error) {
 
 	rows, err := r.db.QueryContext(ctx, listAccounts, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
