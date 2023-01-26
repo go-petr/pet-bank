@@ -1,19 +1,24 @@
 package transfer
 
 import (
+	"errors"
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/entry"
 )
 
+var (
+	ErrCurrencyMismatch = errors.New("CurrencyMismatch")
+)
+
 type Transfer struct {
-	ID            int64
-	FromAccountID int32
-	ToAccountID   int32
+	ID            int64 `json:"id"`
+	FromAccountID int32 `json:"from_account_id"`
+	ToAccountID   int32 `json:"to_account_id"`
 	// must be positive
-	Amount    string
-	CreatedAt time.Time
+	Amount    string    `json:"amount"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type CreateTransferParams struct {
