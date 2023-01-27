@@ -12,31 +12,31 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockaccountServiceInterface is a mock of accountServiceInterface interface.
-type MockaccountServiceInterface struct {
+// MockAccountServiceInterface is a mock of AccountServiceInterface interface.
+type MockAccountServiceInterface struct {
 	ctrl     *gomock.Controller
-	recorder *MockaccountServiceInterfaceMockRecorder
+	recorder *MockAccountServiceInterfaceMockRecorder
 }
 
-// MockaccountServiceInterfaceMockRecorder is the mock recorder for MockaccountServiceInterface.
-type MockaccountServiceInterfaceMockRecorder struct {
-	mock *MockaccountServiceInterface
+// MockAccountServiceInterfaceMockRecorder is the mock recorder for MockAccountServiceInterface.
+type MockAccountServiceInterfaceMockRecorder struct {
+	mock *MockAccountServiceInterface
 }
 
-// NewMockaccountServiceInterface creates a new mock instance.
-func NewMockaccountServiceInterface(ctrl *gomock.Controller) *MockaccountServiceInterface {
-	mock := &MockaccountServiceInterface{ctrl: ctrl}
-	mock.recorder = &MockaccountServiceInterfaceMockRecorder{mock}
+// NewMockAccountServiceInterface creates a new mock instance.
+func NewMockAccountServiceInterface(ctrl *gomock.Controller) *MockAccountServiceInterface {
+	mock := &MockAccountServiceInterface{ctrl: ctrl}
+	mock.recorder = &MockAccountServiceInterfaceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockaccountServiceInterface) EXPECT() *MockaccountServiceInterfaceMockRecorder {
+func (m *MockAccountServiceInterface) EXPECT() *MockAccountServiceInterfaceMockRecorder {
 	return m.recorder
 }
 
 // CreateAccount mocks base method.
-func (m *MockaccountServiceInterface) CreateAccount(ctx context.Context, owner, currency string) (account.Account, error) {
+func (m *MockAccountServiceInterface) CreateAccount(ctx context.Context, owner, currency string) (account.Account, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAccount", ctx, owner, currency)
 	ret0, _ := ret[0].(account.Account)
@@ -45,13 +45,13 @@ func (m *MockaccountServiceInterface) CreateAccount(ctx context.Context, owner, 
 }
 
 // CreateAccount indicates an expected call of CreateAccount.
-func (mr *MockaccountServiceInterfaceMockRecorder) CreateAccount(ctx, owner, currency interface{}) *gomock.Call {
+func (mr *MockAccountServiceInterfaceMockRecorder) CreateAccount(ctx, owner, currency interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccount", reflect.TypeOf((*MockaccountServiceInterface)(nil).CreateAccount), ctx, owner, currency)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccount", reflect.TypeOf((*MockAccountServiceInterface)(nil).CreateAccount), ctx, owner, currency)
 }
 
 // GetAccount mocks base method.
-func (m *MockaccountServiceInterface) GetAccount(ctx context.Context, id int32) (account.Account, error) {
+func (m *MockAccountServiceInterface) GetAccount(ctx context.Context, id int32) (account.Account, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccount", ctx, id)
 	ret0, _ := ret[0].(account.Account)
@@ -60,13 +60,13 @@ func (m *MockaccountServiceInterface) GetAccount(ctx context.Context, id int32) 
 }
 
 // GetAccount indicates an expected call of GetAccount.
-func (mr *MockaccountServiceInterfaceMockRecorder) GetAccount(ctx, id interface{}) *gomock.Call {
+func (mr *MockAccountServiceInterfaceMockRecorder) GetAccount(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccount", reflect.TypeOf((*MockaccountServiceInterface)(nil).GetAccount), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccount", reflect.TypeOf((*MockAccountServiceInterface)(nil).GetAccount), ctx, id)
 }
 
 // ListAccounts mocks base method.
-func (m *MockaccountServiceInterface) ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]account.Account, error) {
+func (m *MockAccountServiceInterface) ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]account.Account, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAccounts", ctx, owner, pageSize, pageID)
 	ret0, _ := ret[0].([]account.Account)
@@ -75,7 +75,7 @@ func (m *MockaccountServiceInterface) ListAccounts(ctx context.Context, owner st
 }
 
 // ListAccounts indicates an expected call of ListAccounts.
-func (mr *MockaccountServiceInterfaceMockRecorder) ListAccounts(ctx, owner, pageSize, pageID interface{}) *gomock.Call {
+func (mr *MockAccountServiceInterfaceMockRecorder) ListAccounts(ctx, owner, pageSize, pageID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccounts", reflect.TypeOf((*MockaccountServiceInterface)(nil).ListAccounts), ctx, owner, pageSize, pageID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccounts", reflect.TypeOf((*MockAccountServiceInterface)(nil).ListAccounts), ctx, owner, pageSize, pageID)
 }

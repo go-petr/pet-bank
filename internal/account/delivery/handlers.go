@@ -14,17 +14,17 @@ import (
 )
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
-type accountServiceInterface interface {
+type AccountServiceInterface interface {
 	CreateAccount(ctx context.Context, owner, currency string) (account.Account, error)
 	GetAccount(ctx context.Context, id int32) (account.Account, error)
 	ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]account.Account, error)
 }
 
 type accountHandler struct {
-	service accountServiceInterface
+	service AccountServiceInterface
 }
 
-func NewAccountHandler(as accountServiceInterface) accountHandler {
+func NewAccountHandler(as AccountServiceInterface) accountHandler {
 	return accountHandler{service: as}
 }
 
