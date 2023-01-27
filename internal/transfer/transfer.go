@@ -9,7 +9,11 @@ import (
 )
 
 var (
-	ErrCurrencyMismatch = errors.New("CurrencyMismatch")
+	ErrCurrencyMismatch    = errors.New("accounts currency mismatch")
+	ErrInvalidAmount       = errors.New("invalid amount")
+	ErrNegativeAmount      = errors.New("negative amount")
+	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrInvalidOwner        = errors.New("unauthorized owner")
 )
 
 type Transfer struct {

@@ -130,6 +130,33 @@ func TestCreateTranferAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "Invalid owner",
+			requestBody: gin.H{
+				"from_account_id": testAccount1.ID,
+				"to_account_id":   testAccount2.ID,
+				"amount":          amount,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			},
+			buildStubs: func(transferService *MocktransferServiceInterface) {
+
+				arg := transfer.CreateTransferParams{
+					FromAccountID: testAccount1.ID,
+					ToAccountID:   testAccount2.ID,
+					Amount:        amount,
+				}
+
+				transferService.EXPECT().
+					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
+					Times(1).
+					Return(transfer.TransferTxResult{}, transfer.ErrInvalidOwner)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "InvalidTransferRequestError",
 			requestBody: gin.H{
 				"from_account_id": testAccount1.ID,
@@ -151,6 +178,33 @@ func TestCreateTranferAPI(t *testing.T) {
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
 					Return(transfer.TransferTxResult{}, transfer.ErrCurrencyMismatch)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "InvalidTransferInternalError",
+			requestBody: gin.H{
+				"from_account_id": testAccount1.ID,
+				"to_account_id":   testAccount2.ID,
+				"amount":          amount,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			},
+			buildStubs: func(transferService *MocktransferServiceInterface) {
+
+				arg := transfer.CreateTransferParams{
+					FromAccountID: testAccount1.ID,
+					ToAccountID:   testAccount2.ID,
+					Amount:        amount,
+				}
+
+				transferService.EXPECT().
+					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
+					Times(1).
+					Return(transfer.TransferTxResult{}, util.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

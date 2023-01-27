@@ -56,6 +56,18 @@ func (h *transferHandler) CreateTransfer(ctx *gin.Context) {
 
 	result, err := h.service.TransferTx(ctx, authPayload.Username, arg)
 	if err != nil {
+		switch err {
+		case transfer.ErrInvalidOwner:
+			ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			return
+		case transfer.ErrInvalidAmount,
+			transfer.ErrNegativeAmount,
+			transfer.ErrInsufficientBalance,
+			transfer.ErrCurrencyMismatch:
+			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
