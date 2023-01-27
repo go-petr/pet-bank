@@ -8,16 +8,16 @@ import (
 )
 
 //go:generate mockgen -source service.go -destination service_mock.go -package service
-type userRepo interface {
+type userRepoInterface interface {
 	CreateUser(ctx context.Context, arg user.CreateUserParams) (user.User, error)
 	GetUser(ctx context.Context, username string) (user.User, error)
 }
 
 type userService struct {
-	repo userRepo
+	repo userRepoInterface
 }
 
-func NewUserService(ur userRepo) *userService {
+func NewUserService(ur userRepoInterface) *userService {
 	return &userService{
 		repo: ur,
 	}

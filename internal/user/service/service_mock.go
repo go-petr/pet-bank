@@ -12,31 +12,31 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockuserRepo is a mock of userRepo interface.
-type MockuserRepo struct {
+// MockuserRepoInterface is a mock of userRepoInterface interface.
+type MockuserRepoInterface struct {
 	ctrl     *gomock.Controller
-	recorder *MockuserRepoMockRecorder
+	recorder *MockuserRepoInterfaceMockRecorder
 }
 
-// MockuserRepoMockRecorder is the mock recorder for MockuserRepo.
-type MockuserRepoMockRecorder struct {
-	mock *MockuserRepo
+// MockuserRepoInterfaceMockRecorder is the mock recorder for MockuserRepoInterface.
+type MockuserRepoInterfaceMockRecorder struct {
+	mock *MockuserRepoInterface
 }
 
-// NewMockuserRepo creates a new mock instance.
-func NewMockuserRepo(ctrl *gomock.Controller) *MockuserRepo {
-	mock := &MockuserRepo{ctrl: ctrl}
-	mock.recorder = &MockuserRepoMockRecorder{mock}
+// NewMockuserRepoInterface creates a new mock instance.
+func NewMockuserRepoInterface(ctrl *gomock.Controller) *MockuserRepoInterface {
+	mock := &MockuserRepoInterface{ctrl: ctrl}
+	mock.recorder = &MockuserRepoInterfaceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockuserRepo) EXPECT() *MockuserRepoMockRecorder {
+func (m *MockuserRepoInterface) EXPECT() *MockuserRepoInterfaceMockRecorder {
 	return m.recorder
 }
 
 // CreateUser mocks base method.
-func (m *MockuserRepo) CreateUser(ctx context.Context, arg user.CreateUserParams) (user.User, error) {
+func (m *MockuserRepoInterface) CreateUser(ctx context.Context, arg user.CreateUserParams) (user.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", ctx, arg)
 	ret0, _ := ret[0].(user.User)
@@ -45,13 +45,13 @@ func (m *MockuserRepo) CreateUser(ctx context.Context, arg user.CreateUserParams
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockuserRepoMockRecorder) CreateUser(ctx, arg interface{}) *gomock.Call {
+func (mr *MockuserRepoInterfaceMockRecorder) CreateUser(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockuserRepo)(nil).CreateUser), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockuserRepoInterface)(nil).CreateUser), ctx, arg)
 }
 
 // GetUser mocks base method.
-func (m *MockuserRepo) GetUser(ctx context.Context, username string) (user.User, error) {
+func (m *MockuserRepoInterface) GetUser(ctx context.Context, username string) (user.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUser", ctx, username)
 	ret0, _ := ret[0].(user.User)
@@ -60,7 +60,7 @@ func (m *MockuserRepo) GetUser(ctx context.Context, username string) (user.User,
 }
 
 // GetUser indicates an expected call of GetUser.
-func (mr *MockuserRepoMockRecorder) GetUser(ctx, username interface{}) *gomock.Call {
+func (mr *MockuserRepoInterfaceMockRecorder) GetUser(ctx, username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockuserRepo)(nil).GetUser), ctx, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockuserRepoInterface)(nil).GetUser), ctx, username)
 }

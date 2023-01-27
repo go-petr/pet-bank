@@ -66,7 +66,7 @@ func TestCreateUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := NewMockuserRepo(ctrl)
+	userRepo := NewMockuserRepoInterface(ctrl)
 	userService := NewUserService(userRepo)
 
 	testCases := []struct {
@@ -77,7 +77,7 @@ func TestCreateUser(t *testing.T) {
 			Fullname string
 			Email    string
 		}
-		buildStubs    func(userRepo *MockuserRepo)
+		buildStubs    func(userRepo *MockuserRepoInterface)
 		checkResponse func(response user.UserWihtoutPassword, err error)
 	}{
 		{
@@ -93,7 +93,7 @@ func TestCreateUser(t *testing.T) {
 				testUser.FullName,
 				testUser.Email,
 			},
-			buildStubs: func(userRepo *MockuserRepo) {
+			buildStubs: func(userRepo *MockuserRepoInterface) {
 
 				userRepo.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
@@ -117,7 +117,7 @@ func TestCreateUser(t *testing.T) {
 				testUser.FullName,
 				testUser.Email,
 			},
-			buildStubs: func(userRepo *MockuserRepo) {
+			buildStubs: func(userRepo *MockuserRepoInterface) {
 
 				userRepo.EXPECT().
 					CreateUser(gomock.Any(), EqCreateUserParams(
@@ -148,7 +148,7 @@ func TestCreateUser(t *testing.T) {
 				testUser.FullName,
 				testUser.Email,
 			},
-			buildStubs: func(userRepo *MockuserRepo) {
+			buildStubs: func(userRepo *MockuserRepoInterface) {
 
 				userRepo.EXPECT().
 					CreateUser(gomock.Any(), EqCreateUserParams(
@@ -199,21 +199,21 @@ func TestCheckPassword(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := NewMockuserRepo(ctrl)
+	userRepo := NewMockuserRepoInterface(ctrl)
 	userService := NewUserService(userRepo)
 
 	testCases := []struct {
 		name          string
 		username      string
 		password      string
-		buildStubs    func(userRepo *MockuserRepo)
+		buildStubs    func(userRepo *MockuserRepoInterface)
 		checkResponse func(response user.UserWihtoutPassword, err error)
 	}{
 		{
 			name:     "GetUserError",
 			username: testUser.Username,
 			password: testPassword,
-			buildStubs: func(userRepo *MockuserRepo) {
+			buildStubs: func(userRepo *MockuserRepoInterface) {
 
 				userRepo.EXPECT().
 					GetUser(gomock.Any(), testUser.Username).
@@ -230,7 +230,7 @@ func TestCheckPassword(t *testing.T) {
 			name:     "WrongPassword",
 			username: testUser.Username,
 			password: "wrong",
-			buildStubs: func(userRepo *MockuserRepo) {
+			buildStubs: func(userRepo *MockuserRepoInterface) {
 
 				userRepo.EXPECT().
 					GetUser(gomock.Any(), testUser.Username).
@@ -247,7 +247,7 @@ func TestCheckPassword(t *testing.T) {
 			name:     "OK",
 			username: testUser.Username,
 			password: testPassword,
-			buildStubs: func(userRepo *MockuserRepo) {
+			buildStubs: func(userRepo *MockuserRepoInterface) {
 
 				userRepo.EXPECT().
 					GetUser(gomock.Any(), testUser.Username).

@@ -156,7 +156,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 	if arg.FromAccountID < arg.ToAccountID {
 		result.FromAccount, result.ToAccount, err = addBalances(ctx, accountTxRepo, arg.FromAccountID, "-"+arg.Amount, arg.ToAccountID, arg.Amount)
 	} else {
-		result.FromAccount, result.ToAccount, err = addBalances(ctx, accountTxRepo, arg.ToAccountID, arg.Amount, arg.FromAccountID, "-"+arg.Amount)
+		result.ToAccount, result.FromAccount, err = addBalances(ctx, accountTxRepo, arg.ToAccountID, arg.Amount, arg.FromAccountID, "-"+arg.Amount)
 	}
 	if err != nil {
 		return empty, err

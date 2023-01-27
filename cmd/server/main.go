@@ -17,6 +17,9 @@ import (
 	as "github.com/go-petr/pet-bank/internal/account/service"
 
 	"github.com/go-petr/pet-bank/internal/middleware"
+	th "github.com/go-petr/pet-bank/internal/transfer/delivery"
+	tr "github.com/go-petr/pet-bank/internal/transfer/repo"
+	ts "github.com/go-petr/pet-bank/internal/transfer/service"
 	uh "github.com/go-petr/pet-bank/internal/user/delivery"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	us "github.com/go-petr/pet-bank/internal/user/service"
@@ -52,12 +55,15 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 
 	userRepo := ur.NewUserRepo(db)
 	accountRepo := ar.NewAccountRepo(db)
+	transferRepo := tr.NewTransferRepo(db)
 
 	userService := us.NewUserService(userRepo)
 	accountService := as.NewAccountService(accountRepo)
+	transferService := ts.NewTransferService(transferRepo, accountService)
 
 	userHandler := uh.NewUserHandler(userService, tokenMaker, config.AccessTokenDuration)
 	accountHandler := ah.NewAccountHandler(accountService)
+	transferHandler := th.NewTransferHandler(transferService)
 
 	server := gin.Default()
 	server.POST("/users", userHandler.CreateUser)
@@ -69,7 +75,7 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 	authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
 	authRoutes.GET("/accounts", accountHandler.ListAccounts)
 
-	// authRoutes.POST("/transfers", server.createTransfer)
+	authRoutes.POST("/transfers", transferHandler.CreateTransfer)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("currency", ah.ValidCurrency)
