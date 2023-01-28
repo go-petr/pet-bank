@@ -29,6 +29,17 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: simplebank
           IMAGE_TAG: ${{ github.sha }}
+          DB_DRIVER: ${{ secrets.DB_DRIVER }}
+          DB_SOURCE: ${{ secrets.DB_SOURCE }}
+          SERVER_ADDRESS: ${{ secrets.SERVER_ADDRESS }}
+          TOKEN_SYMMETRIC_KEY: ${{ secrets.TOKEN_SYMMETRIC_KEY }}
+          ACCESS_TOKEN_DURATION: ${{ secrets.ACCESS_TOKEN_DURATION }}
         run: |
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG -f build/package/Dockerfile .
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG \
+          --build-arg DB_DRIVER=${DB_DRIVER} \
+          --build-arg DB_SOURCE=${DB_SOURCE} \
+          --build-arg SERVER_ADDRESS=${SERVER_ADDRESS} \
+          --build-arg TOKEN_SYMMETRIC_KEY=${TOKEN_SYMMETRIC_KEY} \
+          --build-arg ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION} \
+          -f build/package/Dockerfile .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
