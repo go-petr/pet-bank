@@ -39,7 +39,6 @@ func main() {
 
 	server := NewServer(config, conn)
 
-	// Start rung the HTTP server on a specific address.
 	err = server.Run(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start server:", err)

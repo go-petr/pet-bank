@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/pkg/util"
@@ -66,7 +65,6 @@ func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccou
 	)
 
 	if pqErr, ok := err.(*pq.Error); ok {
-		fmt.Println(err)
 		switch pqErr.Constraint {
 		case "accounts_owner_fkey":
 			return a, account.ErrNoOwnerExists
