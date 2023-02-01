@@ -7,7 +7,9 @@ package delivery
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
+	session "github.com/go-petr/pet-bank/internal/session"
 	user "github.com/go-petr/pet-bank/internal/user"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -63,4 +65,44 @@ func (m *MockuserServiceInterface) CreateUser(ctx context.Context, username, pas
 func (mr *MockuserServiceInterfaceMockRecorder) CreateUser(ctx, username, password, fullname, email interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockuserServiceInterface)(nil).CreateUser), ctx, username, password, fullname, email)
+}
+
+// MockSessionMakerInterface is a mock of SessionMakerInterface interface.
+type MockSessionMakerInterface struct {
+	ctrl     *gomock.Controller
+	recorder *MockSessionMakerInterfaceMockRecorder
+}
+
+// MockSessionMakerInterfaceMockRecorder is the mock recorder for MockSessionMakerInterface.
+type MockSessionMakerInterfaceMockRecorder struct {
+	mock *MockSessionMakerInterface
+}
+
+// NewMockSessionMakerInterface creates a new mock instance.
+func NewMockSessionMakerInterface(ctrl *gomock.Controller) *MockSessionMakerInterface {
+	mock := &MockSessionMakerInterface{ctrl: ctrl}
+	mock.recorder = &MockSessionMakerInterfaceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSessionMakerInterface) EXPECT() *MockSessionMakerInterfaceMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockSessionMakerInterface) Create(ctx context.Context, arg session.CreateSessionParams) (string, time.Time, session.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, arg)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(time.Time)
+	ret2, _ := ret[2].(session.Session)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockSessionMakerInterfaceMockRecorder) Create(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockSessionMakerInterface)(nil).Create), ctx, arg)
 }

@@ -8,13 +8,14 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
-	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
 	_ "github.com/lib/pq"
 
 	ah "github.com/go-petr/pet-bank/internal/account/delivery"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	as "github.com/go-petr/pet-bank/internal/account/service"
+	sr "github.com/go-petr/pet-bank/internal/session/repo"
+	ss "github.com/go-petr/pet-bank/internal/session/service"
 
 	"github.com/go-petr/pet-bank/internal/middleware"
 	th "github.com/go-petr/pet-bank/internal/transfer/delivery"
@@ -37,7 +38,10 @@ func main() {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	server := NewServer(config, conn)
+	server, err := NewServer(config, conn)
+	if err != nil {
+		log.Fatal("cannot create server:", err)
+	}
 
 	err = server.Run(config.ServerAddress)
 	if err != nil {
@@ -45,22 +49,22 @@ func main() {
 	}
 }
 
-func NewServer(config util.Config, db *sql.DB) *gin.Engine {
-
-	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
-	if err != nil {
-		log.Fatal("cannot create token maker:", err)
-	}
+func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 
 	userRepo := ur.NewUserRepo(db)
 	accountRepo := ar.NewAccountRepo(db)
 	transferRepo := tr.NewTransferRepo(db)
+	sessionRepo := sr.NewSessionRepo(db)
 
 	userService := us.NewUserService(userRepo)
 	accountService := as.NewAccountService(accountRepo)
 	transferService := ts.NewTransferService(transferRepo, accountService)
+	sessionService, err := ss.NewSessionService(sessionRepo, config)
+	if err != nil {
+		return nil, err
+	}
 
-	userHandler := uh.NewUserHandler(userService, tokenMaker, config.AccessTokenDuration)
+	userHandler := uh.NewUserHandler(userService, sessionService)
 	accountHandler := ah.NewAccountHandler(accountService)
 	transferHandler := th.NewTransferHandler(transferService)
 
@@ -68,7 +72,7 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 	server.POST("/users", userHandler.CreateUser)
 	server.POST("/users/login", userHandler.LoginUser)
 
-	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
+	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
 
 	authRoutes.POST("/accounts", accountHandler.CreateAccount)
 	authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
@@ -80,5 +84,5 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 		v.RegisterValidation("currency", ah.ValidCurrency)
 	}
 
-	return server
+	return server, nil
 }
