@@ -12,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 
 	ah "github.com/go-petr/pet-bank/internal/account/delivery"
+	sh "github.com/go-petr/pet-bank/internal/session/delivery"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	as "github.com/go-petr/pet-bank/internal/account/service"
 	sr "github.com/go-petr/pet-bank/internal/session/repo"
@@ -67,10 +68,12 @@ func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 	userHandler := uh.NewUserHandler(userService, sessionService)
 	accountHandler := ah.NewAccountHandler(accountService)
 	transferHandler := th.NewTransferHandler(transferService)
+	sessionHandler := sh.NewSessionHandler(sessionService)
 
 	server := gin.Default()
 	server.POST("/users", userHandler.CreateUser)
 	server.POST("/users/login", userHandler.LoginUser)
+	server.POST("/sessions", sessionHandler.RenewAccessToken)
 
 	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
 
