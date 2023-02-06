@@ -29,7 +29,7 @@ server:
 	go run cmd/server/main.go
 
 composeappup:
-	docker-compose -f deployments/docker-compose.yaml up --build
+	docker-compose -f deployments/docker-compose.yaml up
 
 composeappdown:
 	 docker-compose -f deployments/docker-compose.yaml down

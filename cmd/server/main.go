@@ -8,13 +8,14 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
+	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
 	_ "github.com/lib/pq"
 
 	ah "github.com/go-petr/pet-bank/internal/account/delivery"
-	sh "github.com/go-petr/pet-bank/internal/session/delivery"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	as "github.com/go-petr/pet-bank/internal/account/service"
+	sh "github.com/go-petr/pet-bank/internal/session/delivery"
 	sr "github.com/go-petr/pet-bank/internal/session/repo"
 	ss "github.com/go-petr/pet-bank/internal/session/service"
 
@@ -57,10 +58,15 @@ func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 	transferRepo := tr.NewTransferRepo(db)
 	sessionRepo := sr.NewSessionRepo(db)
 
+	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, err
+	}
+
 	userService := us.NewUserService(userRepo)
 	accountService := as.NewAccountService(accountRepo)
 	transferService := ts.NewTransferService(transferRepo, accountService)
-	sessionService, err := ss.NewSessionService(sessionRepo, config)
+	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
 	if err != nil {
 		return nil, err
 	}

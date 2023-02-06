@@ -5,27 +5,27 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/session"
-	"github.com/go-petr/pet-bank/internal/session/repo"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source service.go -destination service_mock.go -package service
+type SessionRepoInterface interface {
+	CreateSession(ctx context.Context, arg session.CreateSessionParams) (session.Session, error)
+	GetSession(ctx context.Context, id uuid.UUID) (session.Session, error)
+}
+
 type SessionService struct {
-	repo       *repo.SessionRepo
+	repo       SessionRepoInterface
 	TokenMaker token.Maker
 	config     util.Config
 }
 
-func NewSessionService(sr *repo.SessionRepo, config util.Config) (*SessionService, error) {
-
-	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
-	if err != nil {
-		return nil, err
-	}
-
+func NewSessionService(sr SessionRepoInterface, config util.Config, tm token.Maker) (*SessionService, error) {
 	return &SessionService{
 		repo:       sr,
-		TokenMaker: tokenMaker,
+		TokenMaker: tm,
 		config:     config,
 	}, nil
 }
@@ -36,12 +36,12 @@ func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionPa
 
 	accessToken, accessPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.AccessTokenDuration)
 	if err != nil {
-		return "", accessPayload.ExpiredAt, sess, err
+		return "", time.Time{}, sess, util.ErrInternal
 	}
 
 	refreshToken, refreshPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.RefreshTokenDuration)
 	if err != nil {
-		return "", accessPayload.ExpiredAt, sess, err
+		return "", time.Time{}, sess, util.ErrInternal
 	}
 
 	arg.ID = refreshPayload.ID
@@ -50,8 +50,48 @@ func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionPa
 
 	sess, err = s.repo.CreateSession(ctx, arg)
 	if err != nil {
-		return "", accessPayload.ExpiredAt, sess, err
+		return "", time.Time{}, sess, util.ErrInternal
 	}
 
 	return accessToken, accessPayload.ExpiredAt, sess, nil
+}
+
+func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken string) (string, time.Time, error) {
+
+	refreshPayload, err := s.TokenMaker.VerifyToken(refreshToken)
+	if err != nil {
+		return "", time.Time{}, util.ErrInternal
+	}
+
+	sess, err := s.repo.GetSession(ctx, refreshPayload.ID)
+	if err != nil {
+		return "", time.Time{}, session.ErrSessionNotFound
+	}
+
+	if sess.IsBlocked {
+		return "", time.Time{}, session.ErrBlockedSession
+	}
+
+	if sess.Username != refreshPayload.Username {
+		return "", time.Time{}, session.ErrInvalidUser
+	}
+
+	if sess.RefreshToken != refreshToken {
+		return "", time.Time{}, session.ErrMismatchedRefreshToken
+	}
+
+	if time.Now().After(sess.ExpiresAt) {
+		return "", time.Time{}, session.ErrExpiredSession
+	}
+
+	accessToken, accessPayload, err := s.TokenMaker.CreateToken(
+		refreshPayload.Username,
+		s.config.AccessTokenDuration,
+	)
+	if err != nil {
+		return "", time.Time{}, util.ErrInternal
+	}
+
+	return accessToken, accessPayload.ExpiredAt, nil
+
 }

@@ -1,9 +1,18 @@
 package session
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+var (
+	ErrBlockedSession         = errors.New("blocked session")
+	ErrMismatchedRefreshToken = errors.New("mismatched session token")
+	ErrInvalidUser            = errors.New("incorrect session user")
+	ErrExpiredSession         = errors.New("expired session")
+	ErrSessionNotFound        = errors.New("Session not found")
 )
 
 type Session struct {
