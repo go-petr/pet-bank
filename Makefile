@@ -28,5 +28,11 @@ test:
 server:
 	go run cmd/server/main.go
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 server 
+composeappup:
+	docker-compose -f deployments/docker-compose.yaml up
+
+composeappdown:
+	 docker-compose -f deployments/docker-compose.yaml down
+
+.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 server composeappdown
 

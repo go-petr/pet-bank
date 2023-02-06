@@ -15,6 +15,9 @@ import (
 	ah "github.com/go-petr/pet-bank/internal/account/delivery"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	as "github.com/go-petr/pet-bank/internal/account/service"
+	sh "github.com/go-petr/pet-bank/internal/session/delivery"
+	sr "github.com/go-petr/pet-bank/internal/session/repo"
+	ss "github.com/go-petr/pet-bank/internal/session/service"
 
 	"github.com/go-petr/pet-bank/internal/middleware"
 	th "github.com/go-petr/pet-bank/internal/transfer/delivery"
@@ -37,39 +40,48 @@ func main() {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	server := NewServer(config, conn)
+	server, err := NewServer(config, conn)
+	if err != nil {
+		log.Fatal("cannot create server:", err)
+	}
 
-	// Start rung the HTTP server on a specific address.
 	err = server.Run(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start server:", err)
 	}
 }
 
-func NewServer(config util.Config, db *sql.DB) *gin.Engine {
-
-	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
-	if err != nil {
-		log.Fatal("cannot create token maker:", err)
-	}
+func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 
 	userRepo := ur.NewUserRepo(db)
 	accountRepo := ar.NewAccountRepo(db)
 	transferRepo := tr.NewTransferRepo(db)
+	sessionRepo := sr.NewSessionRepo(db)
+
+	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, err
+	}
 
 	userService := us.NewUserService(userRepo)
 	accountService := as.NewAccountService(accountRepo)
 	transferService := ts.NewTransferService(transferRepo, accountService)
+	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
+	if err != nil {
+		return nil, err
+	}
 
-	userHandler := uh.NewUserHandler(userService, tokenMaker, config.AccessTokenDuration)
+	userHandler := uh.NewUserHandler(userService, sessionService)
 	accountHandler := ah.NewAccountHandler(accountService)
 	transferHandler := th.NewTransferHandler(transferService)
+	sessionHandler := sh.NewSessionHandler(sessionService)
 
 	server := gin.Default()
 	server.POST("/users", userHandler.CreateUser)
 	server.POST("/users/login", userHandler.LoginUser)
+	server.POST("/sessions", sessionHandler.RenewAccessToken)
 
-	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
+	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
 
 	authRoutes.POST("/accounts", accountHandler.CreateAccount)
 	authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
@@ -81,5 +93,5 @@ func NewServer(config util.Config, db *sql.DB) *gin.Engine {
 		v.RegisterValidation("currency", ah.ValidCurrency)
 	}
 
-	return server
+	return server, nil
 }

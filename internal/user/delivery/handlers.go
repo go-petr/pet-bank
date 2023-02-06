@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
 )
 
@@ -17,23 +17,28 @@ type userServiceInterface interface {
 	CheckPassword(ctx context.Context, username, password string) (user.UserWihtoutPassword, error)
 }
 
-type userHandler struct {
-	service       userServiceInterface
-	tokenMaker    token.Maker
-	tokenDuration time.Duration
+type SessionMakerInterface interface {
+	Create(ctx context.Context, arg session.CreateSessionParams) (string, time.Time, session.Session, error)
 }
 
-func NewUserHandler(us userServiceInterface, tm token.Maker, td time.Duration) *userHandler {
+type userHandler struct {
+	service  userServiceInterface
+	sessions SessionMakerInterface
+}
+
+func NewUserHandler(us userServiceInterface, sm SessionMakerInterface) *userHandler {
 	return &userHandler{
-		service:       us,
-		tokenMaker:    tm,
-		tokenDuration: td,
+		service:  us,
+		sessions: sm,
 	}
 }
 
 type userResponse struct {
-	Token string `json:"token,omitempty"`
-	Data  struct {
+	AccessToken           string    `json:"token,omitempty"`
+	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
+	RefreshToken          string    `json:"refresh_token,omitempty"`
+	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
+	Data                  struct {
 		User user.UserWihtoutPassword `json:"user,omitempty"`
 	} `json:"data,omitempty"`
 }
@@ -70,14 +75,23 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.tokenMaker.CreateToken(req.Username, h.tokenDuration)
+	arg := session.CreateSessionParams{
+		Username:  req.Username,
+		UserAgent: ctx.Request.UserAgent(),
+		ClientIP:  ctx.ClientIP(),
+	}
+
+	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	res := userResponse{
-		Token: accessToken,
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessTokenExpiresAt,
+		RefreshToken:          session.RefreshToken,
+		RefreshTokenExpiresAt: session.ExpiresAt,
 		Data: struct {
 			User user.UserWihtoutPassword "json:\"user,omitempty\""
 		}{
@@ -115,14 +129,23 @@ func (h *userHandler) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.tokenMaker.CreateToken(req.Username, h.tokenDuration)
+	arg := session.CreateSessionParams{
+		Username:  req.Username,
+		UserAgent: ctx.Request.UserAgent(),
+		ClientIP:  ctx.ClientIP(),
+	}
+
+	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	res := userResponse{
-		Token: accessToken,
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessTokenExpiresAt,
+		RefreshToken:          session.RefreshToken,
+		RefreshTokenExpiresAt: session.ExpiresAt,
 		Data: struct {
 			User user.UserWihtoutPassword "json:\"user,omitempty\""
 		}{
