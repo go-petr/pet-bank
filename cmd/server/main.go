@@ -2,11 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
@@ -32,35 +32,24 @@ func main() {
 
 	config, err := util.LoadConfig("./configs")
 	if err != nil {
-		log.Fatal("cannot load config:", err)
+		log.Fatal().Err(err).Msg("cannot connect to db:")
 	}
+
+	logger := middleware.GetLogger(config)
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
-		log.Fatal("cannot connect to db:", err)
+		logger.Fatal().Err(err).Msg("cannot connect to db:")
 	}
 
-	server, err := NewServer(config, conn)
-	if err != nil {
-		log.Fatal("cannot create server:", err)
-	}
-
-	err = server.Run(config.ServerAddress)
-	if err != nil {
-		log.Fatal("cannot start server:", err)
-	}
-}
-
-func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
-
-	userRepo := ur.NewUserRepo(db)
-	accountRepo := ar.NewAccountRepo(db)
-	transferRepo := tr.NewTransferRepo(db)
-	sessionRepo := sr.NewSessionRepo(db)
+	userRepo := ur.NewUserRepo(conn)
+	accountRepo := ar.NewAccountRepo(conn)
+	transferRepo := tr.NewTransferRepo(conn)
+	sessionRepo := sr.NewSessionRepo(conn)
 
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
-		return nil, err
+		logger.Fatal().Err(err).Msg("cannot create token maker:")
 	}
 
 	userService := us.NewUserService(userRepo)
@@ -68,7 +57,7 @@ func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 	transferService := ts.NewTransferService(transferRepo, accountService)
 	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
 	if err != nil {
-		return nil, err
+		logger.Fatal().Err(err).Msg("cannot initialize session service:")
 	}
 
 	userHandler := uh.NewUserHandler(userService, sessionService)
@@ -76,7 +65,12 @@ func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 	transferHandler := th.NewTransferHandler(transferService)
 	sessionHandler := sh.NewSessionHandler(sessionService)
 
-	server := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	server := gin.New()
+
+	server.Use(middleware.RequestLogger(logger))
+	server.Use(gin.Recovery())
+
 	server.POST("/users", userHandler.CreateUser)
 	server.POST("/users/login", userHandler.LoginUser)
 	server.POST("/sessions", sessionHandler.RenewAccessToken)
@@ -93,5 +87,8 @@ func NewServer(config util.Config, db *sql.DB) (*gin.Engine, error) {
 		v.RegisterValidation("currency", ah.ValidCurrency)
 	}
 
-	return server, nil
+	err = server.Run(config.ServerAddress)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("cannot start server:")
+	}
 }
