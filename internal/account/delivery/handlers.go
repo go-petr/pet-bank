@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/rs/zerolog"
 
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/go-petr/pet-bank/pkg/util"
@@ -32,63 +33,73 @@ type createAccountRequest struct {
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
-func (h *accountHandler) CreateAccount(ctx *gin.Context) {
+func (h *accountHandler) CreateAccount(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(gctx)
 
 	var req createAccountRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindJSON(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
-	authPayload := ctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
 
 	createdAccount, err := h.service.CreateAccount(ctx, authPayload.Username, req.Currency)
 	if err != nil {
 		switch err {
 		case account.ErrNoOwnerExists:
-			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 			return
 		case account.ErrCurrencyAlreadyExists:
-			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, createdAccount)
+	gctx.JSON(http.StatusOK, createdAccount)
 }
 
 type getAccountRequest struct {
 	ID int32 `uri:"id" binding:"required,min=1"`
 }
 
-func (h *accountHandler) GetAccount(ctx *gin.Context) {
+func (h *accountHandler) GetAccount(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(gctx)
+
 	var req getAccountRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindUri(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	acc, err := h.service.GetAccount(ctx, req.ID)
 	if err != nil {
 		if err == account.ErrAccountNotFound {
-			ctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
-	authPayload := ctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
 	if acc.Owner != authPayload.Username {
+		l.Warn().Err(err).Send()
 		err := errors.New("account doesn't belong to the authenticated user")
-		ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, acc)
+	gctx.JSON(http.StatusOK, acc)
 }
 
 type listAccountsRequest struct {
@@ -96,20 +107,25 @@ type listAccountsRequest struct {
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
 }
 
-func (h *accountHandler) ListAccounts(ctx *gin.Context) {
+func (h *accountHandler) ListAccounts(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(gctx)
+
 	var req listAccountsRequest
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindQuery(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
-	authPayload := ctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
 
 	accounts, err := h.service.ListAccounts(ctx, authPayload.Username, req.PageSize, req.PageID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, accounts)
+	gctx.JSON(http.StatusOK, accounts)
 }
