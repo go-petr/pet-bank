@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"io"
+	"net/http"
 	"os"
 	"time"
 
@@ -70,29 +71,37 @@ func RequestLogger(logger zerolog.Logger) gin.HandlerFunc {
 		// Process request
 		c.Next()
 
-		// Fill the params
-		param := gin.LogFormatterParams{}
-		param.TimeStamp = time.Now() // Stop timer
-		param.Latency = param.TimeStamp.Sub(start)
-		param.ClientIP = c.ClientIP()
-		param.Method = c.Request.Method
-		param.StatusCode = c.Writer.Status()
-		param.ErrorMessage = c.Errors.ByType(gin.ErrorTypePrivate).String()
-		param.Path = c.Request.URL.Path
+		defer func() {
 
-		var logEvent *zerolog.Event
-		if c.Writer.Status() >= 500 {
-			logEvent = logger.Error()
-		} else {
-			logEvent = logger.Info()
-		}
+			if panicVal := recover(); panicVal != nil {
+				logger.Error().Msgf("panic message: %v", panicVal)
+				c.Writer.WriteHeader(http.StatusInternalServerError)
+			}
 
-		logEvent.
-			Str("client_id", param.ClientIP).
-			Str("method", param.Method).
-			Int("status_code", param.StatusCode).
-			Str("path", param.Path).
-			Str("latency", param.Latency.String()).
-			Msg(param.ErrorMessage)
+			// Fill the params
+			param := gin.LogFormatterParams{}
+			param.TimeStamp = time.Now() // Stop timer
+			param.Latency = param.TimeStamp.Sub(start)
+			param.ClientIP = c.ClientIP()
+			param.Method = c.Request.Method
+			param.StatusCode = c.Writer.Status()
+			param.ErrorMessage = c.Errors.ByType(gin.ErrorTypePrivate).String()
+			param.Path = c.Request.URL.Path
+
+			var logEvent *zerolog.Event
+			if c.Writer.Status() >= 500 {
+				logEvent = logger.Error()
+			} else {
+				logEvent = logger.Info()
+			}
+
+			logEvent.
+				Str("client_id", param.ClientIP).
+				Str("method", param.Method).
+				Int("status_code", param.StatusCode).
+				Str("path", param.Path).
+				Str("latency", param.Latency.String()).
+				Msg(param.ErrorMessage)
+		}()
 	}
 }
