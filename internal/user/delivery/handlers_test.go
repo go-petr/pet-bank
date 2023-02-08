@@ -29,6 +29,7 @@ func TestMain(m *testing.M) {
 		TokenSymmetricKey:   util.RandomString(32),
 		AccessTokenDuration: time.Minute,
 	}
+	gin.SetMode(gin.ReleaseMode)
 	os.Exit(m.Run())
 }
 
@@ -126,33 +127,6 @@ func TestCreateUserAPI(t *testing.T) {
 				userService.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
-
-				sessionMaker.EXPECT().
-					Create(gomock.Any(), gomock.Any()).
-					Times(0)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
-		},
-		{
-			name: "UserNotFound",
-			requestBody: gin.H{
-				"username": "NotFound",
-				"password": password,
-				"fullname": testUser.FullName,
-				"email":    testUser.Email,
-			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
-				userService.EXPECT().
-					CreateUser(gomock.Any(),
-						gomock.Eq("NotFound"),
-						gomock.Eq(password),
-						gomock.Eq(testUser.FullName),
-						gomock.Eq(testUser.Email)).
-					Times(1).
-					Return(user.UserWihtoutPassword{}, user.ErrUserNotFound)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).

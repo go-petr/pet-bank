@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
@@ -33,16 +34,21 @@ type renewAccessTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
-func (h *SessionHandler) RenewAccessToken(ctx *gin.Context) {
+func (h *SessionHandler) RenewAccessToken(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(ctx)
+
 	var req renewAccessTokenRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindJSON(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	accessToken, accessTokenExpiresAt, err := h.service.RenewAccessToken(ctx, req.RefreshToken)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
@@ -50,5 +56,5 @@ func (h *SessionHandler) RenewAccessToken(ctx *gin.Context) {
 		AccessToken:          accessToken,
 		AccessTokenExpiresAt: accessTokenExpiresAt,
 	}
-	ctx.JSON(http.StatusOK, rsp)
+	gctx.JSON(http.StatusOK, rsp)
 }

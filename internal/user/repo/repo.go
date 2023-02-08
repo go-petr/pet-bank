@@ -5,7 +5,9 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/user"
+	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type UserRepo struct {
@@ -31,6 +33,8 @@ INSERT INTO users (
 
 func (r *UserRepo) CreateUser(ctx context.Context, arg user.CreateUserParams) (user.User, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, createUser,
 		arg.Username,
 		arg.HashedPassword,
@@ -49,18 +53,24 @@ func (r *UserRepo) CreateUser(ctx context.Context, arg user.CreateUserParams) (u
 		&u.CreatedAt,
 	)
 
-	if pqErr, ok := err.(*pq.Error); ok {
-		if pqErr.Code.Name() == "unique_violation" {
-			switch pqErr.Constraint {
-			case "users_pkey":
-				return u, user.ErrUsernameAlreadyExists
-			case "users_email_key":
-				return u, user.ErrEmailALreadyExists
+	if err != nil {
+
+		l.Error().Err(err).Send()
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code.Name() == "unique_violation" {
+				switch pqErr.Constraint {
+				case "users_pkey":
+					return u, user.ErrUsernameAlreadyExists
+				case "users_email_key":
+					return u, user.ErrEmailALreadyExists
+				}
 			}
 		}
+		return u, util.ErrInternal
 	}
 
-	return u, err
+	return u, nil
 }
 
 const getUser = `
@@ -77,6 +87,8 @@ WHERE username = $1
 
 func (r *UserRepo) GetUser(ctx context.Context, username string) (user.User, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, getUser, username)
 
 	var u user.User
@@ -90,9 +102,16 @@ func (r *UserRepo) GetUser(ctx context.Context, username string) (user.User, err
 		&u.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return u, user.ErrUserNotFound
+	if err != nil {
+
+		l.Error().Err(err).Send()
+
+		if err == sql.ErrNoRows {
+			return u, user.ErrUserNotFound
+		}
+
+		return u, util.ErrInternal
 	}
-	
-	return u, err
+
+	return u, nil
 }

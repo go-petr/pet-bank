@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
@@ -39,14 +40,19 @@ type transferResponse struct {
 	} `json:"data,omitempty"`
 }
 
-func (h *transferHandler) CreateTransfer(ctx *gin.Context) {
+func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(ctx)
+
 	var req transferRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindJSON(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
-	authPayload := ctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := transfer.CreateTransferParams{
 		FromAccountID: req.FromAccountID,
@@ -56,19 +62,20 @@ func (h *transferHandler) CreateTransfer(ctx *gin.Context) {
 
 	result, err := h.service.TransferTx(ctx, authPayload.Username, arg)
 	if err != nil {
+		l.Info().Err(err).Send()
 		switch err {
 		case transfer.ErrInvalidOwner:
-			ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
 			return
 		case transfer.ErrInvalidAmount,
 			transfer.ErrNegativeAmount,
 			transfer.ErrInsufficientBalance,
 			transfer.ErrCurrencyMismatch:
-			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
@@ -80,5 +87,5 @@ func (h *transferHandler) CreateTransfer(ctx *gin.Context) {
 		},
 	}
 
-	ctx.JSON(http.StatusOK, res)
+	gctx.JSON(http.StatusOK, res)
 }

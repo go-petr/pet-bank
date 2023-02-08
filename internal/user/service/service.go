@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockgen -source service.go -destination service_mock.go -package service
@@ -35,11 +36,14 @@ func NewUserWihtoutPassword(u user.User) user.UserWihtoutPassword {
 
 func (s *userService) CreateUser(ctx context.Context, username, password, fullname, email string) (user.UserWihtoutPassword, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	var response user.UserWihtoutPassword
 
 	hashedPassword, err := util.HashPassword(password)
 	if err != nil {
-		return response, err
+		l.Error().Err(err).Send()
+		return response, util.ErrInternal
 	}
 
 	arg := user.CreateUserParams{
@@ -59,6 +63,8 @@ func (s *userService) CreateUser(ctx context.Context, username, password, fullna
 }
 func (s *userService) CheckPassword(ctx context.Context, username, pass string) (user.UserWihtoutPassword, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	var response user.UserWihtoutPassword
 
 	gotUser, err := s.repo.GetUser(ctx, username)
@@ -68,6 +74,7 @@ func (s *userService) CheckPassword(ctx context.Context, username, pass string) 
 
 	err = util.CheckPassword(pass, gotUser.HashedPassword)
 	if err != nil {
+		l.Warn().Err(err).Send()
 		return response, user.ErrWrongPassword
 	}
 

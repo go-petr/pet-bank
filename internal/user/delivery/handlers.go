@@ -9,6 +9,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
@@ -50,40 +51,43 @@ type createUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 }
 
-func (h *userHandler) CreateUser(ctx *gin.Context) {
+func (h *userHandler) CreateUser(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(ctx)
+
 	var req createUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindJSON(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
 	createdUser, err := h.service.CreateUser(ctx, req.Username, req.Password, req.FullName, req.Email)
 	if err != nil {
 		switch err {
-		case user.ErrUserNotFound:
-			ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
-			return
 		case user.ErrUsernameAlreadyExists:
-			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
 			return
 		case user.ErrEmailALreadyExists:
-			ctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
 	arg := session.CreateSessionParams{
 		Username:  req.Username,
-		UserAgent: ctx.Request.UserAgent(),
-		ClientIP:  ctx.ClientIP(),
+		UserAgent: gctx.Request.UserAgent(),
+		ClientIP:  gctx.ClientIP(),
 	}
 
 	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
@@ -99,7 +103,7 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 		},
 	}
 
-	ctx.JSON(http.StatusOK, res)
+	gctx.JSON(http.StatusOK, res)
 }
 
 type loginUserRequest struct {
@@ -107,10 +111,15 @@ type loginUserRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-func (h *userHandler) LoginUser(ctx *gin.Context) {
+func (h *userHandler) LoginUser(gctx *gin.Context) {
+
+	ctx := gctx.Request.Context()
+	l := zerolog.Ctx(ctx)
+
 	var req loginUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+	if err := gctx.ShouldBindJSON(&req); err != nil {
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
 		return
 	}
 
@@ -118,26 +127,27 @@ func (h *userHandler) LoginUser(ctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUserNotFound:
-			ctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
 			return
 		case user.ErrWrongPassword:
-			ctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
 	arg := session.CreateSessionParams{
 		Username:  req.Username,
-		UserAgent: ctx.Request.UserAgent(),
-		ClientIP:  ctx.ClientIP(),
+		UserAgent: gctx.Request.UserAgent(),
+		ClientIP:  gctx.ClientIP(),
 	}
 
 	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: err.Error()})
+		l.Warn().Err(err).Send()
+		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
 		return
 	}
 
@@ -153,5 +163,5 @@ func (h *userHandler) LoginUser(ctx *gin.Context) {
 		},
 	}
 
-	ctx.JSON(http.StatusOK, res)
+	gctx.JSON(http.StatusOK, res)
 }

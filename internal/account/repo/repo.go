@@ -7,6 +7,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type AccountRepo struct {
@@ -28,6 +29,8 @@ RETURNING id, owner, balance, currency, created_at
 
 func (r *AccountRepo) AddAccountBalance(ctx context.Context, arg account.AddAccountBalanceParams) (account.Account, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.ID)
 
 	var a account.Account
@@ -39,7 +42,15 @@ func (r *AccountRepo) AddAccountBalance(ctx context.Context, arg account.AddAcco
 		&a.Currency,
 		&a.CreatedAt,
 	)
-	return a, err
+
+	if err != nil {
+
+		l.Error().Err(err).Send()
+
+		return a, util.ErrInternal
+	}
+
+	return a, nil
 }
 
 const createAccount = `
@@ -51,6 +62,8 @@ RETURNING id, owner, balance, currency, created_at
 `
 
 func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccountParams) (account.Account, error) {
+
+	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
 
@@ -64,16 +77,23 @@ func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccou
 		&a.CreatedAt,
 	)
 
-	if pqErr, ok := err.(*pq.Error); ok {
-		switch pqErr.Constraint {
-		case "accounts_owner_fkey":
-			return a, account.ErrNoOwnerExists
-		case "accounts_owner_currency_idx":
-			return a, account.ErrCurrencyAlreadyExists
+	if err != nil {
+
+		l.Error().Err(err).Send()
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Constraint {
+			case "accounts_owner_fkey":
+				return a, account.ErrNoOwnerExists
+			case "accounts_owner_currency_idx":
+				return a, account.ErrCurrencyAlreadyExists
+			}
 		}
+
+		return a, util.ErrInternal
 	}
 
-	return a, err
+	return a, nil
 }
 
 const deleteAccount = `
@@ -93,6 +113,8 @@ WHERE id = $1
 
 func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, getAccount, id)
 
 	var a account.Account
@@ -105,10 +127,18 @@ func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account
 		&a.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return a, account.ErrAccountNotFound
+	if err != nil {
+
+		l.Error().Err(err).Send()
+
+		if err == sql.ErrNoRows {
+			return a, account.ErrAccountNotFound
+		}
+
+		return a, util.ErrInternal
 	}
-	return a, err
+
+	return a, nil
 }
 
 const listAccounts = `
@@ -119,6 +149,8 @@ LIMIT $2 OFFSET $3
 `
 
 func (r *AccountRepo) ListAccounts(ctx context.Context, arg account.ListAccountsParams) ([]account.Account, error) {
+
+	l := zerolog.Ctx(ctx)
 
 	rows, err := r.db.QueryContext(ctx, listAccounts, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
@@ -144,11 +176,13 @@ func (r *AccountRepo) ListAccounts(ctx context.Context, arg account.ListAccounts
 	}
 
 	if err := rows.Close(); err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return nil, util.ErrInternal
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return nil, util.ErrInternal
 	}
 
 	return items, nil

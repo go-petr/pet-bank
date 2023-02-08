@@ -6,8 +6,10 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
+	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type SessionRepo struct {
@@ -36,6 +38,8 @@ INSERT INTO sessions (
 
 func (r *SessionRepo) CreateSession(ctx context.Context, arg session.CreateSessionParams) (session.Session, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, createSession,
 		arg.ID,
 		arg.Username,
@@ -59,14 +63,21 @@ func (r *SessionRepo) CreateSession(ctx context.Context, arg session.CreateSessi
 		&s.CreatedAt,
 	)
 
-	if pqErr, ok := err.(*pq.Error); ok {
-		switch pqErr.Constraint {
-		case "sessions_username_fkey":
-			return s, user.ErrUserNotFound
+	if err != nil {
+
+		l.Error().Err(err).Send()
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Constraint {
+			case "sessions_username_fkey":
+				return s, user.ErrUserNotFound
+			}
 		}
+
+		return s, util.ErrInternal
 	}
 
-	return s, err
+	return s, nil
 }
 
 const getSession = `
@@ -85,6 +96,8 @@ WHERE id = $1
 
 func (r *SessionRepo) GetSession(ctx context.Context, id uuid.UUID) (session.Session, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, getSession, id)
 
 	var s session.Session
@@ -100,5 +113,9 @@ func (r *SessionRepo) GetSession(ctx context.Context, id uuid.UUID) (session.Ses
 		&s.CreatedAt,
 	)
 
-	return s, err
+	if err != nil {
+		l.Error().Err(err).Send()
+	}
+
+	return s, nil
 }
