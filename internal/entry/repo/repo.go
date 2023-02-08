@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/rs/zerolog"
 )
 
 type EntryRepo struct {
@@ -25,6 +26,8 @@ RETURNING id, account_id, amount, created_at
 
 func (r *EntryRepo) CreateEntry(ctx context.Context, arg entry.CreateEntryParams) (entry.Entry, error) {
 
+	l := zerolog.Ctx(ctx)
+
 	row := r.db.QueryRowContext(ctx, createEntry, arg.AccountID, arg.Amount)
 
 	var e entry.Entry
@@ -36,7 +39,12 @@ func (r *EntryRepo) CreateEntry(ctx context.Context, arg entry.CreateEntryParams
 		&e.CreatedAt,
 	)
 
-	return e, err
+	if err != nil {
+		l.Error().Err(err).Send()
+		return e, util.ErrInternal
+	}
+
+	return e, nil
 }
 
 const getEntry = `
@@ -45,6 +53,8 @@ WHERE id = $1 LIMIT 1
 `
 
 func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (entry.Entry, error) {
+
+	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getEntry, id)
 
@@ -57,7 +67,12 @@ func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (entry.Entry, error)
 		&e.CreatedAt,
 	)
 
-	return e, err
+	if err != nil {
+		l.Error().Err(err).Send()
+		return e, util.ErrInternal
+	}
+
+	return e, nil
 }
 
 const listEntries = `
@@ -67,6 +82,8 @@ LIMIT $2 OFFSET $3
 `
 
 func (r *EntryRepo) ListEntries(ctx context.Context, arg entry.ListEntriesParams) ([]entry.Entry, error) {
+
+	l := zerolog.Ctx(ctx)
 
 	rows, err := r.db.QueryContext(ctx, listEntries, arg.AccountID, arg.Limit, arg.Offset)
 	if err != nil {
@@ -90,10 +107,12 @@ func (r *EntryRepo) ListEntries(ctx context.Context, arg entry.ListEntriesParams
 	}
 
 	if err := rows.Close(); err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return items, util.ErrInternal
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return items, util.ErrInternal
 	}
 	return items, nil
 }
