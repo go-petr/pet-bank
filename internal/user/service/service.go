@@ -75,7 +75,7 @@ func (s *userService) CheckPassword(ctx context.Context, username, pass string) 
 	err = util.CheckPassword(pass, gotUser.HashedPassword)
 	if err != nil {
 		l.Warn().Err(err).Send()
-		return response, util.ErrInternal
+		return response, user.ErrWrongPassword
 	}
 
 	response = NewUserWihtoutPassword(gotUser)
