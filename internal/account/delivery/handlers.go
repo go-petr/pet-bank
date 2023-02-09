@@ -10,8 +10,9 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/rs/zerolog"
 
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 )
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
@@ -41,7 +42,7 @@ func (h *accountHandler) CreateAccount(gctx *gin.Context) {
 	var req createAccountRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 		return
 	}
 
@@ -51,14 +52,14 @@ func (h *accountHandler) CreateAccount(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case account.ErrNoOwnerExists:
-			gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 			return
 		case account.ErrCurrencyAlreadyExists:
-			gctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 
@@ -77,17 +78,17 @@ func (h *accountHandler) GetAccount(gctx *gin.Context) {
 	var req getAccountRequest
 	if err := gctx.ShouldBindUri(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 		return
 	}
 
 	acc, err := h.service.GetAccount(ctx, req.ID)
 	if err != nil {
 		if err == account.ErrAccountNotFound {
-			gctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
 			return
 		}
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 
@@ -95,7 +96,7 @@ func (h *accountHandler) GetAccount(gctx *gin.Context) {
 	if acc.Owner != authPayload.Username {
 		l.Warn().Err(err).Send()
 		err := errors.New("account doesn't belong to the authenticated user")
-		gctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
 		return
 	}
 
@@ -115,7 +116,7 @@ func (h *accountHandler) ListAccounts(gctx *gin.Context) {
 	var req listAccountsRequest
 	if err := gctx.ShouldBindQuery(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 		return
 	}
 
@@ -123,7 +124,7 @@ func (h *accountHandler) ListAccounts(gctx *gin.Context) {
 
 	accounts, err := h.service.ListAccounts(ctx, authPayload.Username, req.PageSize, req.PageID)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 

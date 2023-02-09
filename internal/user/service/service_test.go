@@ -8,23 +8,25 @@ import (
 	"testing"
 
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func randomUser(t *testing.T) (user.User, string) {
 
-	password := util.RandomString(10)
+	password := apprandom.String(10)
 
-	hashedPassword, err := util.HashPassword(password)
+	hashedPassword, err := apppass.Hash(password)
 	require.NoError(t, err)
 
 	user := user.User{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	return user, password
@@ -42,7 +44,7 @@ func (e eqCreateUserParamsMathcer) Matches(x interface{}) bool {
 		return false
 	}
 
-	err := util.CheckPassword(e.password, arg.HashedPassword)
+	err := apppass.Check(e.password, arg.HashedPassword)
 	if err != nil {
 		return false
 	}
@@ -128,7 +130,7 @@ func TestCreateUser(t *testing.T) {
 							Email:          testUser.Email,
 						}, testPassword)).
 					Times(1).
-					Return(user.User{}, util.ErrInternal)
+					Return(user.User{}, apperrors.ErrInternal)
 			},
 			checkResponse: func(response user.UserWihtoutPassword, err error) {
 				require.Equal(t, user.UserWihtoutPassword{}, response)

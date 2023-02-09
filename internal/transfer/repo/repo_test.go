@@ -13,7 +13,9 @@ import (
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +28,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := util.LoadConfig("../../../configs")
+	config, err := appconfig.Load("../../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -47,14 +49,14 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := util.HashPassword(util.RandomString(10))
+	hashedPassword, err := apppass.Hash(apprandom.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -76,8 +78,8 @@ func createRandomAccount(t *testing.T, testUser user.User) account.Account {
 	// create random account
 	argAccount := account.CreateAccountParams{
 		Owner:    testUser.Username,
-		Balance:  util.RandomMoneyAmountBetween(1_000, 10_000),
-		Currency: util.RandomCurrency(),
+		Balance:  apprandom.MoneyAmountBetween(1_000, 10_000),
+		Currency: apprandom.Currency(),
 	}
 
 	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)
@@ -99,7 +101,7 @@ func createRandomTransfer(t *testing.T, testAccount1, testAccount2 account.Accou
 	arg := transfer.CreateTransferParams{
 		FromAccountID: testAccount1.ID,
 		ToAccountID:   testAccount2.ID,
-		Amount:        util.RandomMoneyAmountBetween(10, 100),
+		Amount:        apprandom.MoneyAmountBetween(10, 100),
 	}
 
 	transfer, err := testTransferRepo.CreateTransfer(context.Background(), arg)

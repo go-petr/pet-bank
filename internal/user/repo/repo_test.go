@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/lib/pq"
@@ -20,7 +22,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := util.LoadConfig("../../../configs")
+	config, err := appconfig.Load("../../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -37,14 +39,14 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := util.HashPassword(util.RandomString(10))
+	hashedPassword, err := apppass.Hash(apprandom.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	user, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -69,14 +71,14 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 
 	user1 := createRandomUser(t)
 
-	hashedPassword, err := util.HashPassword(util.RandomString(10))
+	hashedPassword, err := apppass.Hash(apprandom.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
 		Username:       user1.Username, // Username duplicate
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	user2, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -84,9 +86,9 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 	require.Empty(t, user2)
 
 	arg = user.CreateUserParams{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
+		FullName:       apprandom.Owner(),
 		Email:          user1.Email, // Email duplicate
 	}
 

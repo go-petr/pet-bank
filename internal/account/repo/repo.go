@@ -5,16 +5,18 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/account"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/database"
 	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
 type AccountRepo struct {
-	db util.DB
+	db database.SQLInterface
 }
 
-func NewAccountRepo(db util.DB) *AccountRepo {
+func NewAccountRepo(db database.SQLInterface) *AccountRepo {
 	return &AccountRepo{
 		db: db,
 	}
@@ -47,7 +49,7 @@ func (r *AccountRepo) AddAccountBalance(ctx context.Context, arg account.AddAcco
 
 		l.Error().Err(err).Send()
 
-		return a, util.ErrInternal
+		return a, apperrors.ErrInternal
 	}
 
 	return a, nil
@@ -90,7 +92,7 @@ func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccou
 			}
 		}
 
-		return a, util.ErrInternal
+		return a, apperrors.ErrInternal
 	}
 
 	return a, nil
@@ -135,7 +137,7 @@ func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account
 			return a, account.ErrAccountNotFound
 		}
 
-		return a, util.ErrInternal
+		return a, apperrors.ErrInternal
 	}
 
 	return a, nil
@@ -177,12 +179,12 @@ func (r *AccountRepo) ListAccounts(ctx context.Context, arg account.ListAccounts
 
 	if err := rows.Close(); err != nil {
 		l.Error().Err(err).Send()
-		return nil, util.ErrInternal
+		return nil, apperrors.ErrInternal
 	}
 
 	if err := rows.Err(); err != nil {
 		l.Error().Err(err).Send()
-		return nil, util.ErrInternal
+		return nil, apperrors.ErrInternal
 	}
 
 	return items, nil

@@ -15,18 +15,21 @@ import (
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/service"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	testConfig util.Config
+	testConfig appconfig.Config
 )
 
 func TestMain(m *testing.M) {
-	testConfig = util.Config{
-		TokenSymmetricKey:   util.RandomString(32),
+	testConfig = appconfig.Config{
+		TokenSymmetricKey:   apprandom.String(32),
 		AccessTokenDuration: time.Minute,
 	}
 	gin.SetMode(gin.ReleaseMode)
@@ -35,16 +38,16 @@ func TestMain(m *testing.M) {
 
 func randomUser(t *testing.T) (user.User, string) {
 
-	password := util.RandomString(10)
+	password := apprandom.String(10)
 
-	hashedPassword, err := util.HashPassword(password)
+	hashedPassword, err := apppass.Hash(password)
 	require.NoError(t, err)
 
 	user := user.User{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	return user, password
@@ -207,7 +210,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, util.ErrInternal)
+					Return(user.UserWihtoutPassword{}, apperrors.ErrInternal)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -243,7 +246,7 @@ func TestCreateUserAPI(t *testing.T) {
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Eq(arg)).
 					Times(1).
-					Return("", time.Now(), session.Session{}, util.ErrInternal)
+					Return("", time.Now(), session.Session{}, apperrors.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

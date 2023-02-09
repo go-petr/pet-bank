@@ -8,7 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/rs/zerolog"
 )
 
@@ -59,7 +60,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 	var req createUserRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 		return
 	}
 
@@ -67,14 +68,14 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUsernameAlreadyExists:
-			gctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
 			return
 		case user.ErrEmailALreadyExists:
-			gctx.JSON(http.StatusConflict, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 
@@ -87,7 +88,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 
@@ -119,7 +120,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 	var req loginUserRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 		return
 	}
 
@@ -127,14 +128,14 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case user.ErrUserNotFound:
-			gctx.JSON(http.StatusNotFound, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
 			return
 		case user.ErrWrongPassword:
-			gctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 
@@ -147,7 +148,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
 		l.Warn().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 

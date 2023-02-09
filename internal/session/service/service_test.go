@@ -7,20 +7,22 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	testConfig     util.Config
+	testConfig     appconfig.Config
 	testTokenMaker token.Maker
 )
 
 func TestMain(m *testing.M) {
-	testConfig = util.Config{
-		TokenSymmetricKey:    util.RandomString(32),
+	testConfig = appconfig.Config{
+		TokenSymmetricKey:    apprandom.String(32),
 		AccessTokenDuration:  time.Minute,
 		RefreshTokenDuration: time.Minute,
 	}
@@ -41,7 +43,7 @@ func TestCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, testSessionService)
 
-	testUsername := util.RandomOwner()
+	testUsername := apprandom.Owner()
 	testSession := session.Session{
 		Username: testUsername,
 	}
@@ -62,14 +64,14 @@ func TestCreate(t *testing.T) {
 				repo.EXPECT().
 					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(session.CreateSessionParams{})).
 					Times(1).
-					Return(session.Session{}, util.ErrInternal)
+					Return(session.Session{}, apperrors.ErrInternal)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess session.Session, err error) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.Empty(t, sess)
-				require.EqualError(t, err, util.ErrInternal.Error())
+				require.EqualError(t, err, apperrors.ErrInternal.Error())
 			},
 		},
 		{
@@ -127,11 +129,11 @@ func TestRenewAccessToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, testSessionService)
 
-	testUsername := util.RandomOwner()
+	testUsername := apprandom.Owner()
 	testRefreshToken, testTokenPayload, err := testTokenMaker.CreateToken(testUsername, testConfig.RefreshTokenDuration)
 	require.NoError(t, err)
 
-	testUnauthorizedUsername := util.RandomOwner()
+	testUnauthorizedUsername := apprandom.Owner()
 	testUnauthorizedRefreshToken, testUnauthorizedRefreshTokenPayload, err := testTokenMaker.CreateToken(testUnauthorizedUsername, testConfig.RefreshTokenDuration)
 	require.NoError(t, err)
 
@@ -155,7 +157,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, util.ErrInternal.Error())
+				require.EqualError(t, err, apperrors.ErrInternal.Error())
 			},
 		},
 		{

@@ -1,4 +1,5 @@
-package util
+// Package appconfig provides parsing functionality for environment variables.
+package appconfig
 
 import (
 	"time"
@@ -19,7 +20,7 @@ type Config struct {
 }
 
 // LoadConfig read configuration from file or environment variables.
-func LoadConfig(path string) (config Config, err error) {
+func Load(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName("app")
 	viper.SetConfigType("env")

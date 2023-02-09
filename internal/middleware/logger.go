@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
@@ -16,7 +16,7 @@ import (
 
 type RequestIDKey struct{}
 
-func GetLogger(config util.Config) zerolog.Logger {
+func GetLogger(config appconfig.Config) zerolog.Logger {
 
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 

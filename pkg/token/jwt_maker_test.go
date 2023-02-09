@@ -4,17 +4,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )
 
 func TestJWTMaker(t *testing.T) {
 
-	maker, err := NewJWTMaker(util.RandomString(32))
+	maker, err := NewJWTMaker(apprandom.String(32))
 	require.NoError(t, err)
 
-	username := util.RandomOwner()
+	username := apprandom.Owner()
 	duration := time.Minute
 
 	issuedAt := time.Now()
@@ -38,10 +38,10 @@ func TestJWTMaker(t *testing.T) {
 
 func TestExpiredJWTToken(t *testing.T) {
 
-	maker, err := NewJWTMaker(util.RandomString(32))
+	maker, err := NewJWTMaker(apprandom.String(32))
 	require.NoError(t, err)
 
-	token, payload, err := maker.CreateToken(util.RandomOwner(), -time.Minute)
+	token, payload, err := maker.CreateToken(apprandom.Owner(), -time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, payload)
@@ -55,14 +55,14 @@ func TestExpiredJWTToken(t *testing.T) {
 
 func TestInvalidJWTTokenAlgNone(t *testing.T) {
 
-	payload, err := NewPayload(util.RandomOwner(), time.Minute)
+	payload, err := NewPayload(apprandom.Owner(), time.Minute)
 	require.NoError(t, err)
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodNone, payload)
 	token, err := jwtToken.SignedString(jwt.UnsafeAllowNoneSignatureType)
 	require.NoError(t, err)
 
-	maker, err := NewJWTMaker(util.RandomString(32))
+	maker, err := NewJWTMaker(apprandom.String(32))
 	require.NoError(t, err)
 
 	payload, err = maker.VerifyToken(token)

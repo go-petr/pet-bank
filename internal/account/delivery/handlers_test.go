@@ -18,8 +18,9 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -31,10 +32,10 @@ func TestMain(m *testing.M) {
 
 func randomAccount(owner string) account.Account {
 	return account.Account{
-		ID:        util.RandomInt(1, 100),
+		ID:        apprandom.IntBetween(1, 100),
 		Owner:     owner,
-		Balance:   util.RandomMoneyAmountBetween(1000, 10_000),
-		Currency:  util.RandomCurrency(),
+		Balance:   apprandom.MoneyAmountBetween(1000, 10_000),
+		Currency:  apprandom.Currency(),
 		CreatedAt: time.Now().Truncate(time.Second).UTC(),
 	}
 }
@@ -52,7 +53,7 @@ func requireBodyMatchAccount(t *testing.T, body *bytes.Buffer, acc account.Accou
 
 func TestCreateAccountAPI(t *testing.T) {
 
-	testUsername := util.RandomOwner()
+	testUsername := apprandom.Owner()
 	testAccount := randomAccount(testUsername)
 
 	ctrl := gomock.NewController(t)
@@ -61,7 +62,7 @@ func TestCreateAccountAPI(t *testing.T) {
 	accountService := NewMockAccountServiceInterface(ctrl)
 	accountHandler := NewAccountHandler(accountService)
 
-	tokenMaker, err := token.NewPasetoMaker(util.RandomString(32))
+	tokenMaker, err := token.NewPasetoMaker(apprandom.String(32))
 	require.NoError(t, err)
 
 	url := "/accounts"
@@ -183,7 +184,7 @@ func TestCreateAccountAPI(t *testing.T) {
 						gomock.Eq(testAccount.Owner),
 						gomock.Eq(testAccount.Currency)).
 					Times(1).
-					Return(account.Account{}, util.ErrInternal)
+					Return(account.Account{}, apperrors.ErrInternal)
 
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -240,9 +241,9 @@ func TestCreateAccountAPI(t *testing.T) {
 
 func TestGetAccountAPI(t *testing.T) {
 
-	testUsername := util.RandomOwner()
+	testUsername := apprandom.Owner()
 	testAccount := randomAccount(testUsername)
-	tokenMaker, err := token.NewPasetoMaker(util.RandomString(32))
+	tokenMaker, err := token.NewPasetoMaker(apprandom.String(32))
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -395,7 +396,7 @@ func TestGetAccountAPI(t *testing.T) {
 
 func TestListAccountsAPI(t *testing.T) {
 
-	testUsername := util.RandomOwner()
+	testUsername := apprandom.Owner()
 
 	// n specifies number of account in DB
 	n := 10
@@ -506,7 +507,7 @@ func TestListAccountsAPI(t *testing.T) {
 		},
 	}
 
-	tokenMaker, err := token.NewPasetoMaker(util.RandomString(32))
+	tokenMaker, err := token.NewPasetoMaker(apprandom.String(32))
 	require.NoError(t, err)
 
 	for i := range testCases {

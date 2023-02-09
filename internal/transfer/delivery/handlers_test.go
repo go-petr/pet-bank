@@ -14,32 +14,33 @@ import (
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func randomAccount(owner string) account.Account {
 	return account.Account{
-		ID:        util.RandomInt(1, 100),
+		ID:        apprandom.IntBetween(1, 100),
 		Owner:     owner,
-		Balance:   util.RandomMoneyAmountBetween(1000, 10_000),
-		Currency:  util.RandomCurrency(),
+		Balance:   apprandom.MoneyAmountBetween(1000, 10_000),
+		Currency:  apprandom.Currency(),
 		CreatedAt: time.Now().Truncate(time.Second).UTC(),
 	}
 }
 
 func TestCreateTranferAPI(t *testing.T) {
 
-	testUsername1 := util.RandomOwner()
-	testUsername2 := util.RandomOwner()
+	testUsername1 := apprandom.Owner()
+	testUsername2 := apprandom.Owner()
 
 	testAccount1 := randomAccount(testUsername1)
 	testAccount2 := randomAccount(testUsername2)
 	amount := "100"
 
-	tokenMaker, err := token.NewPasetoMaker(util.RandomString(32))
+	tokenMaker, err := token.NewPasetoMaker(apprandom.String(32))
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -204,7 +205,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				transferService.EXPECT().
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
-					Return(transfer.TransferTxResult{}, util.ErrInternal)
+					Return(transfer.TransferTxResult{}, apperrors.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

@@ -9,8 +9,9 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 )
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
@@ -48,7 +49,7 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 	var req transferRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 		return
 	}
 
@@ -65,17 +66,17 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 		l.Info().Err(err).Send()
 		switch err {
 		case transfer.ErrInvalidOwner:
-			gctx.JSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
 			return
 		case transfer.ErrInvalidAmount,
 			transfer.ErrNegativeAmount,
 			transfer.ErrInsufficientBalance,
 			transfer.ErrCurrencyMismatch:
-			gctx.JSON(http.StatusBadRequest, util.ErrResponse{Error: err.Error()})
+			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, util.ErrResponse{Error: util.ErrInternal.Error()})
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
 		return
 	}
 

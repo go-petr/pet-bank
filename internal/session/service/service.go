@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -20,10 +21,10 @@ type SessionRepoInterface interface {
 type SessionService struct {
 	repo       SessionRepoInterface
 	TokenMaker token.Maker
-	config     util.Config
+	config     appconfig.Config
 }
 
-func NewSessionService(sr SessionRepoInterface, config util.Config, tm token.Maker) (*SessionService, error) {
+func NewSessionService(sr SessionRepoInterface, config appconfig.Config, tm token.Maker) (*SessionService, error) {
 	return &SessionService{
 		repo:       sr,
 		TokenMaker: tm,
@@ -40,13 +41,13 @@ func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionPa
 	accessToken, accessPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.AccessTokenDuration)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, sess, util.ErrInternal
+		return "", time.Time{}, sess, apperrors.ErrInternal
 	}
 
 	refreshToken, refreshPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.RefreshTokenDuration)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, sess, util.ErrInternal
+		return "", time.Time{}, sess, apperrors.ErrInternal
 	}
 
 	arg.ID = refreshPayload.ID
@@ -56,7 +57,7 @@ func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionPa
 	sess, err = s.repo.CreateSession(ctx, arg)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, sess, util.ErrInternal
+		return "", time.Time{}, sess, apperrors.ErrInternal
 	}
 
 	return accessToken, accessPayload.ExpiredAt, sess, nil
@@ -69,7 +70,7 @@ func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken stri
 	refreshPayload, err := s.TokenMaker.VerifyToken(refreshToken)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, util.ErrInternal
+		return "", time.Time{}, apperrors.ErrInternal
 	}
 
 	sess, err := s.repo.GetSession(ctx, refreshPayload.ID)
@@ -104,7 +105,7 @@ func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken stri
 	)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, util.ErrInternal
+		return "", time.Time{}, apperrors.ErrInternal
 	}
 
 	return accessToken, accessPayload.ExpiredAt, nil

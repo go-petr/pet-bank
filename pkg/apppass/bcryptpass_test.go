@@ -1,4 +1,4 @@
-package util
+package apppass
 
 import (
 	"testing"
@@ -9,20 +9,20 @@ import (
 
 func TestPassword(t *testing.T) {
 
-	password := RandomString(10)
-	hashedPassword1, err := HashPassword(password)
+	password := "abcdefghijklmnopqrstuvwxyz"
+	hashedPassword1, err := Hash(password)
 	require.NoError(t, err)
 	require.NotEmpty(t, hashedPassword1)
 
-	err = CheckPassword(password, hashedPassword1)
+	err = Check(password, hashedPassword1)
 	require.NoError(t, err)
 
-	wrongPassword := RandomString(10)
-	err = CheckPassword(wrongPassword, hashedPassword1)
+	wrongPassword := "abc"
+	err = Check(wrongPassword, hashedPassword1)
 	require.EqualError(t, err, bcrypt.ErrMismatchedHashAndPassword.Error())
 
 	// Test for random salt generation
-	hashedPassword2, err := HashPassword(password)
+	hashedPassword2, err := Hash(password)
 	require.NoError(t, err)
 	require.NotEmpty(t, hashedPassword1)
 	require.NotEqual(t, hashedPassword1, hashedPassword2)

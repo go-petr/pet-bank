@@ -12,7 +12,9 @@ import (
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/repo"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
@@ -24,7 +26,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := util.LoadConfig("../../../configs")
+	config, err := appconfig.Load("../../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -42,14 +44,14 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := util.HashPassword(util.RandomString(10))
+	hashedPassword, err := apppass.Hash(apprandom.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -71,9 +73,9 @@ func createRandomSession(t *testing.T, username string) session.Session {
 	arg := session.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     username,
-		RefreshToken: util.RandomString(10),
-		UserAgent:    util.RandomString(10),
-		ClientIP:     util.RandomString(10),
+		RefreshToken: apprandom.String(10),
+		UserAgent:    apprandom.String(10),
+		ClientIP:     apprandom.String(10),
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 
@@ -104,9 +106,9 @@ func TestCreateAccountConstraintViolation(t *testing.T) {
 	arg := session.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     "invalid",
-		RefreshToken: util.RandomString(10),
-		UserAgent:    util.RandomString(10),
-		ClientIP:     util.RandomString(10),
+		RefreshToken: apprandom.String(10),
+		UserAgent:    apprandom.String(10),
+		ClientIP:     apprandom.String(10),
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 

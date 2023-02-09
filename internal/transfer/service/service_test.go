@@ -10,7 +10,9 @@ import (
 	"github.com/go-petr/pet-bank/internal/account/delivery"
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/transfer"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +20,7 @@ import (
 func randomAccount(id int32, balance, currency string) account.Account {
 	return account.Account{
 		ID:        id,
-		Owner:     util.RandomOwner(),
+		Owner:     apprandom.Owner(),
 		Balance:   balance,
 		Currency:  currency,
 		CreatedAt: time.Now().Truncate(time.Second).UTC(),
@@ -34,9 +36,9 @@ func TestTransferTx(t *testing.T) {
 	accountService := delivery.NewMockAccountServiceInterface(ctrl)
 	transferService := NewTransferService(tranferRepo, accountService)
 
-	testAccount1 := randomAccount(1, "1000", util.USD)
-	testAccount2 := randomAccount(2, "1000", util.USD)
-	testAccount3 := randomAccount(1, "1000", util.EUR)
+	testAccount1 := randomAccount(1, "1000", currency.USD)
+	testAccount2 := randomAccount(2, "1000", currency.USD)
+	testAccount3 := randomAccount(1, "1000", currency.EUR)
 	testAmount := "100"
 
 	testTxResult := transfer.TransferTxResult{
@@ -130,11 +132,11 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{}, util.ErrInternal)
+					Return(account.Account{}, apperrors.ErrInternal)
 			},
 			checkResponse: func(res transfer.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, util.ErrInternal.Error())
+				require.EqualError(t, err, apperrors.ErrInternal.Error())
 			},
 		},
 		{
@@ -248,11 +250,11 @@ func TestTransferTx(t *testing.T) {
 					}, nil)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount2.ID)).
 					Times(1).
-					Return(account.Account{}, util.ErrInternal)
+					Return(account.Account{}, apperrors.ErrInternal)
 			},
 			checkResponse: func(res transfer.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, util.ErrInternal.Error())
+				require.EqualError(t, err, apperrors.ErrInternal.Error())
 			},
 		},
 		{

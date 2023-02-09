@@ -4,16 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPasetoMaker(t *testing.T) {
 
-	maker, err := NewPasetoMaker(util.RandomString(32))
+	maker, err := NewPasetoMaker(apprandom.String(32))
 	require.NoError(t, err)
 
-	username := util.RandomOwner()
+	username := apprandom.Owner()
 	duration := time.Minute
 
 	issuedAt := time.Now()
@@ -37,10 +37,10 @@ func TestPasetoMaker(t *testing.T) {
 
 func TestExpiredPasetoToken(t *testing.T) {
 
-	maker, err := NewPasetoMaker(util.RandomString(32))
+	maker, err := NewPasetoMaker(apprandom.String(32))
 	require.NoError(t, err)
 
-	token, payload, err := maker.CreateToken(util.RandomOwner(), -time.Minute)
+	token, payload, err := maker.CreateToken(apprandom.Owner(), -time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, payload)

@@ -12,7 +12,9 @@ import (
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +25,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := util.LoadConfig("../../../configs")
+	config, err := appconfig.Load("../../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -43,7 +45,7 @@ func TestMain(m *testing.M) {
 func createRandomEntry(t *testing.T, account account.Account) entry.Entry {
 	arg := entry.CreateEntryParams{
 		AccountID: account.ID,
-		Amount:    util.RandomMoneyAmountBetween(100, 1_000),
+		Amount:    apprandom.MoneyAmountBetween(100, 1_000),
 	}
 
 	entry, err := testEntryRepo.CreateEntry(context.Background(), arg)
@@ -61,14 +63,14 @@ func createRandomEntry(t *testing.T, account account.Account) entry.Entry {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := util.HashPassword(util.RandomString(10))
+	hashedPassword, err := apppass.Hash(apprandom.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       util.RandomOwner(),
+		Username:       apprandom.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       util.RandomOwner(),
-		Email:          util.RandomEmail(),
+		FullName:       apprandom.Owner(),
+		Email:          apprandom.Email(),
 	}
 
 	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -90,8 +92,8 @@ func createRandomAccount(t *testing.T, testUser user.User) account.Account {
 	// create random account
 	argAccount := account.CreateAccountParams{
 		Owner:    testUser.Username,
-		Balance:  util.RandomMoneyAmountBetween(1_000, 10_000),
-		Currency: util.RandomCurrency(),
+		Balance:  apprandom.MoneyAmountBetween(1_000, 10_000),
+		Currency: apprandom.Currency(),
 	}
 
 	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)

@@ -8,8 +8,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
 
+	"github.com/go-petr/pet-bank/pkg/appconfig"
 	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
 	_ "github.com/lib/pq"
 
 	ah "github.com/go-petr/pet-bank/internal/account/delivery"
@@ -30,7 +30,7 @@ import (
 
 func main() {
 
-	config, err := util.LoadConfig("./configs")
+	config, err := appconfig.Load("./configs")
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db:")
 	}

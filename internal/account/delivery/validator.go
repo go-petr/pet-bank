@@ -1,13 +1,13 @@
 package delivery
 
 import (
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/go-playground/validator/v10"
 )
 
 var ValidCurrency validator.Func = func(fl validator.FieldLevel) bool {
-	if currency, ok := fl.Field().Interface().(string); ok {
-		return util.IsSupportedCurrency(currency)
+	if c, ok := fl.Field().Interface().(string); ok {
+		return currency.IsSupportedCurrency(c)
 	}
 	return false
 }

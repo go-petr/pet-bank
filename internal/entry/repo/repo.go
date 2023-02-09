@@ -4,15 +4,16 @@ import (
 	"context"
 
 	"github.com/go-petr/pet-bank/internal/entry"
-	"github.com/go-petr/pet-bank/pkg/util"
+	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/database"
 	"github.com/rs/zerolog"
 )
 
 type EntryRepo struct {
-	db util.DB
+	db database.SQLInterface
 }
 
-func NewEntryRepo(db util.DB) *EntryRepo {
+func NewEntryRepo(db database.SQLInterface) *EntryRepo {
 	return &EntryRepo{db: db}
 }
 
@@ -41,7 +42,7 @@ func (r *EntryRepo) CreateEntry(ctx context.Context, arg entry.CreateEntryParams
 
 	if err != nil {
 		l.Error().Err(err).Send()
-		return e, util.ErrInternal
+		return e, apperrors.ErrInternal
 	}
 
 	return e, nil
@@ -69,7 +70,7 @@ func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (entry.Entry, error)
 
 	if err != nil {
 		l.Error().Err(err).Send()
-		return e, util.ErrInternal
+		return e, apperrors.ErrInternal
 	}
 
 	return e, nil
@@ -108,11 +109,11 @@ func (r *EntryRepo) ListEntries(ctx context.Context, arg entry.ListEntriesParams
 
 	if err := rows.Close(); err != nil {
 		l.Error().Err(err).Send()
-		return items, util.ErrInternal
+		return items, apperrors.ErrInternal
 	}
 	if err := rows.Err(); err != nil {
 		l.Error().Err(err).Send()
-		return items, util.ErrInternal
+		return items, apperrors.ErrInternal
 	}
 	return items, nil
 }
