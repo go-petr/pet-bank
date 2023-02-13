@@ -1,5 +1,5 @@
-// Package database provides database support functionality.
-package database
+// Package dbpkg provides dbpkg support functionality.
+package dbpkg
 
 import (
 	"context"

@@ -136,7 +136,7 @@ func (r *transferRepo) ListTransfers(ctx context.Context, arg transfer.ListTrans
 }
 
 // TransferTx performs a money transfer from one account to the other.
-// It creates a transfer record, add account entries, and update accounts' balance within a single database transaction
+// It creates a transfer record, add account entries, and update accounts' balance within a single dbpkg transaction
 func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransferParams) (transfer.TransferTxResult, error) {
 
 	l := zerolog.Ctx(ctx)

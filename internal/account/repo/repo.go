@@ -6,17 +6,17 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/database"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
 type AccountRepo struct {
-	db database.SQLInterface
+	db dbpkg.SQLInterface
 }
 
-func NewAccountRepo(db database.SQLInterface) *AccountRepo {
+func NewAccountRepo(db dbpkg.SQLInterface) *AccountRepo {
 	return &AccountRepo{
 		db: db,
 	}

@@ -5,15 +5,15 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/database"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/rs/zerolog"
 )
 
 type EntryRepo struct {
-	db database.SQLInterface
+	db dbpkg.SQLInterface
 }
 
-func NewEntryRepo(db database.SQLInterface) *EntryRepo {
+func NewEntryRepo(db dbpkg.SQLInterface) *EntryRepo {
 	return &EntryRepo{db: db}
 }
 
