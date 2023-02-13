@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/session"
-	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/google/uuid"
@@ -21,10 +21,10 @@ type SessionRepoInterface interface {
 type SessionService struct {
 	repo       SessionRepoInterface
 	TokenMaker token.Maker
-	config     appconfig.Config
+	config     configpkg.Config
 }
 
-func NewSessionService(sr SessionRepoInterface, config appconfig.Config, tm token.Maker) (*SessionService, error) {
+func NewSessionService(sr SessionRepoInterface, config configpkg.Config, tm token.Maker) (*SessionService, error) {
 	return &SessionService{
 		repo:       sr,
 		TokenMaker: tm,

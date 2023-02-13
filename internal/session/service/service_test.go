@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/session"
-	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
 	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/go-petr/pet-bank/pkg/token"
@@ -16,12 +16,12 @@ import (
 )
 
 var (
-	testConfig     appconfig.Config
+	testConfig     configpkg.Config
 	testTokenMaker token.Maker
 )
 
 func TestMain(m *testing.M) {
-	testConfig = appconfig.Config{
+	testConfig = configpkg.Config{
 		TokenSymmetricKey:    apprandom.String(32),
 		AccessTokenDuration:  time.Minute,
 		RefreshTokenDuration: time.Minute,

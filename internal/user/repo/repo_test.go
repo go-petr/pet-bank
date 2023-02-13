@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apppass"
 	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := appconfig.Load("../../../configs")
+	config, err := configpkg.Load("../../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}

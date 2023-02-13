@@ -1,5 +1,5 @@
-// Package appconfig provides parsing functionality for environment variables.
-package appconfig
+// Package configpkg provides parsing functionality for environment variables.
+package configpkg
 
 import (
 	"time"

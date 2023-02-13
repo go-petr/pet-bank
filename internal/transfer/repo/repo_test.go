@@ -13,7 +13,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
-	"github.com/go-petr/pet-bank/pkg/appconfig"
+	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apppass"
 	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/shopspring/decimal"
@@ -28,7 +28,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := appconfig.Load("../../../configs")
+	config, err := configpkg.Load("../../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
