@@ -1,0 +1,28 @@
+linters: # https://golangci-lint.run/usage/linters/
+  disable-all: true
+  enable:
+    # enabled by default:
+    - errcheck # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases.
+    - gosimple # Linter for Go source code that specializes in simplifying code.
+    - govet # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string.
+    - ineffassign # Detects when assignments to existing variables are not used.
+    - staticcheck # It's a set of rules from staticcheck. It's not the same thing as the staticcheck binary.
+    - typecheck # Like the front-end of a Go compiler, parses and type-checks Go code.
+    - unused # Checks Go code for unused constants, variables, functions and types.
+
+    # disabled by default:
+    - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
+    - godot # Check if comments end in a period.
+    - whitespace # Tool for detection of leading and trailing whitespace.
+    - wsl # Whitespace Linter - Forces you to use empty lines.
+    - sqlclosecheck # Checks that sql.Rows and sql.Stmt are closed.
+    # TODO
+    # lines length
+    # errors Case
+
+issues:
+  include:
+    # enable comment check for exported functions
+    - EXC0012 # EXC0012 revive: Annoying issue about not having a comment. The rare codebase has such comments.
+    - EXC0014 # EXC0014 revive: Annoying issue about not having a comment. The rare codebase has such comments.
+

@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/go-petr/pet-bank/internal/account"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entry"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
 	"github.com/go-petr/pet-bank/internal/transfer"
@@ -198,22 +198,16 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 func addBalances(
 	ctx context.Context, r *ar.AccountRepo,
 	account1ID int32, amount1 string,
-	account2ID int32, amount2 string) (account.Account, account.Account, error) {
+	account2ID int32, amount2 string) (domain.Account, domain.Account, error) {
 
-	account1, err := r.AddAccountBalance(ctx, account.AddAccountBalanceParams{
-		ID:     account1ID,
-		Amount: amount1,
-	})
+	account1, err := r.AddAccountBalance(ctx, amount1, account1ID)
 	if err != nil {
-		return account.Account{}, account.Account{}, err
+		return domain.Account{}, domain.Account{}, err
 	}
 
-	account2, err := r.AddAccountBalance(ctx, account.AddAccountBalanceParams{
-		ID:     account2ID,
-		Amount: amount2,
-	})
+	account2, err := r.AddAccountBalance(ctx, amount2, account2ID)
 	if err != nil {
-		return account.Account{}, account.Account{}, err
+		return domain.Account{}, domain.Account{}, err
 	}
 
 	return account1, account2, nil

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/account"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entry"
 )
 
@@ -40,9 +40,9 @@ type ListTransfersParams struct {
 
 // TransferTxResult is the result of the transfer transaction
 type TransferTxResult struct {
-	Transfer    Transfer        `json:"transfer"`
-	FromAccount account.Account `json:"fromAccount"`
-	ToAccount   account.Account `json:"toAccount"`
-	FromEntry   entry.Entry     `json:"fromEntry"`
-	ToEntry     entry.Entry     `json:"toEntry"`
+	Transfer    Transfer       `json:"transfer"`
+	FromAccount domain.Account `json:"fromAccount"`
+	ToAccount   domain.Account `json:"toAccount"`
+	FromEntry   entry.Entry    `json:"fromEntry"`
+	ToEntry     entry.Entry    `json:"toEntry"`
 }

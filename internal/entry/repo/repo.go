@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/go-petr/pet-bank/internal/entry"
-	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/rs/zerolog"
 )
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/go-petr/pet-bank/internal/account"
-	"github.com/go-petr/pet-bank/pkg/errorspkg"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -29,13 +29,13 @@ WHERE id = $2
 RETURNING id, owner, balance, currency, created_at
 `
 
-func (r *AccountRepo) AddAccountBalance(ctx context.Context, arg account.AddAccountBalanceParams) (account.Account, error) {
+func (r *AccountRepo) AddAccountBalance(ctx context.Context, amount string, id int32) (domain.Account, error) {
 
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.ID)
+	row := r.db.QueryRowContext(ctx, addAccountBalance, amount, id)
 
-	var a account.Account
+	var a domain.Account
 
 	err := row.Scan(
 		&a.ID,
@@ -63,13 +63,13 @@ VALUES
 RETURNING id, owner, balance, currency, created_at
 `
 
-func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccountParams) (account.Account, error) {
+func (r *AccountRepo) CreateAccount(ctx context.Context, owner, balance, currency string) (domain.Account, error) {
 
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
+	row := r.db.QueryRowContext(ctx, createAccount, owner, balance, currency)
 
-	var a account.Account
+	var a domain.Account
 
 	err := row.Scan(
 		&a.ID,
@@ -86,9 +86,9 @@ func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccou
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Constraint {
 			case "accounts_owner_fkey":
-				return a, account.ErrNoOwnerExists
+				return a, domain.ErrOwnerNotFound
 			case "accounts_owner_currency_idx":
-				return a, account.ErrCurrencyAlreadyExists
+				return a, domain.ErrCurrencyAlreadyExists
 			}
 		}
 
@@ -113,13 +113,13 @@ SELECT id, owner, balance, currency, created_at FROM accounts
 WHERE id = $1
 `
 
-func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account, error) {
+func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (domain.Account, error) {
 
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getAccount, id)
 
-	var a account.Account
+	var a domain.Account
 
 	err := row.Scan(
 		&a.ID,
@@ -134,7 +134,7 @@ func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account
 		l.Error().Err(err).Send()
 
 		if err == sql.ErrNoRows {
-			return a, account.ErrAccountNotFound
+			return a, domain.ErrAccountNotFound
 		}
 
 		return a, errorspkg.ErrInternal
@@ -150,21 +150,21 @@ ORDER BY id
 LIMIT $2 OFFSET $3
 `
 
-func (r *AccountRepo) ListAccounts(ctx context.Context, arg account.ListAccountsParams) ([]account.Account, error) {
+func (r *AccountRepo) ListAccounts(ctx context.Context, owner string, limit, offset int32) ([]domain.Account, error) {
 
 	l := zerolog.Ctx(ctx)
 
-	rows, err := r.db.QueryContext(ctx, listAccounts, arg.Owner, arg.Limit, arg.Offset)
+	rows, err := r.db.QueryContext(ctx, listAccounts, owner, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	items := []account.Account{}
+	items := []domain.Account{}
 
 	for rows.Next() {
-		var a account.Account
+		var a domain.Account
 		if err := rows.Scan(
 			&a.ID,
 			&a.Owner,

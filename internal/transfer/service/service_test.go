@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/account/delivery"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/transfer"
+	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
-func randomAccount(id int32, balance, currency string) account.Account {
-	return account.Account{
+func randomAccount(id int32, balance, currency string) domain.Account {
+	return domain.Account{
 		ID:        id,
 		Owner:     randompkg.Owner(),
 		Balance:   balance,
@@ -132,7 +132,7 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{}, errorspkg.ErrInternal)
+					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(res transfer.TransferTxResult, err error) {
 				require.Empty(t, res)
@@ -157,7 +157,7 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount2.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						Owner: testAccount2.Owner,
 					}, nil)
 			},
@@ -184,7 +184,7 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						Owner:   testAccount1.Owner,
 						Balance: "invalid",
 					}, nil)
@@ -212,7 +212,7 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						ID:       testAccount1.ID,
 						Owner:    testAccount1.Owner,
 						Balance:  testAccount1.Balance,
@@ -242,7 +242,7 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						ID:       testAccount1.ID,
 						Owner:    testAccount1.Owner,
 						Balance:  testAccount1.Balance,
@@ -250,7 +250,7 @@ func TestTransferTx(t *testing.T) {
 					}, nil)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount2.ID)).
 					Times(1).
-					Return(account.Account{}, errorspkg.ErrInternal)
+					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(res transfer.TransferTxResult, err error) {
 				require.Empty(t, res)
@@ -275,7 +275,7 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						ID:       testAccount1.ID,
 						Owner:    testAccount1.Owner,
 						Balance:  testAccount1.Balance,
@@ -283,7 +283,7 @@ func TestTransferTx(t *testing.T) {
 					}, nil)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount3.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						Currency: testAccount3.Currency,
 					}, nil)
 			},
@@ -312,7 +312,7 @@ func TestTransferTx(t *testing.T) {
 					Return(testTxResult, nil)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						ID:       testAccount1.ID,
 						Owner:    testAccount1.Owner,
 						Balance:  testAccount1.Balance,
@@ -320,7 +320,7 @@ func TestTransferTx(t *testing.T) {
 					}, nil)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount2.ID)).
 					Times(1).
-					Return(account.Account{
+					Return(domain.Account{
 						Currency: testAccount2.Currency,
 					}, nil)
 			},

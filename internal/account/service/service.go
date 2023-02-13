@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 
-	"github.com/go-petr/pet-bank/internal/account"
+	"github.com/go-petr/pet-bank/internal/domain"
 )
 
 type accountRepoInterface interface {
-	CreateAccount(ctx context.Context, arg account.CreateAccountParams) (account.Account, error)
-	GetAccount(ctx context.Context, id int32) (account.Account, error)
-	ListAccounts(ctx context.Context, arg account.ListAccountsParams) ([]account.Account, error)
+	CreateAccount(ctx context.Context, owner, balance, currency string) (domain.Account, error)
+	GetAccount(ctx context.Context, id int32) (domain.Account, error)
+	ListAccounts(ctx context.Context, owner string, limit, offset int32) ([]domain.Account, error)
 }
 
 type accountService struct {
@@ -20,15 +20,9 @@ func NewAccountService(ar accountRepoInterface) *accountService {
 	return &accountService{repo: ar}
 }
 
-func (s *accountService) CreateAccount(ctx context.Context, owner, currency string) (account.Account, error) {
+func (s *accountService) CreateAccount(ctx context.Context, owner, currency string) (domain.Account, error) {
 
-	arg := account.CreateAccountParams{
-		Owner:    owner,
-		Currency: currency,
-		Balance:  "0",
-	}
-
-	account, err := s.repo.CreateAccount(ctx, arg)
+	account, err := s.repo.CreateAccount(ctx, owner, "0", currency)
 	if err != nil {
 		return account, err
 	}
@@ -36,7 +30,7 @@ func (s *accountService) CreateAccount(ctx context.Context, owner, currency stri
 	return account, nil
 }
 
-func (s *accountService) GetAccount(ctx context.Context, id int32) (account.Account, error) {
+func (s *accountService) GetAccount(ctx context.Context, id int32) (domain.Account, error) {
 
 	account, err := s.repo.GetAccount(ctx, id)
 	if err != nil {
@@ -46,15 +40,12 @@ func (s *accountService) GetAccount(ctx context.Context, id int32) (account.Acco
 	return account, nil
 }
 
-func (s *accountService) ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]account.Account, error) {
+func (s *accountService) ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]domain.Account, error) {
 
-	arg := account.ListAccountsParams{
-		Owner:  owner,
-		Limit:  pageSize,
-		Offset: (pageID - 1) * pageSize,
-	}
+	limit := pageSize
+	offset := (pageID - 1) * pageSize
 
-	accounts, err := s.repo.ListAccounts(ctx, arg)
+	accounts, err := s.repo.ListAccounts(ctx, owner, limit, offset)
 	if err != nil {
 		return nil, err
 	}

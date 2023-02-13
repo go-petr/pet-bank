@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-petr/pet-bank/internal/account"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	"github.com/go-petr/pet-bank/internal/domain"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/internal/user"
@@ -73,22 +73,18 @@ func createRandomUser(t *testing.T) user.User {
 	return testUser
 }
 
-func createRandomAccount(t *testing.T, testUser user.User) account.Account {
+func createRandomAccount(t *testing.T, testUser user.User) domain.Account {
 
-	// create random account
-	argAccount := account.CreateAccountParams{
-		Owner:    testUser.Username,
-		Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
-		Currency: randompkg.Currency(),
-	}
+	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
+	testCurrency := randompkg.Currency()
 
-	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)
+	account, err := testAccountRepo.CreateAccount(context.Background(), testUser.Username, testBalance, testCurrency)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
 
-	require.Equal(t, argAccount.Owner, account.Owner)
-	require.Equal(t, argAccount.Balance, account.Balance)
-	require.Equal(t, argAccount.Currency, account.Currency)
+	require.Equal(t, testUser.Username, account.Owner)
+	require.Equal(t, testBalance, account.Balance)
+	require.Equal(t, testCurrency, account.Currency)
 
 	require.NotZero(t, account.ID)
 	require.NotZero(t, account.CreatedAt)
@@ -96,7 +92,7 @@ func createRandomAccount(t *testing.T, testUser user.User) account.Account {
 	return account
 }
 
-func createRandomTransfer(t *testing.T, testAccount1, testAccount2 account.Account) transfer.Transfer {
+func createRandomTransfer(t *testing.T, testAccount1, testAccount2 domain.Account) transfer.Transfer {
 
 	arg := transfer.CreateTransferParams{
 		FromAccountID: testAccount1.ID,

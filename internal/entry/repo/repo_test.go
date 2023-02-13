@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-petr/pet-bank/internal/account"
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func createRandomEntry(t *testing.T, account account.Account) entry.Entry {
+func createRandomEntry(t *testing.T, account domain.Account) entry.Entry {
 	arg := entry.CreateEntryParams{
 		AccountID: account.ID,
 		Amount:    randompkg.MoneyAmountBetween(100, 1_000),
@@ -62,7 +62,6 @@ func createRandomEntry(t *testing.T, account account.Account) entry.Entry {
 }
 
 func createRandomUser(t *testing.T) user.User {
-
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
@@ -87,22 +86,17 @@ func createRandomUser(t *testing.T) user.User {
 	return testUser
 }
 
-func createRandomAccount(t *testing.T, testUser user.User) account.Account {
+func createRandomAccount(t *testing.T, testUser user.User) domain.Account {
+	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
+	testCurrency := randompkg.Currency()
 
-	// create random account
-	argAccount := account.CreateAccountParams{
-		Owner:    testUser.Username,
-		Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
-		Currency: randompkg.Currency(),
-	}
-
-	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)
+	account, err := testAccountRepo.CreateAccount(context.Background(), testUser.Username, testBalance, testCurrency)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
 
-	require.Equal(t, argAccount.Owner, account.Owner)
-	require.Equal(t, argAccount.Balance, account.Balance)
-	require.Equal(t, argAccount.Currency, account.Currency)
+	require.Equal(t, testUser.Username, account.Owner)
+	require.Equal(t, testBalance, account.Balance)
+	require.Equal(t, testCurrency, account.Currency)
 
 	require.NotZero(t, account.ID)
 	require.NotZero(t, account.CreatedAt)
@@ -111,14 +105,12 @@ func createRandomAccount(t *testing.T, testUser user.User) account.Account {
 }
 
 func TestCreateEntry(t *testing.T) {
-
 	testUser1 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 	createRandomEntry(t, testAccount1)
 }
 
 func TestGetEntry(t *testing.T) {
-
 	testUser1 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 	entry1 := createRandomEntry(t, testAccount1)
@@ -131,11 +123,9 @@ func TestGetEntry(t *testing.T) {
 	require.Equal(t, entry1.AccountID, entry2.AccountID)
 	require.Equal(t, entry1.Amount, entry2.Amount)
 	require.Equal(t, entry1.CreatedAt, entry2.CreatedAt)
-
 }
 
 func TestListEntries(t *testing.T) {
-
 	testUser1 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 

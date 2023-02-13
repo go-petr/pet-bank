@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	account "github.com/go-petr/pet-bank/internal/account"
+	domain "github.com/go-petr/pet-bank/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,10 +36,10 @@ func (m *MockAccountServiceInterface) EXPECT() *MockAccountServiceInterfaceMockR
 }
 
 // CreateAccount mocks base method.
-func (m *MockAccountServiceInterface) CreateAccount(ctx context.Context, owner, currency string) (account.Account, error) {
+func (m *MockAccountServiceInterface) CreateAccount(ctx context.Context, owner, currency string) (domain.Account, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAccount", ctx, owner, currency)
-	ret0, _ := ret[0].(account.Account)
+	ret0, _ := ret[0].(domain.Account)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,10 +51,10 @@ func (mr *MockAccountServiceInterfaceMockRecorder) CreateAccount(ctx, owner, cur
 }
 
 // GetAccount mocks base method.
-func (m *MockAccountServiceInterface) GetAccount(ctx context.Context, id int32) (account.Account, error) {
+func (m *MockAccountServiceInterface) GetAccount(ctx context.Context, id int32) (domain.Account, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccount", ctx, id)
-	ret0, _ := ret[0].(account.Account)
+	ret0, _ := ret[0].(domain.Account)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,10 +66,10 @@ func (mr *MockAccountServiceInterfaceMockRecorder) GetAccount(ctx, id interface{
 }
 
 // ListAccounts mocks base method.
-func (m *MockAccountServiceInterface) ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]account.Account, error) {
+func (m *MockAccountServiceInterface) ListAccounts(ctx context.Context, owner string, pageSize, pageID int32) ([]domain.Account, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAccounts", ctx, owner, pageSize, pageID)
-	ret0, _ := ret[0].([]account.Account)
+	ret0, _ := ret[0].([]domain.Account)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

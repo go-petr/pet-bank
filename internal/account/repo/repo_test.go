@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/account"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -67,22 +67,18 @@ func createRandomUser(t *testing.T) user.User {
 	return testUser
 }
 
-func createRandomAccount(t *testing.T, testUser user.User) account.Account {
+func createRandomAccount(t *testing.T, testUser user.User) domain.Account {
 
-	// create random account
-	argAccount := account.CreateAccountParams{
-		Owner:    testUser.Username,
-		Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
-		Currency: randompkg.Currency(),
-	}
+	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
+	testCurrency := randompkg.Currency()
 
-	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)
+	account, err := testAccountRepo.CreateAccount(context.Background(), testUser.Username, testBalance, testCurrency)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
 
-	require.Equal(t, argAccount.Owner, account.Owner)
-	require.Equal(t, argAccount.Balance, account.Balance)
-	require.Equal(t, argAccount.Currency, account.Currency)
+	require.Equal(t, testUser.Username, account.Owner)
+	require.Equal(t, testBalance, account.Balance)
+	require.Equal(t, testCurrency, account.Currency)
 
 	require.NotZero(t, account.ID)
 	require.NotZero(t, account.CreatedAt)
@@ -101,31 +97,43 @@ func TestCreateAccountConstraintViolations(t *testing.T) {
 	testAccount := createRandomAccount(t, testUser)
 
 	testCases := []struct {
-		name          string
-		input         account.CreateAccountParams
-		checkResponse func(response account.Account, err error)
+		name  string
+		input struct {
+			owner    string
+			balance  string
+			currency string
+		}
+		checkResponse func(response domain.Account, err error)
 	}{
 		{
-			name: "ErrNoOwnerExists",
-			input: account.CreateAccountParams{
-				Owner:    "NotFound",
-				Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
-				Currency: testAccount.Currency,
+			name: "ErrOwnerNotFound",
+			input: struct {
+				owner    string
+				balance  string
+				currency string
+			}{
+				"NotFound",
+				randompkg.MoneyAmountBetween(1_000, 10_000),
+				testAccount.Currency,
 			},
-			checkResponse: func(response account.Account, err error) {
-				require.EqualError(t, err, account.ErrNoOwnerExists.Error())
+			checkResponse: func(response domain.Account, err error) {
+				require.EqualError(t, err, domain.ErrOwnerNotFound.Error())
 				require.Empty(t, response)
 			},
 		},
 		{
 			name: "ErrCurrencyAlreadyExists",
-			input: account.CreateAccountParams{
-				Owner:    testUser.Username,
-				Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
-				Currency: testAccount.Currency,
+			input: struct {
+				owner    string
+				balance  string
+				currency string
+			}{
+				testUser.Username,
+				randompkg.MoneyAmountBetween(1_000, 10_000),
+				testAccount.Currency,
 			},
-			checkResponse: func(response account.Account, err error) {
-				require.EqualError(t, err, account.ErrCurrencyAlreadyExists.Error())
+			checkResponse: func(response domain.Account, err error) {
+				require.EqualError(t, err, domain.ErrCurrencyAlreadyExists.Error())
 				require.Empty(t, response)
 			},
 		},
@@ -137,7 +145,7 @@ func TestCreateAccountConstraintViolations(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 
-			response, err := testAccountRepo.CreateAccount(context.Background(), tc.input)
+			response, err := testAccountRepo.CreateAccount(context.Background(), tc.input.owner, tc.input.balance, tc.input.currency)
 
 			tc.checkResponse(response, err)
 		})
@@ -173,24 +181,18 @@ func TestDeleteAccount(t *testing.T) {
 
 	accountDeleted, err := testAccountRepo.GetAccount(context.Background(), testAccount.ID)
 	require.Error(t, err)
-	require.EqualError(t, err, account.ErrAccountNotFound.Error())
+	require.EqualError(t, err, domain.ErrAccountNotFound.Error())
 	require.Empty(t, accountDeleted)
 }
 
 func TestListAccounts(t *testing.T) {
-	var lastAccount account.Account
+	var lastAccount domain.Account
 	for i := 0; i < 10; i++ {
 		testUser := createRandomUser(t)
 		lastAccount = createRandomAccount(t, testUser)
 	}
 
-	arg := account.ListAccountsParams{
-		Owner:  lastAccount.Owner,
-		Limit:  5,
-		Offset: 0,
-	}
-
-	accounts, err := testAccountRepo.ListAccounts(context.Background(), arg)
+	accounts, err := testAccountRepo.ListAccounts(context.Background(), lastAccount.Owner, 5, 0)
 	require.NoError(t, err)
 	require.NotEmpty(t, accounts)
 
@@ -201,19 +203,17 @@ func TestListAccounts(t *testing.T) {
 }
 
 func TestAddAccountBalance(t *testing.T) {
+
 	testUser := createRandomUser(t)
 	testAccount := createRandomAccount(t, testUser)
+	testAmount := randompkg.MoneyAmountBetween(100, 1_000)
 
-	arg := account.AddAccountBalanceParams{
-		Amount: randompkg.MoneyAmountBetween(100, 1_000),
-		ID:     testAccount.ID,
-	}
 	account1Balance, err := decimal.NewFromString(testAccount.Balance)
 	require.NoError(t, err)
-	deltaBalance, err := decimal.NewFromString(arg.Amount)
+	deltaBalance, err := decimal.NewFromString(testAmount)
 	require.NoError(t, err)
 
-	account2, err := testAccountRepo.AddAccountBalance(context.Background(), arg)
+	account2, err := testAccountRepo.AddAccountBalance(context.Background(), testAmount, testAccount.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, account2)
 

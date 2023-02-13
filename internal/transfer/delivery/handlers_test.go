@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/go-petr/pet-bank/internal/account"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func randomAccount(owner string) account.Account {
-	return account.Account{
+func randomAccount(owner string) domain.Account {
+	return domain.Account{
 		ID:        randompkg.IntBetween(1, 100),
 		Owner:     owner,
 		Balance:   randompkg.MoneyAmountBetween(1000, 10_000),
