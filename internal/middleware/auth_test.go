@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAuthMiddleware(t *testing.T) {
 
-	tokenMaker, err := token.NewPasetoMaker(apprandom.String(32))
+	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
 	testCases := []struct {

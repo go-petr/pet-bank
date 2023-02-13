@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
@@ -44,14 +44,14 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := passpkg.Hash(apprandom.String(10))
+	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       apprandom.Owner(),
+		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       apprandom.Owner(),
-		Email:          apprandom.Email(),
+		FullName:       randompkg.Owner(),
+		Email:          randompkg.Email(),
 	}
 
 	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -73,9 +73,9 @@ func createRandomSession(t *testing.T, username string) session.Session {
 	arg := session.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     username,
-		RefreshToken: apprandom.String(10),
-		UserAgent:    apprandom.String(10),
-		ClientIP:     apprandom.String(10),
+		RefreshToken: randompkg.String(10),
+		UserAgent:    randompkg.String(10),
+		ClientIP:     randompkg.String(10),
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 
@@ -106,9 +106,9 @@ func TestCreateAccountConstraintViolation(t *testing.T) {
 	arg := session.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     "invalid",
-		RefreshToken: apprandom.String(10),
-		UserAgent:    apprandom.String(10),
-		ClientIP:     apprandom.String(10),
+		RefreshToken: randompkg.String(10),
+		UserAgent:    randompkg.String(10),
+		ClientIP:     randompkg.String(10),
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 

@@ -18,7 +18,7 @@ import (
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +29,7 @@ var (
 
 func TestMain(m *testing.M) {
 	testConfig = configpkg.Config{
-		TokenSymmetricKey:   apprandom.String(32),
+		TokenSymmetricKey:   randompkg.String(32),
 		AccessTokenDuration: time.Minute,
 	}
 	gin.SetMode(gin.ReleaseMode)
@@ -38,16 +38,16 @@ func TestMain(m *testing.M) {
 
 func randomUser(t *testing.T) (user.User, string) {
 
-	password := apprandom.String(10)
+	password := randompkg.String(10)
 
 	hashedPassword, err := passpkg.Hash(password)
 	require.NoError(t, err)
 
 	user := user.User{
-		Username:       apprandom.Owner(),
+		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       apprandom.Owner(),
-		Email:          apprandom.Email(),
+		FullName:       randompkg.Owner(),
+		Email:          randompkg.Email(),
 	}
 
 	return user, password

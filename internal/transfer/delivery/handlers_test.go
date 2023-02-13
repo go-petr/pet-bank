@@ -15,7 +15,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -23,24 +23,24 @@ import (
 
 func randomAccount(owner string) account.Account {
 	return account.Account{
-		ID:        apprandom.IntBetween(1, 100),
+		ID:        randompkg.IntBetween(1, 100),
 		Owner:     owner,
-		Balance:   apprandom.MoneyAmountBetween(1000, 10_000),
-		Currency:  apprandom.Currency(),
+		Balance:   randompkg.MoneyAmountBetween(1000, 10_000),
+		Currency:  randompkg.Currency(),
 		CreatedAt: time.Now().Truncate(time.Second).UTC(),
 	}
 }
 
 func TestCreateTranferAPI(t *testing.T) {
 
-	testUsername1 := apprandom.Owner()
-	testUsername2 := apprandom.Owner()
+	testUsername1 := randompkg.Owner()
+	testUsername2 := randompkg.Owner()
 
 	testAccount1 := randomAccount(testUsername1)
 	testAccount2 := randomAccount(testUsername2)
 	amount := "100"
 
-	tokenMaker, err := token.NewPasetoMaker(apprandom.String(32))
+	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)

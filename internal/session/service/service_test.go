@@ -9,7 +9,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ var (
 
 func TestMain(m *testing.M) {
 	testConfig = configpkg.Config{
-		TokenSymmetricKey:    apprandom.String(32),
+		TokenSymmetricKey:    randompkg.String(32),
 		AccessTokenDuration:  time.Minute,
 		RefreshTokenDuration: time.Minute,
 	}
@@ -43,7 +43,7 @@ func TestCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, testSessionService)
 
-	testUsername := apprandom.Owner()
+	testUsername := randompkg.Owner()
 	testSession := session.Session{
 		Username: testUsername,
 	}
@@ -129,11 +129,11 @@ func TestRenewAccessToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, testSessionService)
 
-	testUsername := apprandom.Owner()
+	testUsername := randompkg.Owner()
 	testRefreshToken, testTokenPayload, err := testTokenMaker.CreateToken(testUsername, testConfig.RefreshTokenDuration)
 	require.NoError(t, err)
 
-	testUnauthorizedUsername := apprandom.Owner()
+	testUnauthorizedUsername := randompkg.Owner()
 	testUnauthorizedRefreshToken, testUnauthorizedRefreshTokenPayload, err := testTokenMaker.CreateToken(testUnauthorizedUsername, testConfig.RefreshTokenDuration)
 	require.NoError(t, err)
 

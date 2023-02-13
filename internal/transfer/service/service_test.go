@@ -11,7 +11,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ import (
 func randomAccount(id int32, balance, currency string) account.Account {
 	return account.Account{
 		ID:        id,
-		Owner:     apprandom.Owner(),
+		Owner:     randompkg.Owner(),
 		Balance:   balance,
 		Currency:  currency,
 		CreatedAt: time.Now().Truncate(time.Second).UTC(),

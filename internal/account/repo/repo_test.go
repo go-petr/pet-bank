@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -43,14 +43,14 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := passpkg.Hash(apprandom.String(10))
+	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       apprandom.Owner(),
+		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       apprandom.Owner(),
-		Email:          apprandom.Owner(),
+		FullName:       randompkg.Owner(),
+		Email:          randompkg.Owner(),
 	}
 
 	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -72,8 +72,8 @@ func createRandomAccount(t *testing.T, testUser user.User) account.Account {
 	// create random account
 	argAccount := account.CreateAccountParams{
 		Owner:    testUser.Username,
-		Balance:  apprandom.MoneyAmountBetween(1_000, 10_000),
-		Currency: apprandom.Currency(),
+		Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
+		Currency: randompkg.Currency(),
 	}
 
 	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)
@@ -109,7 +109,7 @@ func TestCreateAccountConstraintViolations(t *testing.T) {
 			name: "ErrNoOwnerExists",
 			input: account.CreateAccountParams{
 				Owner:    "NotFound",
-				Balance:  apprandom.MoneyAmountBetween(1_000, 10_000),
+				Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
 				Currency: testAccount.Currency,
 			},
 			checkResponse: func(response account.Account, err error) {
@@ -121,7 +121,7 @@ func TestCreateAccountConstraintViolations(t *testing.T) {
 			name: "ErrCurrencyAlreadyExists",
 			input: account.CreateAccountParams{
 				Owner:    testUser.Username,
-				Balance:  apprandom.MoneyAmountBetween(1_000, 10_000),
+				Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
 				Currency: testAccount.Currency,
 			},
 			checkResponse: func(response account.Account, err error) {
@@ -205,7 +205,7 @@ func TestAddAccountBalance(t *testing.T) {
 	testAccount := createRandomAccount(t, testUser)
 
 	arg := account.AddAccountBalanceParams{
-		Amount: apprandom.MoneyAmountBetween(100, 1_000),
+		Amount: randompkg.MoneyAmountBetween(100, 1_000),
 		ID:     testAccount.ID,
 	}
 	account1Balance, err := decimal.NewFromString(testAccount.Balance)

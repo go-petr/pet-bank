@@ -10,23 +10,23 @@ import (
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func randomUser(t *testing.T) (user.User, string) {
 
-	password := apprandom.String(10)
+	password := randompkg.String(10)
 
 	hashedPassword, err := passpkg.Hash(password)
 	require.NoError(t, err)
 
 	user := user.User{
-		Username:       apprandom.Owner(),
+		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       apprandom.Owner(),
-		Email:          apprandom.Email(),
+		FullName:       randompkg.Owner(),
+		Email:          randompkg.Email(),
 	}
 
 	return user, password

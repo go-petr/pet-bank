@@ -1,5 +1,5 @@
-// Package apprandom provides functionality gor generating random applications common items.
-package apprandom
+// Package randompkg provides functionality gor generating random applications common items.
+package randompkg
 
 import (
 	"fmt"

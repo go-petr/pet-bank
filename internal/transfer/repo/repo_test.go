@@ -15,7 +15,7 @@ import (
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
-	"github.com/go-petr/pet-bank/pkg/apprandom"
+	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -49,14 +49,14 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := passpkg.Hash(apprandom.String(10))
+	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{
-		Username:       apprandom.Owner(),
+		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
-		FullName:       apprandom.Owner(),
-		Email:          apprandom.Email(),
+		FullName:       randompkg.Owner(),
+		Email:          randompkg.Email(),
 	}
 
 	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
@@ -78,8 +78,8 @@ func createRandomAccount(t *testing.T, testUser user.User) account.Account {
 	// create random account
 	argAccount := account.CreateAccountParams{
 		Owner:    testUser.Username,
-		Balance:  apprandom.MoneyAmountBetween(1_000, 10_000),
-		Currency: apprandom.Currency(),
+		Balance:  randompkg.MoneyAmountBetween(1_000, 10_000),
+		Currency: randompkg.Currency(),
 	}
 
 	account, err := testAccountRepo.CreateAccount(context.Background(), argAccount)
@@ -101,7 +101,7 @@ func createRandomTransfer(t *testing.T, testAccount1, testAccount2 account.Accou
 	arg := transfer.CreateTransferParams{
 		FromAccountID: testAccount1.ID,
 		ToAccountID:   testAccount2.ID,
-		Amount:        apprandom.MoneyAmountBetween(10, 100),
+		Amount:        randompkg.MoneyAmountBetween(10, 100),
 	}
 
 	transfer, err := testTransferRepo.CreateTransfer(context.Background(), arg)
