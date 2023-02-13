@@ -13,7 +13,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 
 func createRandomUser(t *testing.T) user.User {
 
-	hashedPassword, err := apppass.Hash(apprandom.String(10))
+	hashedPassword, err := passpkg.Hash(apprandom.String(10))
 	require.NoError(t, err)
 
 	arg := user.CreateUserParams{

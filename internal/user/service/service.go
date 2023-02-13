@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
-	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/rs/zerolog"
 )
 
@@ -41,7 +41,7 @@ func (s *userService) CreateUser(ctx context.Context, username, password, fullna
 
 	var response user.UserWihtoutPassword
 
-	hashedPassword, err := apppass.Hash(password)
+	hashedPassword, err := passpkg.Hash(password)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return response, apperrors.ErrInternal
@@ -73,7 +73,7 @@ func (s *userService) CheckPassword(ctx context.Context, username, pass string) 
 		return response, err
 	}
 
-	err = apppass.Check(pass, gotUser.HashedPassword)
+	err = passpkg.Check(pass, gotUser.HashedPassword)
 	if err != nil {
 		l.Warn().Err(err).Send()
 		return response, user.ErrWrongPassword

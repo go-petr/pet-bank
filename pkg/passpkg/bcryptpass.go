@@ -1,5 +1,5 @@
-// Package apppass helps hash and verify passwords.
-package apppass
+// Package passpkg helps hash and verify passwords.
+package passpkg
 
 import (
 	"fmt"

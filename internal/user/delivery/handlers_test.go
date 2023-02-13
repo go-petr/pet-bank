@@ -17,7 +17,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/user/service"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
-	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/apprandom"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -40,7 +40,7 @@ func randomUser(t *testing.T) (user.User, string) {
 
 	password := apprandom.String(10)
 
-	hashedPassword, err := apppass.Hash(password)
+	hashedPassword, err := passpkg.Hash(password)
 	require.NoError(t, err)
 
 	user := user.User{

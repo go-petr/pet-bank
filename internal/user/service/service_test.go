@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/apperrors"
-	"github.com/go-petr/pet-bank/pkg/apppass"
+	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/apprandom"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -19,7 +19,7 @@ func randomUser(t *testing.T) (user.User, string) {
 
 	password := apprandom.String(10)
 
-	hashedPassword, err := apppass.Hash(password)
+	hashedPassword, err := passpkg.Hash(password)
 	require.NoError(t, err)
 
 	user := user.User{
@@ -44,7 +44,7 @@ func (e eqCreateUserParamsMathcer) Matches(x interface{}) bool {
 		return false
 	}
 
-	err := apppass.Check(e.password, arg.HashedPassword)
+	err := passpkg.Check(e.password, arg.HashedPassword)
 	if err != nil {
 		return false
 	}

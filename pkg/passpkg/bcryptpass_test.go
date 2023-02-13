@@ -1,4 +1,4 @@
-package apppass
+package passpkg
 
 import (
 	"testing"
