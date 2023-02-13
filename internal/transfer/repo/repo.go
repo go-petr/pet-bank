@@ -9,7 +9,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/entry"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
 	"github.com/go-petr/pet-bank/internal/transfer"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/rs/zerolog"
 )
 
@@ -48,7 +48,7 @@ func (r *transferRepo) CreateTransfer(ctx context.Context, arg transfer.CreateTr
 
 	if err != nil {
 		l.Error().Err(err).Send()
-		return t, apperrors.ErrInternal
+		return t, errorspkg.ErrInternal
 	}
 
 	return t, nil
@@ -77,7 +77,7 @@ func (r *transferRepo) GetTransfer(ctx context.Context, id int64) (transfer.Tran
 
 	if err != nil {
 		l.Error().Err(err).Send()
-		return t, apperrors.ErrInternal
+		return t, errorspkg.ErrInternal
 	}
 
 	return t, nil
@@ -125,11 +125,11 @@ func (r *transferRepo) ListTransfers(ctx context.Context, arg transfer.ListTrans
 
 	if err := rows.Close(); err != nil {
 		l.Error().Err(err).Send()
-		return nil, apperrors.ErrInternal
+		return nil, errorspkg.ErrInternal
 	}
 	if err := rows.Err(); err != nil {
 		l.Error().Err(err).Send()
-		return nil, apperrors.ErrInternal
+		return nil, errorspkg.ErrInternal
 	}
 
 	return items, nil
@@ -148,7 +148,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, apperrors.ErrInternal
+		return result, errorspkg.ErrInternal
 	}
 	defer tx.Rollback()
 
@@ -158,7 +158,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 	result.Transfer, err = r.CreateTransfer(ctx, arg)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, apperrors.ErrInternal
+		return result, errorspkg.ErrInternal
 	}
 
 	result.FromEntry, err = entryTxRepo.CreateEntry(ctx, entry.CreateEntryParams{
@@ -167,7 +167,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 	})
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, apperrors.ErrInternal
+		return result, errorspkg.ErrInternal
 	}
 
 	result.ToEntry, err = entryTxRepo.CreateEntry(ctx, entry.CreateEntryParams{
@@ -176,7 +176,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 	})
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, apperrors.ErrInternal
+		return result, errorspkg.ErrInternal
 	}
 
 	// To avoid deadlocks execute statements in consistent id order
@@ -187,7 +187,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 	}
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, apperrors.ErrInternal
+		return result, errorspkg.ErrInternal
 	}
 
 	tx.Commit()

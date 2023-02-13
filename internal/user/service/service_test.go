@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	gomock "github.com/golang/mock/gomock"
@@ -130,7 +130,7 @@ func TestCreateUser(t *testing.T) {
 							Email:          testUser.Email,
 						}, testPassword)).
 					Times(1).
-					Return(user.User{}, apperrors.ErrInternal)
+					Return(user.User{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(response user.UserWihtoutPassword, err error) {
 				require.Equal(t, user.UserWihtoutPassword{}, response)

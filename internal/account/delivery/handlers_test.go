@@ -18,7 +18,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/golang/mock/gomock"
@@ -184,7 +184,7 @@ func TestCreateAccountAPI(t *testing.T) {
 						gomock.Eq(testAccount.Owner),
 						gomock.Eq(testAccount.Currency)).
 					Times(1).
-					Return(account.Account{}, apperrors.ErrInternal)
+					Return(account.Account{}, errorspkg.ErrInternal)
 
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {

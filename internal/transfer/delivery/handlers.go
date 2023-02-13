@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/token"
 )
@@ -76,7 +76,7 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 

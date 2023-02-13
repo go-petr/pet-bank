@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/rs/zerolog"
 )
@@ -44,7 +44,7 @@ func (s *userService) CreateUser(ctx context.Context, username, password, fullna
 	hashedPassword, err := passpkg.Hash(password)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return response, apperrors.ErrInternal
+		return response, errorspkg.ErrInternal
 	}
 
 	arg := user.CreateUserParams{

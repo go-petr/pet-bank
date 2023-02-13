@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -74,7 +74,7 @@ func (r *SessionRepo) CreateSession(ctx context.Context, arg session.CreateSessi
 			}
 		}
 
-		return s, apperrors.ErrInternal
+		return s, errorspkg.ErrInternal
 	}
 
 	return s, nil

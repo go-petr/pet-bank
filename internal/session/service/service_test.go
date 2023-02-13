@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/golang/mock/gomock"
@@ -64,14 +64,14 @@ func TestCreate(t *testing.T) {
 				repo.EXPECT().
 					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(session.CreateSessionParams{})).
 					Times(1).
-					Return(session.Session{}, apperrors.ErrInternal)
+					Return(session.Session{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess session.Session, err error) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.Empty(t, sess)
-				require.EqualError(t, err, apperrors.ErrInternal.Error())
+				require.EqualError(t, err, errorspkg.ErrInternal.Error())
 			},
 		},
 		{
@@ -157,7 +157,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, apperrors.ErrInternal.Error())
+				require.EqualError(t, err, errorspkg.ErrInternal.Error())
 			},
 		},
 		{

@@ -16,7 +16,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/service"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/golang/mock/gomock"
@@ -210,7 +210,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, apperrors.ErrInternal)
+					Return(user.UserWihtoutPassword{}, errorspkg.ErrInternal)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -246,7 +246,7 @@ func TestCreateUserAPI(t *testing.T) {
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Eq(arg)).
 					Times(1).
-					Return("", time.Now(), session.Session{}, apperrors.ErrInternal)
+					Return("", time.Now(), session.Session{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

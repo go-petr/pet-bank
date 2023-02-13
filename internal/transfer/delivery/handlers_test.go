@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/account"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/internal/transfer"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/golang/mock/gomock"
@@ -205,7 +205,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				transferService.EXPECT().
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
-					Return(transfer.TransferTxResult{}, apperrors.ErrInternal)
+					Return(transfer.TransferTxResult{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

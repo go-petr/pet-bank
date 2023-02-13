@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/rs/zerolog"
 )
@@ -75,7 +75,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 
@@ -148,7 +148,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
 	if err != nil {
 		l.Warn().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 

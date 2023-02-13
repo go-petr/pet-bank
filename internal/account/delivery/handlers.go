@@ -10,7 +10,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/rs/zerolog"
 
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/token"
 )
@@ -59,7 +59,7 @@ func (h *accountHandler) CreateAccount(gctx *gin.Context) {
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *accountHandler) GetAccount(gctx *gin.Context) {
 			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
 			return
 		}
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *accountHandler) ListAccounts(gctx *gin.Context) {
 
 	accounts, err := h.service.ListAccounts(ctx, authPayload.Username, req.PageSize, req.PageID)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(apperrors.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
 		return
 	}
 

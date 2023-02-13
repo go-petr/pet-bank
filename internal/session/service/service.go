@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/session"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/token"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -41,13 +41,13 @@ func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionPa
 	accessToken, accessPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.AccessTokenDuration)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, sess, apperrors.ErrInternal
+		return "", time.Time{}, sess, errorspkg.ErrInternal
 	}
 
 	refreshToken, refreshPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.RefreshTokenDuration)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, sess, apperrors.ErrInternal
+		return "", time.Time{}, sess, errorspkg.ErrInternal
 	}
 
 	arg.ID = refreshPayload.ID
@@ -57,7 +57,7 @@ func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionPa
 	sess, err = s.repo.CreateSession(ctx, arg)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, sess, apperrors.ErrInternal
+		return "", time.Time{}, sess, errorspkg.ErrInternal
 	}
 
 	return accessToken, accessPayload.ExpiredAt, sess, nil
@@ -70,7 +70,7 @@ func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken stri
 	refreshPayload, err := s.TokenMaker.VerifyToken(refreshToken)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, apperrors.ErrInternal
+		return "", time.Time{}, errorspkg.ErrInternal
 	}
 
 	sess, err := s.repo.GetSession(ctx, refreshPayload.ID)
@@ -105,7 +105,7 @@ func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken stri
 	)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, apperrors.ErrInternal
+		return "", time.Time{}, errorspkg.ErrInternal
 	}
 
 	return accessToken, accessPayload.ExpiredAt, nil

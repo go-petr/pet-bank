@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/user"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
@@ -67,7 +67,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, arg user.CreateUserParams) (u
 				}
 			}
 		}
-		return u, apperrors.ErrInternal
+		return u, errorspkg.ErrInternal
 	}
 
 	return u, nil
@@ -110,7 +110,7 @@ func (r *UserRepo) GetUser(ctx context.Context, username string) (user.User, err
 			return u, user.ErrUserNotFound
 		}
 
-		return u, apperrors.ErrInternal
+		return u, errorspkg.ErrInternal
 	}
 
 	return u, nil

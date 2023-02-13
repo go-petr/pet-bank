@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/account"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/database"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
@@ -49,7 +49,7 @@ func (r *AccountRepo) AddAccountBalance(ctx context.Context, arg account.AddAcco
 
 		l.Error().Err(err).Send()
 
-		return a, apperrors.ErrInternal
+		return a, errorspkg.ErrInternal
 	}
 
 	return a, nil
@@ -92,7 +92,7 @@ func (r *AccountRepo) CreateAccount(ctx context.Context, arg account.CreateAccou
 			}
 		}
 
-		return a, apperrors.ErrInternal
+		return a, errorspkg.ErrInternal
 	}
 
 	return a, nil
@@ -137,7 +137,7 @@ func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (account.Account
 			return a, account.ErrAccountNotFound
 		}
 
-		return a, apperrors.ErrInternal
+		return a, errorspkg.ErrInternal
 	}
 
 	return a, nil
@@ -179,12 +179,12 @@ func (r *AccountRepo) ListAccounts(ctx context.Context, arg account.ListAccounts
 
 	if err := rows.Close(); err != nil {
 		l.Error().Err(err).Send()
-		return nil, apperrors.ErrInternal
+		return nil, errorspkg.ErrInternal
 	}
 
 	if err := rows.Err(); err != nil {
 		l.Error().Err(err).Send()
-		return nil, apperrors.ErrInternal
+		return nil, errorspkg.ErrInternal
 	}
 
 	return items, nil

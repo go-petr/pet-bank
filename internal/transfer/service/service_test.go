@@ -10,7 +10,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/account/delivery"
 	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/transfer"
-	"github.com/go-petr/pet-bank/pkg/apperrors"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/golang/mock/gomock"
@@ -132,11 +132,11 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
-					Return(account.Account{}, apperrors.ErrInternal)
+					Return(account.Account{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(res transfer.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, apperrors.ErrInternal.Error())
+				require.EqualError(t, err, errorspkg.ErrInternal.Error())
 			},
 		},
 		{
@@ -250,11 +250,11 @@ func TestTransferTx(t *testing.T) {
 					}, nil)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Eq(testAccount2.ID)).
 					Times(1).
-					Return(account.Account{}, apperrors.ErrInternal)
+					Return(account.Account{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(res transfer.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, apperrors.ErrInternal.Error())
+				require.EqualError(t, err, errorspkg.ErrInternal.Error())
 			},
 		},
 		{
