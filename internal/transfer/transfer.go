@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/entry"
 )
 
 var (
@@ -43,6 +42,6 @@ type TransferTxResult struct {
 	Transfer    Transfer       `json:"transfer"`
 	FromAccount domain.Account `json:"fromAccount"`
 	ToAccount   domain.Account `json:"toAccount"`
-	FromEntry   entry.Entry    `json:"fromEntry"`
-	ToEntry     entry.Entry    `json:"toEntry"`
+	FromEntry   domain.Entry   `json:"fromEntry"`
+	ToEntry     domain.Entry   `json:"toEntry"`
 }

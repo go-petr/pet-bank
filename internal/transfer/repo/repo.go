@@ -6,7 +6,6 @@ import (
 
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/entry"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
@@ -161,19 +160,13 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransf
 		return result, errorspkg.ErrInternal
 	}
 
-	result.FromEntry, err = entryTxRepo.CreateEntry(ctx, entry.CreateEntryParams{
-		AccountID: arg.FromAccountID,
-		Amount:    "-" + arg.Amount,
-	})
+	result.FromEntry, err = entryTxRepo.CreateEntry(ctx, "-"+arg.Amount, arg.FromAccountID)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return result, errorspkg.ErrInternal
 	}
 
-	result.ToEntry, err = entryTxRepo.CreateEntry(ctx, entry.CreateEntryParams{
-		AccountID: arg.ToAccountID,
-		Amount:    arg.Amount,
-	})
+	result.ToEntry, err = entryTxRepo.CreateEntry(ctx, arg.Amount, arg.ToAccountID)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return result, errorspkg.ErrInternal

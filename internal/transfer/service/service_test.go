@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/account/delivery"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
@@ -49,11 +48,11 @@ func TestTransferTx(t *testing.T) {
 		},
 		FromAccount: testAccount1,
 		ToAccount:   testAccount2,
-		FromEntry: entry.Entry{
+		FromEntry: domain.Entry{
 			AccountID: testAccount1.ID,
 			Amount:    "-" + testAmount,
 		},
-		ToEntry: entry.Entry{
+		ToEntry: domain.Entry{
 			AccountID: testAccount2.ID,
 			Amount:    testAmount,
 		},

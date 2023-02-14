@@ -9,7 +9,6 @@ import (
 
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/entry"
 	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -42,18 +41,15 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func createRandomEntry(t *testing.T, account domain.Account) entry.Entry {
-	arg := entry.CreateEntryParams{
-		AccountID: account.ID,
-		Amount:    randompkg.MoneyAmountBetween(100, 1_000),
-	}
+func createRandomEntry(t *testing.T, account domain.Account) domain.Entry {
+	testAmount := randompkg.MoneyAmountBetween(100, 1_000)
 
-	entry, err := testEntryRepo.CreateEntry(context.Background(), arg)
+	entry, err := testEntryRepo.CreateEntry(context.Background(), testAmount, account.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, entry)
 
-	require.Equal(t, arg.AccountID, entry.AccountID)
-	require.Equal(t, arg.Amount, entry.Amount)
+	require.Equal(t, account.ID, entry.AccountID)
+	require.Equal(t, testAmount, entry.Amount)
 
 	require.NotZero(t, entry.ID)
 	require.NotZero(t, entry.CreatedAt)
@@ -133,18 +129,12 @@ func TestListEntries(t *testing.T) {
 		createRandomEntry(t, testAccount1)
 	}
 
-	arg := entry.ListEntriesParams{
-		AccountID: testAccount1.ID,
-		Limit:     5,
-		Offset:    5,
-	}
-
-	entries, err := testEntryRepo.ListEntries(context.Background(), arg)
+	entries, err := testEntryRepo.ListEntries(context.Background(), testAccount1.ID, 5, 5)
 	require.NoError(t, err)
 	require.Len(t, entries, 5)
 
 	for _, e := range entries {
 		require.NotEmpty(t, e)
-		require.Equal(t, arg.AccountID, e.AccountID)
+		require.Equal(t, testAccount1.ID, e.AccountID)
 	}
 }

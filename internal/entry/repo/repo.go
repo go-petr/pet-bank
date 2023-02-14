@@ -3,7 +3,7 @@ package repo
 import (
 	"context"
 
-	"github.com/go-petr/pet-bank/internal/entry"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/rs/zerolog"
@@ -25,13 +25,13 @@ VALUES
 RETURNING id, account_id, amount, created_at
 `
 
-func (r *EntryRepo) CreateEntry(ctx context.Context, arg entry.CreateEntryParams) (entry.Entry, error) {
+func (r *EntryRepo) CreateEntry(ctx context.Context, amount string, account int32) (domain.Entry, error) {
 
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createEntry, arg.AccountID, arg.Amount)
+	row := r.db.QueryRowContext(ctx, createEntry, account, amount)
 
-	var e entry.Entry
+	var e domain.Entry
 
 	err := row.Scan(
 		&e.ID,
@@ -53,13 +53,13 @@ SELECT id, account_id, amount, created_at FROM entries
 WHERE id = $1 LIMIT 1
 `
 
-func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (entry.Entry, error) {
+func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (domain.Entry, error) {
 
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getEntry, id)
 
-	var e entry.Entry
+	var e domain.Entry
 
 	err := row.Scan(
 		&e.ID,
@@ -82,20 +82,20 @@ WHERE account_id = $1
 LIMIT $2 OFFSET $3
 `
 
-func (r *EntryRepo) ListEntries(ctx context.Context, arg entry.ListEntriesParams) ([]entry.Entry, error) {
+func (r *EntryRepo) ListEntries(ctx context.Context, accountID int32, limit, offset int32) ([]domain.Entry, error) {
 
 	l := zerolog.Ctx(ctx)
 
-	rows, err := r.db.QueryContext(ctx, listEntries, arg.AccountID, arg.Limit, arg.Offset)
+	rows, err := r.db.QueryContext(ctx, listEntries, accountID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	items := []entry.Entry{}
+	items := []domain.Entry{}
 
 	for rows.Next() {
-		var e entry.Entry
+		var e domain.Entry
 		if err := rows.Scan(
 			&e.ID,
 			&e.AccountID,
@@ -104,6 +104,7 @@ func (r *EntryRepo) ListEntries(ctx context.Context, arg entry.ListEntriesParams
 		); err != nil {
 			return nil, err
 		}
+
 		items = append(items, e)
 	}
 
@@ -111,9 +112,11 @@ func (r *EntryRepo) ListEntries(ctx context.Context, arg entry.ListEntriesParams
 		l.Error().Err(err).Send()
 		return items, errorspkg.ErrInternal
 	}
+
 	if err := rows.Err(); err != nil {
 		l.Error().Err(err).Send()
 		return items, errorspkg.ErrInternal
 	}
+
 	return items, nil
 }
