@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/google/uuid"
@@ -36,7 +36,7 @@ INSERT INTO sessions (
 	) RETURNING id, username, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at;
 `
 
-func (r *SessionRepo) CreateSession(ctx context.Context, arg session.CreateSessionParams) (session.Session, error) {
+func (r *SessionRepo) CreateSession(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error) {
 
 	l := zerolog.Ctx(ctx)
 
@@ -50,7 +50,7 @@ func (r *SessionRepo) CreateSession(ctx context.Context, arg session.CreateSessi
 		arg.ExpiresAt,
 	)
 
-	var s session.Session
+	var s domain.Session
 
 	err := row.Scan(
 		&s.ID,
@@ -94,13 +94,13 @@ FROM sessions
 WHERE id = $1
 `
 
-func (r *SessionRepo) GetSession(ctx context.Context, id uuid.UUID) (session.Session, error) {
+func (r *SessionRepo) GetSession(ctx context.Context, id uuid.UUID) (domain.Session, error) {
 
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getSession, id)
 
-	var s session.Session
+	var s domain.Session
 
 	err := row.Scan(
 		&s.ID,

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -44,29 +44,29 @@ func TestCreate(t *testing.T) {
 	require.NotEmpty(t, testSessionService)
 
 	testUsername := randompkg.Owner()
-	testSession := session.Session{
+	testSession := domain.Session{
 		Username: testUsername,
 	}
 
 	testCases := []struct {
 		name          string
-		arg           session.CreateSessionParams
+		arg           domain.CreateSessionParams
 		buildStubs    func(repo *MockSessionRepoInterface)
-		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, sess session.Session, err error)
+		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error)
 	}{
 		{
 			name: "repo.CreateSession error",
-			arg: session.CreateSessionParams{
+			arg: domain.CreateSessionParams{
 				Username: testUsername,
 			},
 			buildStubs: func(repo *MockSessionRepoInterface) {
 
 				repo.EXPECT().
-					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(session.CreateSessionParams{})).
+					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
 					Times(1).
-					Return(session.Session{}, errorspkg.ErrInternal)
+					Return(domain.Session{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess session.Session, err error) {
+			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
@@ -76,17 +76,17 @@ func TestCreate(t *testing.T) {
 		},
 		{
 			name: "OK",
-			arg: session.CreateSessionParams{
+			arg: domain.CreateSessionParams{
 				Username: testUsername,
 			},
 			buildStubs: func(repo *MockSessionRepoInterface) {
 
 				repo.EXPECT().
-					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(session.CreateSessionParams{})).
+					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
 					Times(1).
 					Return(testSession, nil)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess session.Session, err error) {
+			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error) {
 
 				require.NotEmpty(t, accessToken)
 				require.NotEmpty(t, accessTokenExpiresAt)
@@ -168,13 +168,13 @@ func TestRenewAccessToken(t *testing.T) {
 				repo.EXPECT().
 					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
 					Times(1).
-					Return(session.Session{}, session.ErrSessionNotFound)
+					Return(domain.Session{}, domain.ErrSessionNotFound)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, session.ErrSessionNotFound.Error())
+				require.EqualError(t, err, domain.ErrSessionNotFound.Error())
 			},
 		},
 
@@ -186,13 +186,13 @@ func TestRenewAccessToken(t *testing.T) {
 				repo.EXPECT().
 					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
 					Times(1).
-					Return(session.Session{IsBlocked: true}, nil)
+					Return(domain.Session{IsBlocked: true}, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, session.ErrBlockedSession.Error())
+				require.EqualError(t, err, domain.ErrBlockedSession.Error())
 			},
 		},
 		{
@@ -203,7 +203,7 @@ func TestRenewAccessToken(t *testing.T) {
 				repo.EXPECT().
 					GetSession(gomock.Any(), gomock.Eq(testUnauthorizedRefreshTokenPayload.ID)).
 					Times(1).
-					Return(session.Session{
+					Return(domain.Session{
 						Username: testUsername,
 					}, nil)
 			},
@@ -211,7 +211,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, session.ErrInvalidUser.Error())
+				require.EqualError(t, err, domain.ErrInvalidUser.Error())
 			},
 		},
 		{
@@ -222,7 +222,7 @@ func TestRenewAccessToken(t *testing.T) {
 				repo.EXPECT().
 					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
 					Times(1).
-					Return(session.Session{
+					Return(domain.Session{
 						Username:     testUsername,
 						RefreshToken: testUnauthorizedRefreshToken,
 					}, nil)
@@ -231,7 +231,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, session.ErrMismatchedRefreshToken.Error())
+				require.EqualError(t, err, domain.ErrMismatchedRefreshToken.Error())
 			},
 		},
 		{
@@ -242,7 +242,7 @@ func TestRenewAccessToken(t *testing.T) {
 				repo.EXPECT().
 					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
 					Times(1).
-					Return(session.Session{
+					Return(domain.Session{
 						Username:     testUsername,
 						RefreshToken: testRefreshToken,
 						ExpiresAt:    time.Now().Add(-time.Hour),
@@ -252,7 +252,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, session.ErrExpiredSession.Error())
+				require.EqualError(t, err, domain.ErrExpiredSession.Error())
 			},
 		},
 		{
@@ -263,7 +263,7 @@ func TestRenewAccessToken(t *testing.T) {
 				repo.EXPECT().
 					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
 					Times(1).
-					Return(session.Session{
+					Return(domain.Session{
 						Username:     testUsername,
 						RefreshToken: testRefreshToken,
 						ExpiresAt:    testTokenPayload.ExpiredAt,

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -68,9 +68,9 @@ func createRandomUser(t *testing.T) user.User {
 	return testUser
 }
 
-func createRandomSession(t *testing.T, username string) session.Session {
+func createRandomSession(t *testing.T, username string) domain.Session {
 
-	arg := session.CreateSessionParams{
+	arg := domain.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     username,
 		RefreshToken: randompkg.String(10),
@@ -103,7 +103,7 @@ func TestCreateAccount(t *testing.T) {
 
 func TestCreateAccountConstraintViolation(t *testing.T) {
 
-	arg := session.CreateSessionParams{
+	arg := domain.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     "invalid",
 		RefreshToken: randompkg.String(10),

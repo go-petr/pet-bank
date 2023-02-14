@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
@@ -20,7 +20,7 @@ type userServiceInterface interface {
 }
 
 type SessionMakerInterface interface {
-	Create(ctx context.Context, arg session.CreateSessionParams) (string, time.Time, session.Session, error)
+	Create(ctx context.Context, arg domain.CreateSessionParams) (string, time.Time, domain.Session, error)
 }
 
 type userHandler struct {
@@ -79,7 +79,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 		return
 	}
 
-	arg := session.CreateSessionParams{
+	arg := domain.CreateSessionParams{
 		Username:  req.Username,
 		UserAgent: gctx.Request.UserAgent(),
 		ClientIP:  gctx.ClientIP(),
@@ -139,7 +139,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 		return
 	}
 
-	arg := session.CreateSessionParams{
+	arg := domain.CreateSessionParams{
 		Username:  req.Username,
 		UserAgent: gctx.Request.UserAgent(),
 		ClientIP:  gctx.ClientIP(),

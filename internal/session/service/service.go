@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/token"
@@ -14,8 +14,8 @@ import (
 
 //go:generate mockgen -source service.go -destination service_mock.go -package service
 type SessionRepoInterface interface {
-	CreateSession(ctx context.Context, arg session.CreateSessionParams) (session.Session, error)
-	GetSession(ctx context.Context, id uuid.UUID) (session.Session, error)
+	CreateSession(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error)
+	GetSession(ctx context.Context, id uuid.UUID) (domain.Session, error)
 }
 
 type SessionService struct {
@@ -32,11 +32,11 @@ func NewSessionService(sr SessionRepoInterface, config configpkg.Config, tm toke
 	}, nil
 }
 
-func (s *SessionService) Create(ctx context.Context, arg session.CreateSessionParams) (string, time.Time, session.Session, error) {
+func (s *SessionService) Create(ctx context.Context, arg domain.CreateSessionParams) (string, time.Time, domain.Session, error) {
 
 	l := zerolog.Ctx(ctx)
 
-	var sess session.Session
+	var sess domain.Session
 
 	accessToken, accessPayload, err := s.TokenMaker.CreateToken(arg.Username, s.config.AccessTokenDuration)
 	if err != nil {
@@ -76,27 +76,27 @@ func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken stri
 	sess, err := s.repo.GetSession(ctx, refreshPayload.ID)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return "", time.Time{}, session.ErrSessionNotFound
+		return "", time.Time{}, domain.ErrSessionNotFound
 	}
 
 	if sess.IsBlocked {
 		l.Info().Err(err).Send()
-		return "", time.Time{}, session.ErrBlockedSession
+		return "", time.Time{}, domain.ErrBlockedSession
 	}
 
 	if sess.Username != refreshPayload.Username {
 		l.Info().Err(err).Send()
-		return "", time.Time{}, session.ErrInvalidUser
+		return "", time.Time{}, domain.ErrInvalidUser
 	}
 
 	if sess.RefreshToken != refreshToken {
 		l.Info().Err(err).Send()
-		return "", time.Time{}, session.ErrMismatchedRefreshToken
+		return "", time.Time{}, domain.ErrMismatchedRefreshToken
 	}
 
 	if time.Now().After(sess.ExpiresAt) {
-		l.Info().Err(session.ErrExpiredSession).Send()
-		return "", time.Time{}, session.ErrExpiredSession
+		l.Info().Err(domain.ErrExpiredSession).Send()
+		return "", time.Time{}, domain.ErrExpiredSession
 	}
 
 	accessToken, accessPayload, err := s.TokenMaker.CreateToken(

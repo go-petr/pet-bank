@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	session "github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
 )
@@ -37,10 +37,10 @@ func (m *MockSessionRepoInterface) EXPECT() *MockSessionRepoInterfaceMockRecorde
 }
 
 // CreateSession mocks base method.
-func (m *MockSessionRepoInterface) CreateSession(ctx context.Context, arg session.CreateSessionParams) (session.Session, error) {
+func (m *MockSessionRepoInterface) CreateSession(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSession", ctx, arg)
-	ret0, _ := ret[0].(session.Session)
+	ret0, _ := ret[0].(domain.Session)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,10 +52,10 @@ func (mr *MockSessionRepoInterfaceMockRecorder) CreateSession(ctx, arg interface
 }
 
 // GetSession mocks base method.
-func (m *MockSessionRepoInterface) GetSession(ctx context.Context, id uuid.UUID) (session.Session, error) {
+func (m *MockSessionRepoInterface) GetSession(ctx context.Context, id uuid.UUID) (domain.Session, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSession", ctx, id)
-	ret0, _ := ret[0].(session.Session)
+	ret0, _ := ret[0].(domain.Session)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	session "github.com/go-petr/pet-bank/internal/session"
+	 "github.com/go-petr/pet-bank/internal/domain"
 	user "github.com/go-petr/pet-bank/internal/user"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -91,12 +91,12 @@ func (m *MockSessionMakerInterface) EXPECT() *MockSessionMakerInterfaceMockRecor
 }
 
 // Create mocks base method.
-func (m *MockSessionMakerInterface) Create(ctx context.Context, arg session.CreateSessionParams) (string, time.Time, session.Session, error) {
+func (m *MockSessionMakerInterface) Create(ctx context.Context, arg domain.CreateSessionParams) (string, time.Time, domain.Session, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, arg)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(time.Time)
-	ret2, _ := ret[2].(session.Session)
+	ret2, _ := ret[2].(domain.Session)
 	ret3, _ := ret[3].(error)
 	return ret0, ret1, ret2, ret3
 }

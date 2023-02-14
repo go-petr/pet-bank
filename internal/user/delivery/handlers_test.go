@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/internal/session"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/service"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -239,14 +239,14 @@ func TestCreateUserAPI(t *testing.T) {
 					Times(1).
 					Return(user.UserWihtoutPassword{}, nil)
 
-				arg := session.CreateSessionParams{
+				arg := domain.CreateSessionParams{
 					Username: testUser.Username,
 				}
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Eq(arg)).
 					Times(1).
-					Return("", time.Now(), session.Session{}, errorspkg.ErrInternal)
+					Return("", time.Now(), domain.Session{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -271,7 +271,7 @@ func TestCreateUserAPI(t *testing.T) {
 					Times(1).
 					Return(service.NewUserWihtoutPassword(testUser), nil)
 
-				arg := session.CreateSessionParams{
+				arg := domain.CreateSessionParams{
 					Username: testUser.Username,
 				}
 
@@ -462,7 +462,7 @@ func TestLoginUserAPI(t *testing.T) {
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return("", time.Now(), session.Session{}, errors.New("Internal"))
+					Return("", time.Now(), domain.Session{}, errors.New("Internal"))
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -485,7 +485,7 @@ func TestLoginUserAPI(t *testing.T) {
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return("token", time.Now(), session.Session{}, nil)
+					Return("token", time.Now(), domain.Session{}, nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
