@@ -9,8 +9,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	 "github.com/go-petr/pet-bank/internal/domain"
-	user "github.com/go-petr/pet-bank/internal/user"
+	domain "github.com/go-petr/pet-bank/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -38,10 +37,10 @@ func (m *MockuserServiceInterface) EXPECT() *MockuserServiceInterfaceMockRecorde
 }
 
 // CheckPassword mocks base method.
-func (m *MockuserServiceInterface) CheckPassword(ctx context.Context, username, password string) (user.UserWihtoutPassword, error) {
+func (m *MockuserServiceInterface) CheckPassword(ctx context.Context, username, password string) (domain.UserWihtoutPassword, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckPassword", ctx, username, password)
-	ret0, _ := ret[0].(user.UserWihtoutPassword)
+	ret0, _ := ret[0].(domain.UserWihtoutPassword)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -53,10 +52,10 @@ func (mr *MockuserServiceInterfaceMockRecorder) CheckPassword(ctx, username, pas
 }
 
 // CreateUser mocks base method.
-func (m *MockuserServiceInterface) CreateUser(ctx context.Context, username, password, fullname, email string) (user.UserWihtoutPassword, error) {
+func (m *MockuserServiceInterface) CreateUser(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", ctx, username, password, fullname, email)
-	ret0, _ := ret[0].(user.UserWihtoutPassword)
+	ret0, _ := ret[0].(domain.UserWihtoutPassword)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

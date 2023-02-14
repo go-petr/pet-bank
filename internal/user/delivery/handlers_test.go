@@ -13,7 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/internal/user/service"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
@@ -36,14 +35,14 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func randomUser(t *testing.T) (user.User, string) {
+func randomUser(t *testing.T) (domain.User, string) {
 
 	password := randompkg.String(10)
 
 	hashedPassword, err := passpkg.Hash(password)
 	require.NoError(t, err)
 
-	user := user.User{
+	user := domain.User{
 		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
 		FullName:       randompkg.Owner(),
@@ -54,7 +53,6 @@ func randomUser(t *testing.T) (user.User, string) {
 }
 
 func TestCreateUserAPI(t *testing.T) {
-
 	testUser, password := randomUser(t)
 
 	ctrl := gomock.NewController(t)
@@ -156,7 +154,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, user.ErrUsernameAlreadyExists)
+					Return(domain.UserWihtoutPassword{}, domain.ErrUsernameAlreadyExists)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -183,7 +181,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, user.ErrEmailALreadyExists)
+					Return(domain.UserWihtoutPassword{}, domain.ErrEmailALreadyExists)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -210,7 +208,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, errorspkg.ErrInternal)
+					Return(domain.UserWihtoutPassword{}, errorspkg.ErrInternal)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -237,7 +235,7 @@ func TestCreateUserAPI(t *testing.T) {
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, nil)
+					Return(domain.UserWihtoutPassword{}, nil)
 
 				arg := domain.CreateSessionParams{
 					Username: testUser.Username,
@@ -391,7 +389,7 @@ func TestLoginUserAPI(t *testing.T) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, user.ErrUserNotFound)
+					Return(domain.UserWihtoutPassword{}, domain.ErrUserNotFound)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -413,7 +411,7 @@ func TestLoginUserAPI(t *testing.T) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Eq(testUser.Username), gomock.Eq("incorrect")).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, user.ErrWrongPassword)
+					Return(domain.UserWihtoutPassword{}, domain.ErrWrongPassword)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -435,7 +433,7 @@ func TestLoginUserAPI(t *testing.T) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Eq(testUser.Username), gomock.Eq(password)).
 					Times(1).
-					Return(user.UserWihtoutPassword{}, errors.New("Internal"))
+					Return(domain.UserWihtoutPassword{}, errors.New("Internal"))
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).

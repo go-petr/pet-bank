@@ -12,7 +12,7 @@ var (
 	ErrBlockedSession = errors.New("blocked session")
 	// ErrMismatchedRefreshToken indicates mismatch between the given token and the session token.
 	ErrMismatchedRefreshToken = errors.New("mismatched session token")
-	// ErrInvalidUser indicates that the session is not related to the given user.
+	// ErrInvalidUser indicates that the session is not related to the given domain.
 	ErrInvalidUser = errors.New("incorrect session user")
 	// ErrExpiredSession indicates that the expired session.
 	ErrExpiredSession = errors.New("expired session")
@@ -20,7 +20,7 @@ var (
 	ErrSessionNotFound = errors.New("Session not found")
 )
 
-// Session holds session data for particular user.
+// Session holds session data for particular domain.
 type Session struct {
 	ID           uuid.UUID `json:"id"`
 	Username     string    `json:"username"`

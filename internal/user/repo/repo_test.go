@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/user"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -37,12 +37,12 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func createRandomUser(t *testing.T) user.User {
+func createRandomUser(t *testing.T) domain.User {
 
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
-	arg := user.CreateUserParams{
+	arg := domain.CreateUserParams{
 		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
 		FullName:       randompkg.Owner(),
@@ -74,7 +74,7 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
-	arg := user.CreateUserParams{
+	arg := domain.CreateUserParams{
 		Username:       user1.Username, // Username duplicate
 		HashedPassword: hashedPassword,
 		FullName:       randompkg.Owner(),
@@ -82,10 +82,10 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 	}
 
 	user2, err := testUserRepo.CreateUser(context.Background(), arg)
-	require.EqualError(t, err, user.ErrUsernameAlreadyExists.Error())
+	require.EqualError(t, err, domain.ErrUsernameAlreadyExists.Error())
 	require.Empty(t, user2)
 
-	arg = user.CreateUserParams{
+	arg = domain.CreateUserParams{
 		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
 		FullName:       randompkg.Owner(),
@@ -93,7 +93,7 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 	}
 
 	user2, err = testUserRepo.CreateUser(context.Background(), arg)
-	require.EqualError(t, err, user.ErrEmailALreadyExists.Error())
+	require.EqualError(t, err, domain.ErrEmailALreadyExists.Error())
 	require.Empty(t, user2)
 }
 
@@ -114,6 +114,6 @@ func TestGetUser(t *testing.T) {
 
 	// Not found
 	_, err = testUserRepo.GetUser(context.Background(), "non-existent")
-	require.EqualError(t, err, user.ErrUserNotFound.Error())
+	require.EqualError(t, err, domain.ErrUserNotFound.Error())
 
 }

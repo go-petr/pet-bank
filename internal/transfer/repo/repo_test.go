@@ -10,7 +10,6 @@ import (
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
-	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
@@ -46,12 +45,12 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func createRandomUser(t *testing.T) user.User {
+func createRandomUser(t *testing.T) domain.User {
 
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
-	arg := user.CreateUserParams{
+	arg := domain.CreateUserParams{
 		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
 		FullName:       randompkg.Owner(),
@@ -72,7 +71,7 @@ func createRandomUser(t *testing.T) user.User {
 	return testUser
 }
 
-func createRandomAccount(t *testing.T, testUser user.User) domain.Account {
+func createRandomAccount(t *testing.T, testUser domain.User) domain.Account {
 
 	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
 	testCurrency := randompkg.Currency()

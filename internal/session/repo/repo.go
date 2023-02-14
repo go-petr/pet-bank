@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -70,7 +69,7 @@ func (r *SessionRepo) CreateSession(ctx context.Context, arg domain.CreateSessio
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Constraint {
 			case "sessions_username_fkey":
-				return s, user.ErrUserNotFound
+				return s, domain.ErrUserNotFound
 			}
 		}
 

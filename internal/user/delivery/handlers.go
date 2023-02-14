@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/user"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/rs/zerolog"
@@ -15,8 +14,8 @@ import (
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
 type userServiceInterface interface {
-	CreateUser(ctx context.Context, username, password, fullname, email string) (user.UserWihtoutPassword, error)
-	CheckPassword(ctx context.Context, username, password string) (user.UserWihtoutPassword, error)
+	CreateUser(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error)
+	CheckPassword(ctx context.Context, username, password string) (domain.UserWihtoutPassword, error)
 }
 
 type SessionMakerInterface interface {
@@ -41,7 +40,7 @@ type userResponse struct {
 	RefreshToken          string    `json:"refresh_token,omitempty"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 	Data                  struct {
-		User user.UserWihtoutPassword `json:"user,omitempty"`
+		User domain.UserWihtoutPassword `json:"user,omitempty"`
 	} `json:"data,omitempty"`
 }
 
@@ -53,7 +52,6 @@ type createUserRequest struct {
 }
 
 func (h *userHandler) CreateUser(gctx *gin.Context) {
-
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(ctx)
 
@@ -67,10 +65,10 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 	createdUser, err := h.service.CreateUser(ctx, req.Username, req.Password, req.FullName, req.Email)
 	if err != nil {
 		switch err {
-		case user.ErrUsernameAlreadyExists:
+		case domain.ErrUsernameAlreadyExists:
 			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
 			return
-		case user.ErrEmailALreadyExists:
+		case domain.ErrEmailALreadyExists:
 			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
 			return
 		}
@@ -98,7 +96,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
 		Data: struct {
-			User user.UserWihtoutPassword "json:\"user,omitempty\""
+			User domain.UserWihtoutPassword "json:\"user,omitempty\""
 		}{
 			User: createdUser,
 		},
@@ -127,10 +125,10 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 	userWihtoutPassword, err := h.service.CheckPassword(ctx, req.Username, req.Password)
 	if err != nil {
 		switch err {
-		case user.ErrUserNotFound:
+		case domain.ErrUserNotFound:
 			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
 			return
-		case user.ErrWrongPassword:
+		case domain.ErrWrongPassword:
 			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
 			return
 		}
@@ -158,7 +156,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
 		Data: struct {
-			User user.UserWihtoutPassword "json:\"user,omitempty\""
+			User domain.UserWihtoutPassword "json:\"user,omitempty\""
 		}{
 			User: userWihtoutPassword,
 		},

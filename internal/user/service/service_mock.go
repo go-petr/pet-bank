@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	user "github.com/go-petr/pet-bank/internal/user"
+	domain "github.com/go-petr/pet-bank/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,10 +36,10 @@ func (m *MockuserRepoInterface) EXPECT() *MockuserRepoInterfaceMockRecorder {
 }
 
 // CreateUser mocks base method.
-func (m *MockuserRepoInterface) CreateUser(ctx context.Context, arg user.CreateUserParams) (user.User, error) {
+func (m *MockuserRepoInterface) CreateUser(ctx context.Context, arg domain.CreateUserParams) (domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", ctx, arg)
-	ret0, _ := ret[0].(user.User)
+	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,10 +51,10 @@ func (mr *MockuserRepoInterfaceMockRecorder) CreateUser(ctx, arg interface{}) *g
 }
 
 // GetUser mocks base method.
-func (m *MockuserRepoInterface) GetUser(ctx context.Context, username string) (user.User, error) {
+func (m *MockuserRepoInterface) GetUser(ctx context.Context, username string) (domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUser", ctx, username)
-	ret0, _ := ret[0].(user.User)
+	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

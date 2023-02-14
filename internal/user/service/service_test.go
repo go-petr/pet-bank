@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-petr/pet-bank/internal/user"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -15,14 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func randomUser(t *testing.T) (user.User, string) {
-
+func randomUser(t *testing.T) (domain.User, string) {
 	password := randompkg.String(10)
 
 	hashedPassword, err := passpkg.Hash(password)
 	require.NoError(t, err)
 
-	user := user.User{
+	user := domain.User{
 		Username:       randompkg.Owner(),
 		HashedPassword: hashedPassword,
 		FullName:       randompkg.Owner(),
@@ -33,13 +32,12 @@ func randomUser(t *testing.T) (user.User, string) {
 }
 
 type eqCreateUserParamsMathcer struct {
-	arg      user.CreateUserParams
+	arg      domain.CreateUserParams
 	password string
 }
 
 func (e eqCreateUserParamsMathcer) Matches(x interface{}) bool {
-
-	arg, ok := x.(user.CreateUserParams)
+	arg, ok := x.(domain.CreateUserParams)
 	if !ok {
 		return false
 	}
@@ -50,6 +48,7 @@ func (e eqCreateUserParamsMathcer) Matches(x interface{}) bool {
 	}
 
 	e.arg.HashedPassword = arg.HashedPassword
+	
 	return reflect.DeepEqual(e.arg, arg)
 }
 
@@ -57,12 +56,11 @@ func (e eqCreateUserParamsMathcer) String() string {
 	return fmt.Sprintf("mathces arg %v and password %v", e.arg, e.password)
 }
 
-func EqCreateUserParams(arg user.CreateUserParams, password string) gomock.Matcher {
+func EqCreateUserParams(arg domain.CreateUserParams, password string) gomock.Matcher {
 	return eqCreateUserParamsMathcer{arg, password}
 }
 
 func TestCreateUser(t *testing.T) {
-
 	testUser, testPassword := randomUser(t)
 
 	ctrl := gomock.NewController(t)
@@ -80,7 +78,7 @@ func TestCreateUser(t *testing.T) {
 			Email    string
 		}
 		buildStubs    func(userRepo *MockuserRepoInterface)
-		checkResponse func(response user.UserWihtoutPassword, err error)
+		checkResponse func(response domain.UserWihtoutPassword, err error)
 	}{
 		{
 			name: "HashPasswordErr",
@@ -96,13 +94,12 @@ func TestCreateUser(t *testing.T) {
 				testUser.Email,
 			},
 			buildStubs: func(userRepo *MockuserRepoInterface) {
-
 				userRepo.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(response user.UserWihtoutPassword, err error) {
-				require.Equal(t, user.UserWihtoutPassword{}, response)
+			checkResponse: func(response domain.UserWihtoutPassword, err error) {
+				require.Equal(t, domain.UserWihtoutPassword{}, response)
 				require.NotEmpty(t, err)
 			},
 		},
@@ -120,20 +117,19 @@ func TestCreateUser(t *testing.T) {
 				testUser.Email,
 			},
 			buildStubs: func(userRepo *MockuserRepoInterface) {
-
 				userRepo.EXPECT().
 					CreateUser(gomock.Any(), EqCreateUserParams(
-						user.CreateUserParams{
+						domain.CreateUserParams{
 							Username:       testUser.Username,
 							HashedPassword: testUser.HashedPassword,
 							FullName:       testUser.FullName,
 							Email:          testUser.Email,
 						}, testPassword)).
 					Times(1).
-					Return(user.User{}, errorspkg.ErrInternal)
+					Return(domain.User{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(response user.UserWihtoutPassword, err error) {
-				require.Equal(t, user.UserWihtoutPassword{}, response)
+			checkResponse: func(response domain.UserWihtoutPassword, err error) {
+				require.Equal(t, domain.UserWihtoutPassword{}, response)
 				require.NotEmpty(t, err)
 			},
 		},
@@ -151,10 +147,9 @@ func TestCreateUser(t *testing.T) {
 				testUser.Email,
 			},
 			buildStubs: func(userRepo *MockuserRepoInterface) {
-
 				userRepo.EXPECT().
 					CreateUser(gomock.Any(), EqCreateUserParams(
-						user.CreateUserParams{
+						domain.CreateUserParams{
 							Username:       testUser.Username,
 							HashedPassword: testUser.HashedPassword,
 							FullName:       testUser.FullName,
@@ -163,8 +158,7 @@ func TestCreateUser(t *testing.T) {
 					Times(1).
 					Return(testUser, nil)
 			},
-			checkResponse: func(response user.UserWihtoutPassword, err error) {
-
+			checkResponse: func(response domain.UserWihtoutPassword, err error) {
 				require.NoError(t, err)
 
 				require.Equal(t, testUser.Username, response.Username)
@@ -175,11 +169,9 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(userRepo)
 
 			response, err := userService.CreateUser(context.Background(),
@@ -195,7 +187,6 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCheckPassword(t *testing.T) {
-
 	testUser, testPassword := randomUser(t)
 
 	ctrl := gomock.NewController(t)
@@ -209,22 +200,21 @@ func TestCheckPassword(t *testing.T) {
 		username      string
 		password      string
 		buildStubs    func(userRepo *MockuserRepoInterface)
-		checkResponse func(response user.UserWihtoutPassword, err error)
+		checkResponse func(response domain.UserWihtoutPassword, err error)
 	}{
 		{
 			name:     "GetUserError",
 			username: testUser.Username,
 			password: testPassword,
 			buildStubs: func(userRepo *MockuserRepoInterface) {
-
 				userRepo.EXPECT().
 					GetUser(gomock.Any(), testUser.Username).
 					Times(1).
-					Return(user.User{}, user.ErrUsernameAlreadyExists)
+					Return(domain.User{}, domain.ErrUsernameAlreadyExists)
 			},
-			checkResponse: func(response user.UserWihtoutPassword, err error) {
-				require.Equal(t, user.UserWihtoutPassword{}, response)
-				require.EqualError(t, user.ErrUsernameAlreadyExists, err.Error())
+			checkResponse: func(response domain.UserWihtoutPassword, err error) {
+				require.Equal(t, domain.UserWihtoutPassword{}, response)
+				require.EqualError(t, domain.ErrUsernameAlreadyExists, err.Error())
 			},
 		},
 
@@ -233,15 +223,14 @@ func TestCheckPassword(t *testing.T) {
 			username: testUser.Username,
 			password: "wrong",
 			buildStubs: func(userRepo *MockuserRepoInterface) {
-
 				userRepo.EXPECT().
 					GetUser(gomock.Any(), testUser.Username).
 					Times(1).
 					Return(testUser, nil)
 			},
-			checkResponse: func(response user.UserWihtoutPassword, err error) {
-				require.Equal(t, user.UserWihtoutPassword{}, response)
-				require.EqualError(t, user.ErrWrongPassword, err.Error())
+			checkResponse: func(response domain.UserWihtoutPassword, err error) {
+				require.Equal(t, domain.UserWihtoutPassword{}, response)
+				require.EqualError(t, domain.ErrWrongPassword, err.Error())
 			},
 		},
 
@@ -250,13 +239,12 @@ func TestCheckPassword(t *testing.T) {
 			username: testUser.Username,
 			password: testPassword,
 			buildStubs: func(userRepo *MockuserRepoInterface) {
-
 				userRepo.EXPECT().
 					GetUser(gomock.Any(), testUser.Username).
 					Times(1).
 					Return(testUser, nil)
 			},
-			checkResponse: func(response user.UserWihtoutPassword, err error) {
+			checkResponse: func(response domain.UserWihtoutPassword, err error) {
 				require.Equal(t, NewUserWihtoutPassword(testUser), response)
 				require.NoError(t, err)
 			},
@@ -264,11 +252,9 @@ func TestCheckPassword(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(userRepo)
 
 			response, err := userService.CheckPassword(context.Background(),
@@ -277,7 +263,6 @@ func TestCheckPassword(t *testing.T) {
 			)
 
 			tc.checkResponse(response, err)
-
 		})
 	}
 }
