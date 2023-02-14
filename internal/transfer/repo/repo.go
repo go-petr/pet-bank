@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	er "github.com/go-petr/pet-bank/internal/entry/repo"
+	"github.com/go-petr/pet-bank/internal/entryrepo"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/rs/zerolog"
 )
@@ -146,8 +146,8 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg domain.CreateTransfer
 	}
 	defer tx.Rollback()
 
-	entryTxRepo := er.NewEntryRepo(tx)
-	accountTxRepo := accountrepo.New(tx)
+	entryTxRepo := entryrepo.NewRepoPGS(tx)
+	accountTxRepo := accountrepo.NewRepoPGS(tx)
 
 	result.Transfer, err = r.CreateTransfer(ctx, arg)
 	if err != nil {
@@ -155,13 +155,13 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg domain.CreateTransfer
 		return result, errorspkg.ErrInternal
 	}
 
-	result.FromEntry, err = entryTxRepo.CreateEntry(ctx, "-"+arg.Amount, arg.FromAccountID)
+	result.FromEntry, err = entryTxRepo.Create(ctx, "-"+arg.Amount, arg.FromAccountID)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return result, errorspkg.ErrInternal
 	}
 
-	result.ToEntry, err = entryTxRepo.CreateEntry(ctx, arg.Amount, arg.ToAccountID)
+	result.ToEntry, err = entryTxRepo.Create(ctx, arg.Amount, arg.ToAccountID)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return result, errorspkg.ErrInternal

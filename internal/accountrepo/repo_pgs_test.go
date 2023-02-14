@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	testRepo = New(testDB)
+	testRepo = NewRepoPGS(testDB)
 	testUserRepo = repo.NewUserRepo(testDB)
 
 	os.Exit(m.Run())

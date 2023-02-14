@@ -18,8 +18,8 @@ type RepoPGS struct {
 	db dbpkg.SQLInterface
 }
 
-// New returns account RepoPGS.
-func New(db dbpkg.SQLInterface) *RepoPGS {
+// NewRepoPGS returns account RepoPGS.
+func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	return &RepoPGS{
 		db: db,
 	}
@@ -65,7 +65,7 @@ VALUES
 RETURNING id, owner, balance, currency, created_at
 `
 
-// Create creates account and then returns it.
+// Create creates the account and then returns it.
 func (r *RepoPGS) Create(ctx context.Context, owner, balance, currency string) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
@@ -151,7 +151,7 @@ ORDER BY id
 LIMIT $2 OFFSET $3
 `
 
-// List returns the specified number of accounts of the given user.
+// List returns the specified number of accounts for the given user.
 func (r *RepoPGS) List(ctx context.Context, owner string, limit, offset int32) ([]domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 

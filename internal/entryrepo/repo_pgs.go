@@ -1,4 +1,5 @@
-package repo
+// Package entryrepo manages repository layer of entries.
+package entryrepo
 
 import (
 	"context"
@@ -9,12 +10,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type EntryRepo struct {
+// RepoPGS facilitates entry repository layer logic.
+type RepoPGS struct {
 	db dbpkg.SQLInterface
 }
 
-func NewEntryRepo(db dbpkg.SQLInterface) *EntryRepo {
-	return &EntryRepo{db: db}
+// NewRepoPGS returns account RepoPGS.
+func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
+	return &RepoPGS{db: db}
 }
 
 const createEntry = `
@@ -25,7 +28,8 @@ VALUES
 RETURNING id, account_id, amount, created_at
 `
 
-func (r *EntryRepo) CreateEntry(ctx context.Context, amount string, account int32) (domain.Entry, error) {
+// Create creates the entry and then returns it.
+func (r *RepoPGS) Create(ctx context.Context, amount string, account int32) (domain.Entry, error) {
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, createEntry, account, amount)
@@ -52,7 +56,8 @@ SELECT id, account_id, amount, created_at FROM entries
 WHERE id = $1 LIMIT 1
 `
 
-func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (domain.Entry, error) {
+// Get returns the entry with the given id.
+func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Entry, error) {
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getEntry, id)
@@ -80,7 +85,8 @@ WHERE account_id = $1
 LIMIT $2 OFFSET $3
 `
 
-func (r *EntryRepo) ListEntries(ctx context.Context, accountID int32, limit, offset int32) ([]domain.Entry, error) {
+// List returns the specified number of entries for the given accountID.
+func (r *RepoPGS) List(ctx context.Context, accountID int32, limit, offset int32) ([]domain.Entry, error) {
 	l := zerolog.Ctx(ctx)
 
 	rows, err := r.db.QueryContext(ctx, listEntries, accountID, limit, offset)
@@ -107,12 +113,12 @@ func (r *EntryRepo) ListEntries(ctx context.Context, accountID int32, limit, off
 
 	if err := rows.Close(); err != nil {
 		l.Error().Err(err).Send()
-		return items, errorspkg.ErrInternal
+		return nil, errorspkg.ErrInternal
 	}
 
 	if err := rows.Err(); err != nil {
 		l.Error().Err(err).Send()
-		return items, errorspkg.ErrInternal
+		return nil, errorspkg.ErrInternal
 	}
 
 	return items, nil

@@ -42,7 +42,7 @@ func main() {
 	}
 
 	userRepo := ur.NewUserRepo(conn)
-	accountRepo := accountrepo.New(conn)
+	accountRepo := accountrepo.NewRepoPGS(conn)
 	transferRepo := tr.NewTransferRepo(conn)
 	sessionRepo := sr.NewSessionRepo(conn)
 

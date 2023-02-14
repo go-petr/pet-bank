@@ -1,4 +1,4 @@
-package repo
+package entryrepo
 
 import (
 	"context"
@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	testEntryRepo   *EntryRepo
+	testEntryRepo   *RepoPGS
 	testAccountRepo *accountrepo.RepoPGS
 	testUserRepo    *ur.UserRepo
 )
 
 func TestMain(m *testing.M) {
-	config, err := configpkg.Load("../../../configs")
+	config, err := configpkg.Load("../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -33,9 +33,9 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	testEntryRepo = NewEntryRepo(testDB)
+	testEntryRepo = NewRepoPGS(testDB)
 	testUserRepo = ur.NewUserRepo(testDB)
-	testAccountRepo = accountrepo.New(testDB)
+	testAccountRepo = accountrepo.NewRepoPGS(testDB)
 
 	os.Exit(m.Run())
 }
@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 func createRandomEntry(t *testing.T, account domain.Account) domain.Entry {
 	testAmount := randompkg.MoneyAmountBetween(100, 1_000)
 
-	entry, err := testEntryRepo.CreateEntry(context.Background(), testAmount, account.ID)
+	entry, err := testEntryRepo.Create(context.Background(), testAmount, account.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, entry)
 
@@ -99,18 +99,18 @@ func createRandomAccount(t *testing.T, testUser domain.User) domain.Account {
 	return account
 }
 
-func TestCreateEntry(t *testing.T) {
+func TestCreate(t *testing.T) {
 	testUser1 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 	createRandomEntry(t, testAccount1)
 }
 
-func TestGetEntry(t *testing.T) {
+func TestGet(t *testing.T) {
 	testUser1 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 	entry1 := createRandomEntry(t, testAccount1)
 
-	entry2, err := testEntryRepo.GetEntry(context.Background(), entry1.ID)
+	entry2, err := testEntryRepo.Get(context.Background(), entry1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, entry2)
 
@@ -120,7 +120,7 @@ func TestGetEntry(t *testing.T) {
 	require.Equal(t, entry1.CreatedAt, entry2.CreatedAt)
 }
 
-func TestListEntries(t *testing.T) {
+func TestList(t *testing.T) {
 	testUser1 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 
@@ -128,7 +128,7 @@ func TestListEntries(t *testing.T) {
 		createRandomEntry(t, testAccount1)
 	}
 
-	entries, err := testEntryRepo.ListEntries(context.Background(), testAccount1.ID, 5, 5)
+	entries, err := testEntryRepo.List(context.Background(), testAccount1.ID, 5, 5)
 	require.NoError(t, err)
 	require.Len(t, entries, 5)
 

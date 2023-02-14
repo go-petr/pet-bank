@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	er "github.com/go-petr/pet-bank/internal/entry/repo"
+	"github.com/go-petr/pet-bank/internal/entryrepo"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
@@ -22,7 +22,7 @@ var (
 	testTransferRepo *transferRepo
 	testAccountRepo  *accountrepo.RepoPGS
 	testUserRepo     *ur.UserRepo
-	testEntryRepo    *er.EntryRepo
+	testEntryRepo    *entryrepo.RepoPGS
 )
 
 func TestMain(m *testing.M) {
@@ -37,8 +37,8 @@ func TestMain(m *testing.M) {
 	}
 
 	testUserRepo = ur.NewUserRepo(testDB)
-	testAccountRepo = accountrepo.New(testDB)
-	testEntryRepo = er.NewEntryRepo(testDB)
+	testAccountRepo = accountrepo.NewRepoPGS(testDB)
+	testEntryRepo = entryrepo.NewRepoPGS(testDB)
 
 	testTransferRepo = NewTransferRepo(testDB)
 
@@ -226,7 +226,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, fromEntry.ID)
 		require.NotZero(t, fromEntry.CreatedAt)
 
-		_, err = testEntryRepo.GetEntry(context.Background(), fromEntry.ID)
+		_, err = testEntryRepo.Get(context.Background(), fromEntry.ID)
 		require.NoError(t, err)
 
 		toEntry := result.ToEntry
@@ -236,7 +236,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, toEntry.ID)
 		require.NotZero(t, toEntry.CreatedAt)
 
-		_, err = testEntryRepo.GetEntry(context.Background(), toEntry.ID)
+		_, err = testEntryRepo.Get(context.Background(), toEntry.ID)
 		require.NoError(t, err)
 
 		// check accounts
