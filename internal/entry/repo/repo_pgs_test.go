@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -18,7 +18,7 @@ import (
 
 var (
 	testEntryRepo   *EntryRepo
-	testAccountRepo *ar.AccountRepo
+	testAccountRepo *accountrepo.RepoPGS
 	testUserRepo    *ur.UserRepo
 )
 
@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 
 	testEntryRepo = NewEntryRepo(testDB)
 	testUserRepo = ur.NewUserRepo(testDB)
-	testAccountRepo = ar.NewAccountRepo(testDB)
+	testAccountRepo = accountrepo.New(testDB)
 
 	os.Exit(m.Run())
 }
@@ -85,7 +85,7 @@ func createRandomAccount(t *testing.T, testUser domain.User) domain.Account {
 	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
 	testCurrency := randompkg.Currency()
 
-	account, err := testAccountRepo.CreateAccount(context.Background(), testUser.Username, testBalance, testCurrency)
+	account, err := testAccountRepo.Create(context.Background(), testUser.Username, testBalance, testCurrency)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
 

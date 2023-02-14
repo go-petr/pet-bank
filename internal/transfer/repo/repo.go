@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
@@ -30,7 +30,6 @@ RETURNING id, from_account_id, to_account_id, amount, created_at
 `
 
 func (r *transferRepo) CreateTransfer(ctx context.Context, arg domain.CreateTransferParams) (domain.Transfer, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, createTransfer, arg.FromAccountID, arg.ToAccountID, arg.Amount)
@@ -58,7 +57,6 @@ WHERE id = $1 LIMIT 1
 `
 
 func (r *transferRepo) GetTransfer(ctx context.Context, id int64) (domain.Transfer, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getTransfer, id)
@@ -91,7 +89,6 @@ LIMIT $3 OFFSET $4
 `
 
 func (r *transferRepo) ListTransfers(ctx context.Context, arg domain.ListTransfersParams) ([]domain.Transfer, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	rows, err := r.db.QueryContext(ctx, listTransfers,
@@ -134,9 +131,8 @@ func (r *transferRepo) ListTransfers(ctx context.Context, arg domain.ListTransfe
 }
 
 // TransferTx performs a money transfer from one account to the other.
-// It creates a transfer record, add account entries, and update accounts' balance within a single dbpkg transaction
+// It creates a transfer record, add account entries, and update accounts' balance within a single dbpkg transaction.
 func (r *transferRepo) TransferTx(ctx context.Context, arg domain.CreateTransferParams) (domain.TransferTxResult, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	var (
@@ -151,7 +147,7 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg domain.CreateTransfer
 	defer tx.Rollback()
 
 	entryTxRepo := er.NewEntryRepo(tx)
-	accountTxRepo := ar.NewAccountRepo(tx)
+	accountTxRepo := accountrepo.New(tx)
 
 	result.Transfer, err = r.CreateTransfer(ctx, arg)
 	if err != nil {
@@ -188,16 +184,15 @@ func (r *transferRepo) TransferTx(ctx context.Context, arg domain.CreateTransfer
 }
 
 func addBalances(
-	ctx context.Context, r *ar.AccountRepo,
+	ctx context.Context, r *accountrepo.RepoPGS,
 	account1ID int32, amount1 string,
 	account2ID int32, amount2 string) (domain.Account, domain.Account, error) {
-
-	account1, err := r.AddAccountBalance(ctx, amount1, account1ID)
+	account1, err := r.AddBalance(ctx, amount1, account1ID)
 	if err != nil {
 		return domain.Account{}, domain.Account{}, err
 	}
 
-	account2, err := r.AddAccountBalance(ctx, amount2, account2ID)
+	account2, err := r.AddBalance(ctx, amount2, account2ID)
 	if err != nil {
 		return domain.Account{}, domain.Account{}, err
 	}

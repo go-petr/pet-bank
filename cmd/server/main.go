@@ -12,9 +12,9 @@ import (
 	"github.com/go-petr/pet-bank/pkg/token"
 	_ "github.com/lib/pq"
 
-	ah "github.com/go-petr/pet-bank/internal/account/delivery"
-	ar "github.com/go-petr/pet-bank/internal/account/repo"
-	as "github.com/go-petr/pet-bank/internal/account/service"
+	"github.com/go-petr/pet-bank/internal/accountdelivery"
+	"github.com/go-petr/pet-bank/internal/accountrepo"
+	"github.com/go-petr/pet-bank/internal/accountservice"
 	sh "github.com/go-petr/pet-bank/internal/session/delivery"
 	sr "github.com/go-petr/pet-bank/internal/session/repo"
 	ss "github.com/go-petr/pet-bank/internal/session/service"
@@ -29,39 +29,39 @@ import (
 )
 
 func main() {
-
 	config, err := configpkg.Load("./configs")
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot connect to db:")
+		log.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
 	logger := middleware.GetLogger(config)
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot connect to db:")
+		logger.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
 	userRepo := ur.NewUserRepo(conn)
-	accountRepo := ar.NewAccountRepo(conn)
+	accountRepo := accountrepo.New(conn)
 	transferRepo := tr.NewTransferRepo(conn)
 	sessionRepo := sr.NewSessionRepo(conn)
 
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot create token maker:")
+		logger.Fatal().Err(err).Msg("cannot create token maker")
 	}
 
 	userService := us.NewUserService(userRepo)
-	accountService := as.NewAccountService(accountRepo)
+	accountService := accountservice.New(accountRepo)
 	transferService := ts.NewTransferService(transferRepo, accountService)
 	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
+
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot initialize session service:")
+		logger.Fatal().Err(err).Msg("cannot initialize session service")
 	}
 
 	userHandler := uh.NewUserHandler(userService, sessionService)
-	accountHandler := ah.NewAccountHandler(accountService)
+	accountHandler := accountdelivery.NewHandler(accountService)
 	transferHandler := th.NewTransferHandler(transferService)
 	sessionHandler := sh.NewSessionHandler(sessionService)
 
@@ -77,18 +77,21 @@ func main() {
 
 	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
 
-	authRoutes.POST("/accounts", accountHandler.CreateAccount)
-	authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
-	authRoutes.GET("/accounts", accountHandler.ListAccounts)
+	authRoutes.POST("/accounts", accountHandler.Create)
+	authRoutes.GET("/accounts/:id", accountHandler.Get)
+	authRoutes.GET("/accounts", accountHandler.List)
 
 	authRoutes.POST("/transfers", transferHandler.CreateTransfer)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("currency", ah.ValidCurrency)
+		err := v.RegisterValidation("currency", accountdelivery.ValidCurrency)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("cannot register currency validator")
+		}
 	}
 
 	err = server.Run(config.ServerAddress)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot start server:")
+		logger.Fatal().Err(err).Msg("cannot start server")
 	}
 }

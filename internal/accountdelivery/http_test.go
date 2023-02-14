@@ -1,4 +1,4 @@
-package delivery
+package accountdelivery
 
 import (
 	"bytes"
@@ -50,15 +50,15 @@ func requireBodyMatchAccount(t *testing.T, body *bytes.Buffer, acc domain.Accoun
 	require.Equal(t, acc, gotAccount)
 }
 
-func TestCreateAccountAPI(t *testing.T) {
+func TestCreateAPI(t *testing.T) {
 	testUsername := randompkg.Owner()
 	testAccount := randomAccount(testUsername)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	accountService := NewMockAccountServiceInterface(ctrl)
-	accountHandler := NewAccountHandler(accountService)
+	accountService := NewMockService(ctrl)
+	accountHandler := NewHandler(accountService)
 
 	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestCreateAccountAPI(t *testing.T) {
 	url := "/accounts"
 	server := gin.Default()
 	server.Use(middleware.AuthMiddleware(tokenMaker))
-	server.POST(url, accountHandler.CreateAccount)
+	server.POST(url, accountHandler.Create)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		require.NoError(t, v.RegisterValidation("currency", ValidCurrency))
@@ -75,8 +75,8 @@ func TestCreateAccountAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
-		setupAuth     func(t *testing.T, request *http.Request, TokenMaker token.Maker)
-		buildStubs    func(accountService *MockAccountServiceInterface)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		buildStubs    func(accountService *MockService)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
@@ -84,11 +84,11 @@ func TestCreateAccountAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					CreateAccount(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -101,13 +101,13 @@ func TestCreateAccountAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": "RUB",
 			},
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					CreateAccount(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -120,13 +120,13 @@ func TestCreateAccountAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					CreateAccount(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testAccount.Owner),
 						gomock.Eq(testAccount.Currency)).
 					Times(1).
@@ -142,13 +142,13 @@ func TestCreateAccountAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					CreateAccount(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testAccount.Owner),
 						gomock.Eq(testAccount.Currency)).
 					Times(1).
@@ -164,13 +164,13 @@ func TestCreateAccountAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					CreateAccount(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testAccount.Owner),
 						gomock.Eq(testAccount.Currency)).
 					Times(1).
@@ -186,13 +186,13 @@ func TestCreateAccountAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					CreateAccount(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testAccount.Owner),
 						gomock.Eq(testAccount.Currency)).
 					Times(1).
@@ -226,7 +226,7 @@ func TestCreateAccountAPI(t *testing.T) {
 	}
 }
 
-func TestGetAccountAPI(t *testing.T) {
+func TestGetAPI(t *testing.T) {
 	testUsername := randompkg.Owner()
 	testAccount := randomAccount(testUsername)
 	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
@@ -235,29 +235,29 @@ func TestGetAccountAPI(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	accountService := NewMockAccountServiceInterface(ctrl)
-	accountHandler := NewAccountHandler(accountService)
+	accountService := NewMockService(ctrl)
+	accountHandler := NewHandler(accountService)
 
 	// start test server and send request
 	server := gin.Default()
 	server.Use(middleware.AuthMiddleware(tokenMaker))
-	server.GET("/accounts/:id", accountHandler.GetAccount)
+	server.GET("/accounts/:id", accountHandler.Get)
 
 	testCases := []struct {
 		name          string
 		accountID     int32
-		setupAuth     func(t *testing.T, request *http.Request, TokenMaker token.Maker)
-		buildStubs    func(accountService *MockAccountServiceInterface)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		buildStubs    func(accountService *MockService)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:      "NoAuthorization",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					GetAccount(gomock.Any(), gomock.Any()).
+					Get(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -267,13 +267,13 @@ func TestGetAccountAPI(t *testing.T) {
 		{
 			name:      "InvalidID",
 			accountID: 0,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					GetAccount(gomock.Any(), gomock.Any()).
+					Get(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -283,13 +283,13 @@ func TestGetAccountAPI(t *testing.T) {
 		{
 			name:      "NotFound",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					GetAccount(gomock.Any(), gomock.Eq(testAccount.ID)).
+					Get(gomock.Any(), gomock.Eq(testAccount.ID)).
 					Times(1).
 					Return(domain.Account{}, domain.ErrAccountNotFound)
 			},
@@ -300,13 +300,13 @@ func TestGetAccountAPI(t *testing.T) {
 		{
 			name:      "InternalError",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					GetAccount(gomock.Any(), gomock.Eq(testAccount.ID)).
+					Get(gomock.Any(), gomock.Eq(testAccount.ID)).
 					Times(1).
 					Return(domain.Account{}, sql.ErrConnDone)
 			},
@@ -317,13 +317,13 @@ func TestGetAccountAPI(t *testing.T) {
 		{
 			name:      "UnauthorizedUser",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, "UnauthorizedUser", time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					GetAccount(gomock.Any(), gomock.Eq(testAccount.ID)).
+					Get(gomock.Any(), gomock.Eq(testAccount.ID)).
 					Times(1).
 					Return(testAccount, nil)
 			},
@@ -334,13 +334,13 @@ func TestGetAccountAPI(t *testing.T) {
 		{
 			name:      "OK",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					GetAccount(gomock.Any(), gomock.Eq(testAccount.ID)).
+					Get(gomock.Any(), gomock.Eq(testAccount.ID)).
 					Times(1).
 					Return(testAccount, nil)
 			},
@@ -370,7 +370,7 @@ func TestGetAccountAPI(t *testing.T) {
 	}
 }
 
-func TestListAccountsAPI(t *testing.T) {
+func TestListAPI(t *testing.T) {
 	testUsername := randompkg.Owner()
 
 	// n specifies number of account in DB
@@ -385,19 +385,19 @@ func TestListAccountsAPI(t *testing.T) {
 		name          string
 		pageID        int32
 		pageSize      int32
-		setupAuth     func(t *testing.T, request *http.Request, TokenMaker token.Maker)
-		buildStubs    func(accountService *MockAccountServiceInterface)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		buildStubs    func(accountService *MockService)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:     "NoAuthorization",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					ListAccounts(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -408,13 +408,13 @@ func TestListAccountsAPI(t *testing.T) {
 			name:     "InvalidPageID",
 			pageID:   -1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					ListAccounts(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -425,13 +425,13 @@ func TestListAccountsAPI(t *testing.T) {
 			name:     "InvalidPageSize",
 			pageID:   1,
 			pageSize: 500,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					ListAccounts(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -442,13 +442,13 @@ func TestListAccountsAPI(t *testing.T) {
 			name:     "InternalError",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					ListAccounts(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(1).
 					Return([]domain.Account{}, sql.ErrConnDone)
 			},
@@ -460,13 +460,13 @@ func TestListAccountsAPI(t *testing.T) {
 			name:     "InternalError",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, TokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, TokenMaker,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				middleware.AddAuthorization(t, request, tokenMaker,
 					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
 			},
-			buildStubs: func(accountService *MockAccountServiceInterface) {
+			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					ListAccounts(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(accounts, nil)
 			},
@@ -492,14 +492,14 @@ func TestListAccountsAPI(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			accountService := NewMockAccountServiceInterface(ctrl)
-			accountHandler := NewAccountHandler(accountService)
+			accountService := NewMockService(ctrl)
+			accountHandler := NewHandler(accountService)
 
 			tc.buildStubs(accountService)
 
 			server := gin.Default()
 			server.Use(middleware.AuthMiddleware(tokenMaker))
-			server.GET("/accounts", accountHandler.ListAccounts)
+			server.GET("/accounts", accountHandler.List)
 
 			recorder := httptest.NewRecorder()
 

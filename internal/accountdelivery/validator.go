@@ -1,4 +1,4 @@
-package delivery
+package accountdelivery
 
 import (
 	"github.com/go-petr/pet-bank/pkg/currency"

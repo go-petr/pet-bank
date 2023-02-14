@@ -1,4 +1,5 @@
-package repo
+// Package accountrepo manages repository layer of accounts.
+package accountrepo
 
 import (
 	"context"
@@ -7,17 +8,19 @@ import (
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
+
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
-type AccountRepo struct {
+// RepoPGS facilitates account repository layer logic.
+type RepoPGS struct {
 	db dbpkg.SQLInterface
 }
 
-func NewAccountRepo(db dbpkg.SQLInterface) *AccountRepo {
-	return &AccountRepo{
+// New returns account RepoPGS.
+func New(db dbpkg.SQLInterface) *RepoPGS {
+	return &RepoPGS{
 		db: db,
 	}
 }
@@ -29,8 +32,8 @@ WHERE id = $2
 RETURNING id, owner, balance, currency, created_at
 `
 
-func (r *AccountRepo) AddAccountBalance(ctx context.Context, amount string, id int32) (domain.Account, error) {
-
+// AddBalance changes the account's balance and returns the changed account.
+func (r *RepoPGS) AddBalance(ctx context.Context, amount string, id int32) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, addAccountBalance, amount, id)
@@ -46,7 +49,6 @@ func (r *AccountRepo) AddAccountBalance(ctx context.Context, amount string, id i
 	)
 
 	if err != nil {
-
 		l.Error().Err(err).Send()
 
 		return a, errorspkg.ErrInternal
@@ -63,8 +65,8 @@ VALUES
 RETURNING id, owner, balance, currency, created_at
 `
 
-func (r *AccountRepo) CreateAccount(ctx context.Context, owner, balance, currency string) (domain.Account, error) {
-
+// Create creates account and then returns it.
+func (r *RepoPGS) Create(ctx context.Context, owner, balance, currency string) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, createAccount, owner, balance, currency)
@@ -80,7 +82,6 @@ func (r *AccountRepo) CreateAccount(ctx context.Context, owner, balance, currenc
 	)
 
 	if err != nil {
-
 		l.Error().Err(err).Send()
 
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -103,7 +104,8 @@ DELETE FROM accounts
 WHERE id = $1
 `
 
-func (r *AccountRepo) DeleteAccount(ctx context.Context, id int32) error {
+// Delete removes the account with the given id.
+func (r *RepoPGS) Delete(ctx context.Context, id int32) error {
 	_, err := r.db.ExecContext(ctx, deleteAccount, id)
 	return err
 }
@@ -113,8 +115,8 @@ SELECT id, owner, balance, currency, created_at FROM accounts
 WHERE id = $1
 `
 
-func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (domain.Account, error) {
-
+// Get returns the account with the given id.
+func (r *RepoPGS) Get(ctx context.Context, id int32) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getAccount, id)
@@ -130,7 +132,6 @@ func (r *AccountRepo) GetAccount(ctx context.Context, id int32) (domain.Account,
 	)
 
 	if err != nil {
-
 		l.Error().Err(err).Send()
 
 		if err == sql.ErrNoRows {
@@ -150,15 +151,14 @@ ORDER BY id
 LIMIT $2 OFFSET $3
 `
 
-func (r *AccountRepo) ListAccounts(ctx context.Context, owner string, limit, offset int32) ([]domain.Account, error) {
-
+// List returns the specified number of accounts of the given user.
+func (r *RepoPGS) List(ctx context.Context, owner string, limit, offset int32) ([]domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
 	rows, err := r.db.QueryContext(ctx, listAccounts, owner, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	items := []domain.Account{}
@@ -174,6 +174,7 @@ func (r *AccountRepo) ListAccounts(ctx context.Context, owner string, limit, off
 		); err != nil {
 			return nil, err
 		}
+
 		items = append(items, a)
 	}
 

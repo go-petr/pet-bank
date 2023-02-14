@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	ar "github.com/go-petr/pet-bank/internal/account/repo"
+	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
@@ -20,7 +20,7 @@ import (
 
 var (
 	testTransferRepo *transferRepo
-	testAccountRepo  *ar.AccountRepo
+	testAccountRepo  *accountrepo.RepoPGS
 	testUserRepo     *ur.UserRepo
 	testEntryRepo    *er.EntryRepo
 )
@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testUserRepo = ur.NewUserRepo(testDB)
-	testAccountRepo = ar.NewAccountRepo(testDB)
+	testAccountRepo = accountrepo.New(testDB)
 	testEntryRepo = er.NewEntryRepo(testDB)
 
 	testTransferRepo = NewTransferRepo(testDB)
@@ -46,7 +46,6 @@ func TestMain(m *testing.M) {
 }
 
 func createRandomUser(t *testing.T) domain.User {
-
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
@@ -72,11 +71,10 @@ func createRandomUser(t *testing.T) domain.User {
 }
 
 func createRandomAccount(t *testing.T, testUser domain.User) domain.Account {
-
 	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
 	testCurrency := randompkg.Currency()
 
-	account, err := testAccountRepo.CreateAccount(context.Background(), testUser.Username, testBalance, testCurrency)
+	account, err := testAccountRepo.Create(context.Background(), testUser.Username, testBalance, testCurrency)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
 
@@ -91,7 +89,6 @@ func createRandomAccount(t *testing.T, testUser domain.User) domain.Account {
 }
 
 func createRandomTransfer(t *testing.T, testAccount1, testAccount2 domain.Account) domain.Transfer {
-
 	arg := domain.CreateTransferParams{
 		FromAccountID: testAccount1.ID,
 		ToAccountID:   testAccount2.ID,
@@ -167,7 +164,6 @@ func TestListTransfers(t *testing.T) {
 }
 
 func TestTransferTx(t *testing.T) {
-
 	testUser1 := createRandomUser(t)
 	testUser2 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
@@ -189,7 +185,6 @@ func TestTransferTx(t *testing.T) {
 
 	for i := 0; i < n; i++ {
 		go func() {
-
 			result, err := testTransferRepo.TransferTx(context.Background(), domain.CreateTransferParams{
 				FromAccountID: testAccount1.ID,
 				ToAccountID:   testAccount2.ID,
@@ -198,11 +193,11 @@ func TestTransferTx(t *testing.T) {
 
 			errs <- err
 			results <- result
-
 		}()
 	}
 
 	existed := make(map[int]bool)
+
 	// check results
 	for i := 0; i < n; i++ {
 		err := <-errs
@@ -272,10 +267,10 @@ func TestTransferTx(t *testing.T) {
 	}
 
 	// check the final updated balance
-	updatedAccount1, err := testAccountRepo.GetAccount(context.Background(), testAccount1.ID)
+	updatedAccount1, err := testAccountRepo.Get(context.Background(), testAccount1.ID)
 	require.NoError(t, err)
 
-	updatedAccount2, err := testAccountRepo.GetAccount(context.Background(), testAccount2.ID)
+	updatedAccount2, err := testAccountRepo.Get(context.Background(), testAccount2.ID)
 	require.NoError(t, err)
 
 	require.Equal(t,
@@ -287,7 +282,6 @@ func TestTransferTx(t *testing.T) {
 }
 
 func TestTransferTxDeadlock(t *testing.T) {
-
 	testUser1 := createRandomUser(t)
 	testUser2 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
@@ -300,14 +294,12 @@ func TestTransferTxDeadlock(t *testing.T) {
 	errs := make(chan error)
 
 	for i := 0; i < n; i++ {
-
 		fromAccountID, toAccountID := testAccount1.ID, testAccount2.ID
 		if i%2 == 0 {
 			fromAccountID, toAccountID = testAccount2.ID, testAccount1.ID
 		}
 
 		go func() {
-
 			_, err := testTransferRepo.TransferTx(context.Background(), domain.CreateTransferParams{
 				FromAccountID: fromAccountID,
 				ToAccountID:   toAccountID,
@@ -315,7 +307,6 @@ func TestTransferTxDeadlock(t *testing.T) {
 			})
 
 			errs <- err
-
 		}()
 	}
 
@@ -323,14 +314,13 @@ func TestTransferTxDeadlock(t *testing.T) {
 	for i := 0; i < n; i++ {
 		err := <-errs
 		require.NoError(t, err)
-
 	}
 
 	// check the final updated balance
-	updatedAccount1, err := testAccountRepo.GetAccount(context.Background(), testAccount1.ID)
+	updatedAccount1, err := testAccountRepo.Get(context.Background(), testAccount1.ID)
 	require.NoError(t, err)
 
-	updatedAccount2, err := testAccountRepo.GetAccount(context.Background(), testAccount2.ID)
+	updatedAccount2, err := testAccountRepo.Get(context.Background(), testAccount2.ID)
 	require.NoError(t, err)
 
 	require.Equal(t, testAccount1.Balance, updatedAccount1.Balance)

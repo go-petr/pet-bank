@@ -26,7 +26,6 @@ RETURNING id, account_id, amount, created_at
 `
 
 func (r *EntryRepo) CreateEntry(ctx context.Context, amount string, account int32) (domain.Entry, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, createEntry, account, amount)
@@ -54,7 +53,6 @@ WHERE id = $1 LIMIT 1
 `
 
 func (r *EntryRepo) GetEntry(ctx context.Context, id int64) (domain.Entry, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getEntry, id)
@@ -83,7 +81,6 @@ LIMIT $2 OFFSET $3
 `
 
 func (r *EntryRepo) ListEntries(ctx context.Context, accountID int32, limit, offset int32) ([]domain.Entry, error) {
-
 	l := zerolog.Ctx(ctx)
 
 	rows, err := r.db.QueryContext(ctx, listEntries, accountID, limit, offset)
