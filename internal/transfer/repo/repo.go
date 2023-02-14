@@ -7,7 +7,6 @@ import (
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
-	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/rs/zerolog"
 )
@@ -30,13 +29,13 @@ VALUES
 RETURNING id, from_account_id, to_account_id, amount, created_at
 `
 
-func (r *transferRepo) CreateTransfer(ctx context.Context, arg transfer.CreateTransferParams) (transfer.Transfer, error) {
+func (r *transferRepo) CreateTransfer(ctx context.Context, arg domain.CreateTransferParams) (domain.Transfer, error) {
 
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, createTransfer, arg.FromAccountID, arg.ToAccountID, arg.Amount)
 
-	var t transfer.Transfer
+	var t domain.Transfer
 	err := row.Scan(
 		&t.ID,
 		&t.FromAccountID,
@@ -58,13 +57,13 @@ SELECT id, from_account_id, to_account_id, amount, created_at FROM transfers
 WHERE id = $1 LIMIT 1
 `
 
-func (r *transferRepo) GetTransfer(ctx context.Context, id int64) (transfer.Transfer, error) {
+func (r *transferRepo) GetTransfer(ctx context.Context, id int64) (domain.Transfer, error) {
 
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getTransfer, id)
 
-	var t transfer.Transfer
+	var t domain.Transfer
 
 	err := row.Scan(
 		&t.ID,
@@ -91,7 +90,7 @@ ORDER BY id
 LIMIT $3 OFFSET $4
 `
 
-func (r *transferRepo) ListTransfers(ctx context.Context, arg transfer.ListTransfersParams) ([]transfer.Transfer, error) {
+func (r *transferRepo) ListTransfers(ctx context.Context, arg domain.ListTransfersParams) ([]domain.Transfer, error) {
 
 	l := zerolog.Ctx(ctx)
 
@@ -106,10 +105,10 @@ func (r *transferRepo) ListTransfers(ctx context.Context, arg transfer.ListTrans
 	}
 	defer rows.Close()
 
-	items := []transfer.Transfer{}
+	items := []domain.Transfer{}
 
 	for rows.Next() {
-		var t transfer.Transfer
+		var t domain.Transfer
 		if err := rows.Scan(
 			&t.ID,
 			&t.FromAccountID,
@@ -136,12 +135,12 @@ func (r *transferRepo) ListTransfers(ctx context.Context, arg transfer.ListTrans
 
 // TransferTx performs a money transfer from one account to the other.
 // It creates a transfer record, add account entries, and update accounts' balance within a single dbpkg transaction
-func (r *transferRepo) TransferTx(ctx context.Context, arg transfer.CreateTransferParams) (transfer.TransferTxResult, error) {
+func (r *transferRepo) TransferTx(ctx context.Context, arg domain.CreateTransferParams) (domain.TransferTxResult, error) {
 
 	l := zerolog.Ctx(ctx)
 
 	var (
-		result transfer.TransferTxResult
+		result domain.TransferTxResult
 	)
 
 	tx, err := r.db.BeginTx(ctx, nil)

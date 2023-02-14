@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	transfer "github.com/go-petr/pet-bank/internal/transfer"
+	domain "github.com/go-petr/pet-bank/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,10 +36,10 @@ func (m *MocktransferServiceInterface) EXPECT() *MocktransferServiceInterfaceMoc
 }
 
 // TransferTx mocks base method.
-func (m *MocktransferServiceInterface) TransferTx(ctx context.Context, fromUsername string, arg transfer.CreateTransferParams) (transfer.TransferTxResult, error) {
+func (m *MocktransferServiceInterface) TransferTx(ctx context.Context, fromUsername string, arg domain.CreateTransferParams) (domain.TransferTxResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TransferTx", ctx, fromUsername, arg)
-	ret0, _ := ret[0].(transfer.TransferTxResult)
+	ret0, _ := ret[0].(domain.TransferTxResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

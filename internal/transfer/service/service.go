@@ -4,14 +4,14 @@ import (
 	"context"
 
 	"github.com/go-petr/pet-bank/internal/account/delivery"
-	"github.com/go-petr/pet-bank/internal/transfer"
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
 )
 
 //go:generate mockgen -source service.go -destination service_mock.go -package service
 type transferRepoInterface interface {
-	TransferTx(ctx context.Context, arg transfer.CreateTransferParams) (transfer.TransferTxResult, error)
+	TransferTx(ctx context.Context, arg domain.CreateTransferParams) (domain.TransferTxResult, error)
 }
 
 type transferService struct {
@@ -33,12 +33,12 @@ func (s *transferService) validTransferRequest(ctx context.Context, fromUsername
 	amountDecimal, err := decimal.NewFromString(amount)
 	if err != nil {
 		l.Info().Err(err).Send()
-		return transfer.ErrInvalidAmount
+		return domain.ErrInvalidAmount
 	}
 
 	if amountDecimal.LessThanOrEqual(decimal.Zero) {
 		l.Info().Err(err).Send()
-		return transfer.ErrNegativeAmount
+		return domain.ErrNegativeAmount
 	}
 
 	FromAccount, err := s.accountService.GetAccount(ctx, fromAccountID)
@@ -49,7 +49,7 @@ func (s *transferService) validTransferRequest(ctx context.Context, fromUsername
 
 	if FromAccount.Owner != fromUsername {
 		l.Info().Err(err).Send()
-		return transfer.ErrInvalidOwner
+		return domain.ErrInvalidOwner
 	}
 
 	currentFromAccountBalance, err := decimal.NewFromString(FromAccount.Balance)
@@ -59,7 +59,7 @@ func (s *transferService) validTransferRequest(ctx context.Context, fromUsername
 	}
 
 	if currentFromAccountBalance.LessThan(amountDecimal) {
-		return transfer.ErrInsufficientBalance
+		return domain.ErrInsufficientBalance
 	}
 
 	ToAccount, err := s.accountService.GetAccount(ctx, toAccountID)
@@ -69,16 +69,16 @@ func (s *transferService) validTransferRequest(ctx context.Context, fromUsername
 	}
 
 	if FromAccount.Currency != ToAccount.Currency {
-		return transfer.ErrCurrencyMismatch
+		return domain.ErrCurrencyMismatch
 	}
 
 	return nil
 }
 
-func (s transferService) TransferTx(ctx context.Context, fromUsername string, arg transfer.CreateTransferParams) (transfer.TransferTxResult, error) {
+func (s transferService) TransferTx(ctx context.Context, fromUsername string, arg domain.CreateTransferParams) (domain.TransferTxResult, error) {
 
 	if err := s.validTransferRequest(ctx, fromUsername, arg.FromAccountID, arg.ToAccountID, arg.Amount); err != nil {
-		return transfer.TransferTxResult{}, err
+		return domain.TransferTxResult{}, err
 	}
 
 	return s.transferRepo.TransferTx(ctx, arg)

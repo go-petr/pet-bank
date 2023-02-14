@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
+	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/token"
@@ -16,7 +16,7 @@ import (
 
 //go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
 type transferServiceInterface interface {
-	TransferTx(ctx context.Context, fromUsername string, arg transfer.CreateTransferParams) (transfer.TransferTxResult, error)
+	TransferTx(ctx context.Context, fromUsername string, arg domain.CreateTransferParams) (domain.TransferTxResult, error)
 }
 
 type transferHandler struct {
@@ -37,12 +37,11 @@ type transferRequest struct {
 
 type transferResponse struct {
 	Data struct {
-		Transfer transfer.TransferTxResult `json:"transfer"`
+		Transfer domain.TransferTxResult `json:"transfer"`
 	} `json:"data,omitempty"`
 }
 
 func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
-
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(ctx)
 
@@ -50,12 +49,13 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
 		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
 		return
 	}
 
 	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
 
-	arg := transfer.CreateTransferParams{
+	arg := domain.CreateTransferParams{
 		FromAccountID: req.FromAccountID,
 		ToAccountID:   req.ToAccountID,
 		Amount:        req.Amount,
@@ -64,25 +64,31 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 	result, err := h.service.TransferTx(ctx, authPayload.Username, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
+
 		switch err {
-		case transfer.ErrInvalidOwner:
+		case
+			domain.ErrInvalidOwner:
 			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+
 			return
-		case transfer.ErrInvalidAmount,
-			transfer.ErrNegativeAmount,
-			transfer.ErrInsufficientBalance,
-			transfer.ErrCurrencyMismatch:
+		case
+			domain.ErrInvalidAmount,
+			domain.ErrNegativeAmount,
+			domain.ErrInsufficientBalance,
+			domain.ErrCurrencyMismatch:
 			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
 			return
 		}
 
 		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
 	res := transferResponse{
 		Data: struct {
-			Transfer transfer.TransferTxResult "json:\"transfer\""
+			Transfer domain.TransferTxResult "json:\"transfer\""
 		}{
 			result,
 		},

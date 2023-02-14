@@ -10,7 +10,6 @@ import (
 	ar "github.com/go-petr/pet-bank/internal/account/repo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	er "github.com/go-petr/pet-bank/internal/entry/repo"
-	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/internal/user"
 	ur "github.com/go-petr/pet-bank/internal/user/repo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -92,9 +91,9 @@ func createRandomAccount(t *testing.T, testUser user.User) domain.Account {
 	return account
 }
 
-func createRandomTransfer(t *testing.T, testAccount1, testAccount2 domain.Account) transfer.Transfer {
+func createRandomTransfer(t *testing.T, testAccount1, testAccount2 domain.Account) domain.Transfer {
 
-	arg := transfer.CreateTransferParams{
+	arg := domain.CreateTransferParams{
 		FromAccountID: testAccount1.ID,
 		ToAccountID:   testAccount2.ID,
 		Amount:        randompkg.MoneyAmountBetween(10, 100),
@@ -150,7 +149,7 @@ func TestListTransfers(t *testing.T) {
 		createRandomTransfer(t, testAccount1, testAccount2)
 	}
 
-	arg := transfer.ListTransfersParams{
+	arg := domain.ListTransfersParams{
 		FromAccountID: testAccount1.ID,
 		ToAccountID:   testAccount2.ID,
 		Limit:         5,
@@ -187,12 +186,12 @@ func TestTransferTx(t *testing.T) {
 	require.NoError(t, err)
 
 	errs := make(chan error)
-	results := make(chan transfer.TransferTxResult)
+	results := make(chan domain.TransferTxResult)
 
 	for i := 0; i < n; i++ {
 		go func() {
 
-			result, err := testTransferRepo.TransferTx(context.Background(), transfer.CreateTransferParams{
+			result, err := testTransferRepo.TransferTx(context.Background(), domain.CreateTransferParams{
 				FromAccountID: testAccount1.ID,
 				ToAccountID:   testAccount2.ID,
 				Amount:        amount,
@@ -310,7 +309,7 @@ func TestTransferTxDeadlock(t *testing.T) {
 
 		go func() {
 
-			_, err := testTransferRepo.TransferTx(context.Background(), transfer.CreateTransferParams{
+			_, err := testTransferRepo.TransferTx(context.Background(), domain.CreateTransferParams{
 				FromAccountID: fromAccountID,
 				ToAccountID:   toAccountID,
 				Amount:        amount,

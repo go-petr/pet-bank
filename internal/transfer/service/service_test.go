@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/account/delivery"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/currency"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -40,8 +39,8 @@ func TestTransferTx(t *testing.T) {
 	testAccount3 := randomAccount(1, "1000", currency.EUR)
 	testAmount := "100"
 
-	testTxResult := transfer.TransferTxResult{
-		Transfer: transfer.Transfer{
+	testTxResult := domain.TransferTxResult{
+		Transfer: domain.Transfer{
 			FromAccountID: testAccount1.ID,
 			ToAccountID:   testAccount2.ID,
 			Amount:        testAmount,
@@ -62,19 +61,19 @@ func TestTransferTx(t *testing.T) {
 		name  string
 		input struct {
 			fromUsername string
-			arg          transfer.CreateTransferParams
+			arg          domain.CreateTransferParams
 		}
 		buildStubs    func(repo *MocktransferRepoInterface, accountService *delivery.MockAccountServiceInterface)
-		checkResponse func(res transfer.TransferTxResult, err error)
+		checkResponse func(res domain.TransferTxResult, err error)
 	}{
 		{
 			name: "Invalid amount",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        "!@#$",
@@ -85,19 +84,19 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Any()).Times(0)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, transfer.ErrInvalidAmount.Error())
+				require.EqualError(t, err, domain.ErrInvalidAmount.Error())
 			},
 		},
 		{
 			name: "Negative amount",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        "-100",
@@ -108,19 +107,19 @@ func TestTransferTx(t *testing.T) {
 				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().GetAccount(gomock.Any(), gomock.Any()).Times(0)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, transfer.ErrNegativeAmount.Error())
+				require.EqualError(t, err, domain.ErrNegativeAmount.Error())
 			},
 		},
 		{
 			name: "Account service err",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        testAmount,
@@ -133,7 +132,7 @@ func TestTransferTx(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
 				require.EqualError(t, err, errorspkg.ErrInternal.Error())
 			},
@@ -142,10 +141,10 @@ func TestTransferTx(t *testing.T) {
 			name: "Invalid owner",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount2.ID,
 					ToAccountID:   testAccount1.ID,
 					Amount:        testAmount,
@@ -160,19 +159,19 @@ func TestTransferTx(t *testing.T) {
 						Owner: testAccount2.Owner,
 					}, nil)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, transfer.ErrInvalidOwner.Error())
+				require.EqualError(t, err, domain.ErrInvalidOwner.Error())
 			},
 		},
 		{
 			name: "From account internal balance error",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        testAmount,
@@ -188,7 +187,7 @@ func TestTransferTx(t *testing.T) {
 						Balance: "invalid",
 					}, nil)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
 				require.EqualError(t, err, errors.New("can't convert invalid to decimal").Error())
 			},
@@ -197,10 +196,10 @@ func TestTransferTx(t *testing.T) {
 			name: "Insufficient balance",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        "10000",
@@ -218,19 +217,19 @@ func TestTransferTx(t *testing.T) {
 						Currency: testAccount1.Currency,
 					}, nil)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, transfer.ErrInsufficientBalance.Error())
+				require.EqualError(t, err, domain.ErrInsufficientBalance.Error())
 			},
 		},
 		{
 			name: "ToAccount service err",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        testAmount,
@@ -251,7 +250,7 @@ func TestTransferTx(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
 				require.EqualError(t, err, errorspkg.ErrInternal.Error())
 			},
@@ -260,10 +259,10 @@ func TestTransferTx(t *testing.T) {
 			name: "Accounts currency mismatch",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount3.ID,
 					Amount:        testAmount,
@@ -286,19 +285,19 @@ func TestTransferTx(t *testing.T) {
 						Currency: testAccount3.Currency,
 					}, nil)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 				require.Empty(t, res)
-				require.EqualError(t, err, transfer.ErrCurrencyMismatch.Error())
+				require.EqualError(t, err, domain.ErrCurrencyMismatch.Error())
 			},
 		},
 		{
 			name: "OK",
 			input: struct {
 				fromUsername string
-				arg          transfer.CreateTransferParams
+				arg          domain.CreateTransferParams
 			}{
 				fromUsername: testAccount1.Owner,
-				arg: transfer.CreateTransferParams{
+				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        testAmount,
@@ -323,7 +322,7 @@ func TestTransferTx(t *testing.T) {
 						Currency: testAccount2.Currency,
 					}, nil)
 			},
-			checkResponse: func(res transfer.TransferTxResult, err error) {
+			checkResponse: func(res domain.TransferTxResult, err error) {
 
 				require.Equal(t, testTxResult, res)
 				require.NoError(t, err)

@@ -13,7 +13,6 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	"github.com/go-petr/pet-bank/internal/transfer"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/token"
@@ -32,7 +31,6 @@ func randomAccount(owner string) domain.Account {
 }
 
 func TestCreateTranferAPI(t *testing.T) {
-
 	testUsername1 := randompkg.Owner()
 	testUsername2 := randompkg.Owner()
 
@@ -51,6 +49,7 @@ func TestCreateTranferAPI(t *testing.T) {
 
 	server := gin.Default()
 	url := "/transfers"
+
 	server.Use(middleware.AuthMiddleware(tokenMaker))
 	server.POST(url, transferHandler.CreateTransfer)
 
@@ -105,7 +104,6 @@ func TestCreateTranferAPI(t *testing.T) {
 				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
 			},
 			buildStubs: func(transferService *MocktransferServiceInterface) {
-
 				transferService.EXPECT().TransferTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -123,7 +121,6 @@ func TestCreateTranferAPI(t *testing.T) {
 				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
 			},
 			buildStubs: func(transferService *MocktransferServiceInterface) {
-
 				transferService.EXPECT().TransferTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -141,8 +138,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
 			},
 			buildStubs: func(transferService *MocktransferServiceInterface) {
-
-				arg := transfer.CreateTransferParams{
+				arg := domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        amount,
@@ -151,7 +147,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				transferService.EXPECT().
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
-					Return(transfer.TransferTxResult{}, transfer.ErrInvalidOwner)
+					Return(domain.TransferTxResult{}, domain.ErrInvalidOwner)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -168,8 +164,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
 			},
 			buildStubs: func(transferService *MocktransferServiceInterface) {
-
-				arg := transfer.CreateTransferParams{
+				arg := domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        amount,
@@ -178,7 +173,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				transferService.EXPECT().
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
-					Return(transfer.TransferTxResult{}, transfer.ErrCurrencyMismatch)
+					Return(domain.TransferTxResult{}, domain.ErrCurrencyMismatch)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -195,8 +190,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
 			},
 			buildStubs: func(transferService *MocktransferServiceInterface) {
-
-				arg := transfer.CreateTransferParams{
+				arg := domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        amount,
@@ -205,7 +199,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				transferService.EXPECT().
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
-					Return(transfer.TransferTxResult{}, errorspkg.ErrInternal)
+					Return(domain.TransferTxResult{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -222,8 +216,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
 			},
 			buildStubs: func(transferService *MocktransferServiceInterface) {
-
-				arg := transfer.CreateTransferParams{
+				arg := domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
 					ToAccountID:   testAccount2.ID,
 					Amount:        amount,
@@ -232,7 +225,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				transferService.EXPECT().
 					TransferTx(gomock.Any(), gomock.Eq(testUsername1), gomock.Eq(arg)).
 					Times(1).
-					Return(transfer.TransferTxResult{}, nil)
+					Return(domain.TransferTxResult{}, nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
@@ -241,11 +234,9 @@ func TestCreateTranferAPI(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(transferService)
 
 			recorder := httptest.NewRecorder()
