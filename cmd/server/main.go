@@ -10,10 +10,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/tokenpkg"
-	_ "github.com/lib/pq"
-
 	"github.com/go-petr/pet-bank/internal/accountdelivery"
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/accountservice"
@@ -27,6 +23,10 @@ import (
 	"github.com/go-petr/pet-bank/internal/userdelivery"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/internal/userservice"
+	"github.com/go-petr/pet-bank/pkg/configpkg"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
