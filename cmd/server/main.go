@@ -2,68 +2,81 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
-	_ "github.com/lib/pq"
-
-	ah "github.com/go-petr/pet-bank/internal/account/delivery"
-	ar "github.com/go-petr/pet-bank/internal/account/repo"
-	as "github.com/go-petr/pet-bank/internal/account/service"
-	sh "github.com/go-petr/pet-bank/internal/session/delivery"
-	sr "github.com/go-petr/pet-bank/internal/session/repo"
-	ss "github.com/go-petr/pet-bank/internal/session/service"
-
+	"github.com/go-petr/pet-bank/internal/accountdelivery"
+	"github.com/go-petr/pet-bank/internal/accountrepo"
+	"github.com/go-petr/pet-bank/internal/accountservice"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	th "github.com/go-petr/pet-bank/internal/transfer/delivery"
-	tr "github.com/go-petr/pet-bank/internal/transfer/repo"
-	ts "github.com/go-petr/pet-bank/internal/transfer/service"
-	uh "github.com/go-petr/pet-bank/internal/user/delivery"
-	ur "github.com/go-petr/pet-bank/internal/user/repo"
-	us "github.com/go-petr/pet-bank/internal/user/service"
+	"github.com/go-petr/pet-bank/internal/sessiondelivery"
+	"github.com/go-petr/pet-bank/internal/sessionrepo"
+	"github.com/go-petr/pet-bank/internal/sessionservice"
+	"github.com/go-petr/pet-bank/internal/transferdelivery"
+	"github.com/go-petr/pet-bank/internal/transferrepo"
+	"github.com/go-petr/pet-bank/internal/transferservice"
+	"github.com/go-petr/pet-bank/internal/userdelivery"
+	"github.com/go-petr/pet-bank/internal/userrepo"
+	"github.com/go-petr/pet-bank/internal/userservice"
+	"github.com/go-petr/pet-bank/pkg/configpkg"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
-
-	config, err := util.LoadConfig("./configs")
+	config, err := configpkg.Load("./configs")
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot connect to db:")
+		log.Fatal().Err(err).Msg("cannot load config")
 	}
 
-	logger := middleware.GetLogger(config)
+	logger := middleware.CreateLogger(config)
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot connect to db:")
+		logger.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
-	userRepo := ur.NewUserRepo(conn)
-	accountRepo := ar.NewAccountRepo(conn)
-	transferRepo := tr.NewTransferRepo(conn)
-	sessionRepo := sr.NewSessionRepo(conn)
-
-	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	server, err := createServer(conn, logger, config)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot create token maker:")
+		logger.Fatal().Err(err).Msg("cannot create server")
 	}
 
-	userService := us.NewUserService(userRepo)
-	accountService := as.NewAccountService(accountRepo)
-	transferService := ts.NewTransferService(transferRepo, accountService)
-	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
+	err = server.Run(config.ServerAddress)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot initialize session service:")
+		logger.Fatal().Err(err).Msg("cannot start server")
+	}
+}
+
+func createServer(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*gin.Engine, error) {
+	userRepo := userrepo.NewRepoPGS(conn)
+	accountRepo := accountrepo.NewRepoPGS(conn)
+	transferRepo := transferrepo.NewRepoPGS(conn)
+	sessionRepo := sessionrepo.NewRepoPGS(conn)
+
+	tokenMaker, err := tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, errors.New("cannot create token maker")
 	}
 
-	userHandler := uh.NewUserHandler(userService, sessionService)
-	accountHandler := ah.NewAccountHandler(accountService)
-	transferHandler := th.NewTransferHandler(transferService)
-	sessionHandler := sh.NewSessionHandler(sessionService)
+	userService := userservice.New(userRepo)
+	accountService := accountservice.New(accountRepo)
+	transferService := transferservice.New(transferRepo, accountService)
+	sessionService, err := sessionservice.New(sessionRepo, config, tokenMaker)
+
+	if err != nil {
+		return nil, errors.New("cannot initialize session service")
+	}
+
+	userHandler := userdelivery.NewHandler(userService, sessionService)
+	accountHandler := accountdelivery.NewHandler(accountService)
+	transferHandler := transferdelivery.NewHandler(transferService)
+	sessionHandler := sessiondelivery.NewHandler(sessionService)
 
 	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()
@@ -71,24 +84,24 @@ func main() {
 	server.Use(middleware.RequestLogger(logger))
 	server.Use(gin.Recovery())
 
-	server.POST("/users", userHandler.CreateUser)
-	server.POST("/users/login", userHandler.LoginUser)
+	server.POST("/users", userHandler.Create)
+	server.POST("/users/login", userHandler.Login)
 	server.POST("/sessions", sessionHandler.RenewAccessToken)
 
 	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
 
-	authRoutes.POST("/accounts", accountHandler.CreateAccount)
-	authRoutes.GET("/accounts/:id", accountHandler.GetAccount)
-	authRoutes.GET("/accounts", accountHandler.ListAccounts)
+	authRoutes.POST("/accounts", accountHandler.Create)
+	authRoutes.GET("/accounts/:id", accountHandler.Get)
+	authRoutes.GET("/accounts", accountHandler.List)
 
-	authRoutes.POST("/transfers", transferHandler.CreateTransfer)
+	authRoutes.POST("/transfers", transferHandler.Create)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("currency", ah.ValidCurrency)
+		err := v.RegisterValidation("currency", accountdelivery.ValidCurrency)
+		if err != nil {
+			return nil, errors.New("cannot register currency validator")
+		}
 	}
 
-	err = server.Run(config.ServerAddress)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot start server:")
-	}
+	return server, nil
 }

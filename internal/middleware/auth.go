@@ -5,67 +5,71 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/pkg/token"
-	"github.com/go-petr/pet-bank/pkg/util"
-	"github.com/stretchr/testify/require"
+	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
 const (
-	AuthorizationHeaderKey  = "authorization"
-	AuthorizationTypeBearer = "bearer"
-	AuthorizationPayloadKey = "authorization_payload"
+	// AuthHeaderKey is the key for authorization header.
+	AuthHeaderKey = "authorization"
+	// AuthTypeBearer is the type of athorization token.
+	AuthTypeBearer = "bearer"
+	// AuthPayloadKey is the key for authorization payload.
+	AuthPayloadKey = "authorization_payload"
 )
 
-func AddAuthorization(
-	t *testing.T,
-	request *http.Request,
-	tokenMaker token.Maker,
-	authorizationType string,
-	username string,
-	duration time.Duration,
-) {
-	token, _, err := tokenMaker.CreateToken(username, duration)
-	require.NoError(t, err)
+// AddAuthorization sets authorization token to the given request.
+func AddAuthorization(r *http.Request, tm tokenpkg.Maker, authType string, username string, d time.Duration) error {
+	token, _, err := tm.CreateToken(username, d)
+	if err != nil {
+		return err
+	}
 
-	authorizationHeader := fmt.Sprintf("%s %s", authorizationType, token)
-	request.Header.Set(AuthorizationHeaderKey, authorizationHeader)
+	authorizationHeader := fmt.Sprintf("%s %s", authType, token)
+	r.Header.Set(AuthHeaderKey, authorizationHeader)
+
+	return nil
 }
 
-func AuthMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
+// AuthMiddleware verifies request authorization token.
+func AuthMiddleware(tokenMaker tokenpkg.Maker) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authorizationHeader := ctx.GetHeader(AuthorizationHeaderKey)
+		authorizationHeader := ctx.GetHeader(AuthHeaderKey)
 		if len(authorizationHeader) == 0 {
 			err := errors.New("authorization header is not provided")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, jsonresponse.Error(err))
+
 			return
 		}
 
 		fields := strings.Fields(authorizationHeader)
 		if len(fields) < 2 {
 			err := errors.New("invalid authorization header format")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, jsonresponse.Error(err))
+
 			return
 		}
 
-		authorizationType := strings.ToLower(fields[0])
-		if authorizationType != AuthorizationTypeBearer {
-			err := fmt.Errorf("unsupported authorization type %s", authorizationType)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+		authType := strings.ToLower(fields[0])
+		if authType != AuthTypeBearer {
+			err := fmt.Errorf("unsupported authorization type %s", authType)
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, jsonresponse.Error(err))
+
 			return
 		}
 
 		accessToken := fields[1]
 		payload, err := tokenMaker.VerifyToken(accessToken)
+
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, util.ErrResponse{Error: err.Error()})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, jsonresponse.Error(err))
 			return
 		}
 
-		ctx.Set(AuthorizationPayloadKey, payload)
+		ctx.Set(AuthPayloadKey, payload)
 		ctx.Next()
 	}
 }
