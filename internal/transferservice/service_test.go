@@ -1,4 +1,4 @@
-package service
+package transferservice
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/accountdelivery"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/pkg/currency"
+	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/golang/mock/gomock"
@@ -25,17 +25,17 @@ func randomAccount(id int32, balance, currency string) domain.Account {
 	}
 }
 
-func TestTransferTx(t *testing.T) {
+func TestTransfer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	tranferRepo := NewMocktransferRepoInterface(ctrl)
+	tranferRepo := NewMockRepo(ctrl)
 	accountService := accountdelivery.NewMockService(ctrl)
-	transferService := NewTransferService(tranferRepo, accountService)
+	transferService := New(tranferRepo, accountService)
 
-	testAccount1 := randomAccount(1, "1000", currency.USD)
-	testAccount2 := randomAccount(2, "1000", currency.USD)
-	testAccount3 := randomAccount(1, "1000", currency.EUR)
+	testAccount1 := randomAccount(1, "1000", currencypkg.USD)
+	testAccount2 := randomAccount(2, "1000", currencypkg.USD)
+	testAccount3 := randomAccount(1, "1000", currencypkg.EUR)
 	testAmount := "100"
 
 	testTxResult := domain.TransferTxResult{
@@ -56,21 +56,20 @@ func TestTransferTx(t *testing.T) {
 		},
 	}
 
+	type input struct {
+		fromUsername string
+		arg          domain.CreateTransferParams
+	}
+
 	testCases := []struct {
-		name  string
-		input struct {
-			fromUsername string
-			arg          domain.CreateTransferParams
-		}
-		buildStubs    func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService)
+		name          string
+		input         input
+		buildStubs    func(repo *MockRepo, accountService *accountdelivery.MockService)
 		checkResponse func(res domain.TransferTxResult, err error)
 	}{
 		{
 			name: "Invalid amount",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -78,8 +77,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        "!@#$",
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Any()).Times(0)
 			},
 			checkResponse: func(res domain.TransferTxResult, err error) {
@@ -89,10 +88,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "Negative amount",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -100,8 +96,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        "-100",
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Any()).Times(0)
 			},
 			checkResponse: func(res domain.TransferTxResult, err error) {
@@ -111,10 +107,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "Account service err",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -122,8 +115,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        testAmount,
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
 					Return(domain.Account{}, errorspkg.ErrInternal)
@@ -135,10 +128,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "Invalid owner",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount2.ID,
@@ -146,8 +136,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        testAmount,
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount2.ID)).
 					Times(1).
 					Return(domain.Account{
@@ -161,10 +151,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "From account internal balance error",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -172,8 +159,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        testAmount,
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
 					Return(domain.Account{
@@ -188,10 +175,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "Insufficient balance",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -199,8 +183,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        "10000",
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
 					Return(domain.Account{
@@ -217,10 +201,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "ToAccount service err",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -228,8 +209,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        testAmount,
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
 					Return(domain.Account{
@@ -249,10 +230,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "Accounts currency mismatch",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -260,8 +238,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        testAmount,
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
 					Times(1).
 					Return(domain.Account{
@@ -283,10 +261,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		{
 			name: "OK",
-			input: struct {
-				fromUsername string
-				arg          domain.CreateTransferParams
-			}{
+			input: input{
 				fromUsername: testAccount1.Owner,
 				arg: domain.CreateTransferParams{
 					FromAccountID: testAccount1.ID,
@@ -294,8 +269,8 @@ func TestTransferTx(t *testing.T) {
 					Amount:        testAmount,
 				},
 			},
-			buildStubs: func(repo *MocktransferRepoInterface, accountService *accountdelivery.MockService) {
-				repo.EXPECT().TransferTx(gomock.Any(), gomock.Any()).
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(testTxResult, nil)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
@@ -325,7 +300,7 @@ func TestTransferTx(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.buildStubs(tranferRepo, accountService)
 
-			tc.checkResponse(transferService.TransferTx(
+			tc.checkResponse(transferService.Transfer(
 				context.Background(),
 				tc.input.fromUsername,
 				tc.input.arg))

@@ -1,4 +1,5 @@
-package delivery
+// Package transferdelivery manages delivery layer of transfers.
+package transferdelivery
 
 import (
 	"context"
@@ -14,38 +15,45 @@ import (
 	"github.com/go-petr/pet-bank/pkg/token"
 )
 
-//go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
-type transferServiceInterface interface {
-	TransferTx(ctx context.Context, fromUsername string, arg domain.CreateTransferParams) (domain.TransferTxResult, error)
+// Service provides service layer interface needed by transfer delivery layer.
+//
+//go:generate mockgen -source http.go -destination http_mock.go -package transferdelivery
+type Service interface {
+	Transfer(ctx context.Context, fromUsername string, arg domain.CreateTransferParams) (domain.TransferTxResult, error)
 }
 
-type transferHandler struct {
-	service transferServiceInterface
+// Handler facilitates transfer delivery layer logic.
+type Handler struct {
+	service Service
 }
 
-func NewTransferHandler(ts transferServiceInterface) *transferHandler {
-	return &transferHandler{
+// NewHandler returns transfer handler.
+func NewHandler(ts Service) *Handler {
+	return &Handler{
 		service: ts,
 	}
 }
 
-type transferRequest struct {
+type request struct {
 	FromAccountID int32  `json:"from_account_id" binding:"required,min=1"`
 	ToAccountID   int32  `json:"to_account_id" binding:"required,min=1"`
 	Amount        string `json:"amount" binding:"required"`
 }
 
-type transferResponse struct {
-	Data struct {
-		Transfer domain.TransferTxResult `json:"transfer"`
-	} `json:"data,omitempty"`
+type data struct {
+	Transfer domain.TransferTxResult `json:"transfer"`
 }
 
-func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
+type response struct {
+	Data data `json:"data,omitempty"`
+}
+
+// Create handles http request to create a transfer between two accounts.
+func (h *Handler) Create(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(ctx)
 
-	var req transferRequest
+	var req request
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
 		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
@@ -61,7 +69,7 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 		Amount:        req.Amount,
 	}
 
-	result, err := h.service.TransferTx(ctx, authPayload.Username, arg)
+	result, err := h.service.Transfer(ctx, authPayload.Username, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
 
@@ -86,12 +94,8 @@ func (h *transferHandler) CreateTransfer(gctx *gin.Context) {
 		return
 	}
 
-	res := transferResponse{
-		Data: struct {
-			Transfer domain.TransferTxResult "json:\"transfer\""
-		}{
-			result,
-		},
+	res := response{
+		Data: data{result},
 	}
 
 	gctx.JSON(http.StatusOK, res)

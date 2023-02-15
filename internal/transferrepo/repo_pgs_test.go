@@ -1,4 +1,4 @@
-package repo
+package transferrepo
 
 import (
 	"context"
@@ -19,14 +19,14 @@ import (
 )
 
 var (
-	testTransferRepo *transferRepo
+	testTransferRepo *RepoPGS
 	testAccountRepo  *accountrepo.RepoPGS
 	testUserRepo     *userrepo.RepoPGS
 	testEntryRepo    *entryrepo.RepoPGS
 )
 
 func TestMain(m *testing.M) {
-	config, err := configpkg.Load("../../../configs")
+	config, err := configpkg.Load("../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	testAccountRepo = accountrepo.NewRepoPGS(testDB)
 	testEntryRepo = entryrepo.NewRepoPGS(testDB)
 
-	testTransferRepo = NewTransferRepo(testDB)
+	testTransferRepo = NewRepoPGS(testDB)
 
 	os.Exit(m.Run())
 }
@@ -95,7 +95,7 @@ func createRandomTransfer(t *testing.T, testAccount1, testAccount2 domain.Accoun
 		Amount:        randompkg.MoneyAmountBetween(10, 100),
 	}
 
-	transfer, err := testTransferRepo.CreateTransfer(context.Background(), arg)
+	transfer, err := testTransferRepo.Create(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, transfer)
 
@@ -109,7 +109,7 @@ func createRandomTransfer(t *testing.T, testAccount1, testAccount2 domain.Accoun
 	return transfer
 }
 
-func TestCreateTransfer(t *testing.T) {
+func TestCreate(t *testing.T) {
 	testUser1 := createRandomUser(t)
 	testUser2 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
@@ -117,14 +117,14 @@ func TestCreateTransfer(t *testing.T) {
 	createRandomTransfer(t, testAccount1, testAccount2)
 }
 
-func TestGetTransfer(t *testing.T) {
+func TestGet(t *testing.T) {
 	testUser1 := createRandomUser(t)
 	testUser2 := createRandomUser(t)
 	testAccount1 := createRandomAccount(t, testUser1)
 	testAccount2 := createRandomAccount(t, testUser2)
 	transfer1 := createRandomTransfer(t, testAccount1, testAccount2)
 
-	transfer2, err := testTransferRepo.GetTransfer(context.Background(), transfer1.ID)
+	transfer2, err := testTransferRepo.Get(context.Background(), transfer1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, transfer2)
 
@@ -152,7 +152,7 @@ func TestListTransfers(t *testing.T) {
 		Offset:        5,
 	}
 
-	transfers, err := testTransferRepo.ListTransfers(context.Background(), arg)
+	transfers, err := testTransferRepo.List(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, transfers)
 	require.Len(t, transfers, 5)
@@ -185,7 +185,7 @@ func TestTransferTx(t *testing.T) {
 
 	for i := 0; i < n; i++ {
 		go func() {
-			result, err := testTransferRepo.TransferTx(context.Background(), domain.CreateTransferParams{
+			result, err := testTransferRepo.Transfer(context.Background(), domain.CreateTransferParams{
 				FromAccountID: testAccount1.ID,
 				ToAccountID:   testAccount2.ID,
 				Amount:        amount,
@@ -215,7 +215,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, transfer.ID)
 		require.NotZero(t, transfer.CreatedAt)
 
-		_, err = testTransferRepo.GetTransfer(context.Background(), transfer.ID)
+		_, err = testTransferRepo.Get(context.Background(), transfer.ID)
 		require.NoError(t, err)
 
 		// check entries
@@ -300,7 +300,7 @@ func TestTransferTxDeadlock(t *testing.T) {
 		}
 
 		go func() {
-			_, err := testTransferRepo.TransferTx(context.Background(), domain.CreateTransferParams{
+			_, err := testTransferRepo.Transfer(context.Background(), domain.CreateTransferParams{
 				FromAccountID: fromAccountID,
 				ToAccountID:   toAccountID,
 				Amount:        amount,

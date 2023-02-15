@@ -1,5 +1,5 @@
-// Package currency provides common currency related functionality for apps.
-package currency
+// Package currencypkg provides common currency related functionality for apps.
+package currencypkg
 
 // Constants for all supported currencies.
 const (

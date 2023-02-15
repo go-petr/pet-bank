@@ -2,10 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/go-petr/pet-bank/pkg/configpkg"
@@ -18,12 +20,12 @@ import (
 	sh "github.com/go-petr/pet-bank/internal/session/delivery"
 	sr "github.com/go-petr/pet-bank/internal/session/repo"
 	ss "github.com/go-petr/pet-bank/internal/session/service"
+	"github.com/go-petr/pet-bank/internal/transferdelivery"
 	"github.com/go-petr/pet-bank/internal/userdelivery"
 
 	"github.com/go-petr/pet-bank/internal/middleware"
-	th "github.com/go-petr/pet-bank/internal/transfer/delivery"
-	tr "github.com/go-petr/pet-bank/internal/transfer/repo"
-	ts "github.com/go-petr/pet-bank/internal/transfer/service"
+	"github.com/go-petr/pet-bank/internal/transferrepo"
+	"github.com/go-petr/pet-bank/internal/transferservice"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/internal/userservice"
 )
@@ -31,7 +33,7 @@ import (
 func main() {
 	config, err := configpkg.Load("./configs")
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot connect to db")
+		log.Fatal().Err(err).Msg("cannot load config")
 	}
 
 	logger := middleware.GetLogger(config)
@@ -41,28 +43,41 @@ func main() {
 		logger.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
+	server, err := createServer(conn, logger, config)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("cannot create server")
+	}
+
+	err = server.Run(config.ServerAddress)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("cannot start server")
+	}
+}
+
+func createServer(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*gin.Engine, error) {
+
 	userRepo := userrepo.NewRepoPGS(conn)
 	accountRepo := accountrepo.NewRepoPGS(conn)
-	transferRepo := tr.NewTransferRepo(conn)
+	transferRepo := transferrepo.NewRepoPGS(conn)
 	sessionRepo := sr.NewSessionRepo(conn)
 
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot create token maker")
+		return nil, errors.New("cannot create token maker")
 	}
 
 	userService := userservice.New(userRepo)
 	accountService := accountservice.New(accountRepo)
-	transferService := ts.NewTransferService(transferRepo, accountService)
+	transferService := transferservice.New(transferRepo, accountService)
 	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
 
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot initialize session service")
+		return nil, errors.New("cannot initialize session service")
 	}
 
 	userHandler := userdelivery.NewHandler(userService, sessionService)
 	accountHandler := accountdelivery.NewHandler(accountService)
-	transferHandler := th.NewTransferHandler(transferService)
+	transferHandler := transferdelivery.NewHandler(transferService)
 	sessionHandler := sh.NewSessionHandler(sessionService)
 
 	gin.SetMode(gin.ReleaseMode)
@@ -81,17 +96,14 @@ func main() {
 	authRoutes.GET("/accounts/:id", accountHandler.Get)
 	authRoutes.GET("/accounts", accountHandler.List)
 
-	authRoutes.POST("/transfers", transferHandler.CreateTransfer)
+	authRoutes.POST("/transfers", transferHandler.Create)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		err := v.RegisterValidation("currency", accountdelivery.ValidCurrency)
 		if err != nil {
-			logger.Fatal().Err(err).Msg("cannot register currency validator")
+			return nil, errors.New("cannot register currency validator")
 		}
 	}
 
-	err = server.Run(config.ServerAddress)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot start server")
-	}
+	return server, nil
 }
