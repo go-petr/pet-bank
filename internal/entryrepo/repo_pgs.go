@@ -20,7 +20,7 @@ func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	return &RepoPGS{db: db}
 }
 
-const createEntry = `
+const createQuery = `
 INSERT INTO
     entries (account_id, amount)
 VALUES
@@ -32,7 +32,7 @@ RETURNING id, account_id, amount, created_at
 func (r *RepoPGS) Create(ctx context.Context, amount string, account int32) (domain.Entry, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createEntry, account, amount)
+	row := r.db.QueryRowContext(ctx, createQuery, account, amount)
 
 	var e domain.Entry
 
@@ -51,7 +51,7 @@ func (r *RepoPGS) Create(ctx context.Context, amount string, account int32) (dom
 	return e, nil
 }
 
-const getEntry = `
+const getQuery = `
 SELECT id, account_id, amount, created_at FROM entries
 WHERE id = $1 LIMIT 1
 `
@@ -60,7 +60,7 @@ WHERE id = $1 LIMIT 1
 func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Entry, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, getEntry, id)
+	row := r.db.QueryRowContext(ctx, getQuery, id)
 
 	var e domain.Entry
 
@@ -79,7 +79,7 @@ func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Entry, error) {
 	return e, nil
 }
 
-const listEntries = `
+const listQuery = `
 SELECT id, account_id, amount, created_at FROM entries
 WHERE account_id = $1
 LIMIT $2 OFFSET $3
@@ -89,7 +89,7 @@ LIMIT $2 OFFSET $3
 func (r *RepoPGS) List(ctx context.Context, accountID int32, limit, offset int32) ([]domain.Entry, error) {
 	l := zerolog.Ctx(ctx)
 
-	rows, err := r.db.QueryContext(ctx, listEntries, accountID, limit, offset)
+	rows, err := r.db.QueryContext(ctx, listQuery, accountID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

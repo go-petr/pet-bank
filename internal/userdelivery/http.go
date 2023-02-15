@@ -1,4 +1,5 @@
-package delivery
+// Package userdelivery manages delivery layer of users.
+package userdelivery
 
 import (
 	"context"
@@ -12,57 +13,67 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
-type userServiceInterface interface {
-	CreateUser(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error)
+// Service provides service layer interface needed by user delivery layer.
+//
+//go:generate mockgen -source http.go -destination http_mock.go -package userdelivery
+type Service interface {
+	Create(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error)
 	CheckPassword(ctx context.Context, username, password string) (domain.UserWihtoutPassword, error)
 }
 
-type SessionMakerInterface interface {
+// SessionMaker facilitates session creation.
+//
+//go:generate mockgen -source http.go -destination http_mock.go -package userdelivery
+type SessionMaker interface {
 	Create(ctx context.Context, arg domain.CreateSessionParams) (string, time.Time, domain.Session, error)
 }
 
-type userHandler struct {
-	service  userServiceInterface
-	sessions SessionMakerInterface
+// Handler facilitates user delivery layer logic.
+type Handler struct {
+	service      Service
+	sessionMaker SessionMaker
 }
 
-func NewUserHandler(us userServiceInterface, sm SessionMakerInterface) *userHandler {
-	return &userHandler{
-		service:  us,
-		sessions: sm,
+// NewHandler returns user handler.
+func NewHandler(us Service, sm SessionMaker) *Handler {
+	return &Handler{
+		service:      us,
+		sessionMaker: sm,
 	}
 }
 
-type userResponse struct {
+type data struct {
+	User domain.UserWihtoutPassword `json:"user,omitempty"`
+}
+type response struct {
 	AccessToken           string    `json:"token,omitempty"`
 	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
 	RefreshToken          string    `json:"refresh_token,omitempty"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
-	Data                  struct {
-		User domain.UserWihtoutPassword `json:"user,omitempty"`
-	} `json:"data,omitempty"`
+	Data                  data      `json:"data,omitempty"`
 }
 
-type createUserRequest struct {
+type createRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
 	FullName string `json:"fullname" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 }
 
-func (h *userHandler) CreateUser(gctx *gin.Context) {
+// Create handles http request to create user.
+func (h *Handler) Create(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(ctx)
 
-	var req createUserRequest
+	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
 		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
 		return
 	}
 
-	createdUser, err := h.service.CreateUser(ctx, req.Username, req.Password, req.FullName, req.Email)
+	createdUser, err := h.service.Create(ctx, req.Username, req.Password, req.FullName, req.Email)
 	if err != nil {
 		switch err {
 		case domain.ErrUsernameAlreadyExists:
@@ -74,6 +85,7 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 		}
 
 		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
@@ -83,42 +95,40 @@ func (h *userHandler) CreateUser(gctx *gin.Context) {
 		ClientIP:  gctx.ClientIP(),
 	}
 
-	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
+	accessToken, accessTokenExpiresAt, session, err := h.sessionMaker.Create(ctx, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
 		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
-	res := userResponse{
+	res := response{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
-		Data: struct {
-			User domain.UserWihtoutPassword "json:\"user,omitempty\""
-		}{
-			User: createdUser,
-		},
+		Data:                  data{User: createdUser},
 	}
 
 	gctx.JSON(http.StatusOK, res)
 }
 
-type loginUserRequest struct {
+type loginRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-func (h *userHandler) LoginUser(gctx *gin.Context) {
-
+// Login handlek http login request and returns user and session data.
+func (h *Handler) Login(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(ctx)
 
-	var req loginUserRequest
+	var req loginRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
 		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
 		return
 	}
 
@@ -134,6 +144,7 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 		}
 
 		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
@@ -143,23 +154,20 @@ func (h *userHandler) LoginUser(gctx *gin.Context) {
 		ClientIP:  gctx.ClientIP(),
 	}
 
-	accessToken, accessTokenExpiresAt, session, err := h.sessions.Create(ctx, arg)
+	accessToken, accessTokenExpiresAt, session, err := h.sessionMaker.Create(ctx, arg)
 	if err != nil {
 		l.Warn().Err(err).Send()
 		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
-	res := userResponse{
+	res := response{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
-		Data: struct {
-			User domain.UserWihtoutPassword "json:\"user,omitempty\""
-		}{
-			User: userWihtoutPassword,
-		},
+		Data:                  data{User: userWihtoutPassword},
 	}
 
 	gctx.JSON(http.StatusOK, res)

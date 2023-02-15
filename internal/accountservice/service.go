@@ -1,4 +1,4 @@
-// Package account service manages business logic layer of accounts.
+// Package accountservice manages business logic layer of accounts.
 package accountservice
 
 import (

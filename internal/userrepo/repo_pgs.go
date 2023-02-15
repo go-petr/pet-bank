@@ -1,4 +1,5 @@
-package repo
+// Package userrepo manages repository layer of users.
+package userrepo
 
 import (
 	"context"
@@ -10,17 +11,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type UserRepo struct {
+// RepoPGS facilitates user repository layer logic.
+type RepoPGS struct {
 	db *sql.DB
 }
 
-func NewUserRepo(db *sql.DB) *UserRepo {
-	return &UserRepo{
+// NewRepoPGS returns account RepoPGS.
+func NewRepoPGS(db *sql.DB) *RepoPGS {
+	return &RepoPGS{
 		db: db,
 	}
 }
 
-const createUser = `
+const createQuery = `
 INSERT INTO users (
     username,
     hashed_password,
@@ -31,11 +34,11 @@ INSERT INTO users (
 ) RETURNING username, hashed_password, full_name, email, password_changed_at, created_at
 `
 
-func (r *UserRepo) CreateUser(ctx context.Context, arg domain.CreateUserParams) (domain.User, error) {
-
+// Create creates the user and then returns it.
+func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateUserParams) (domain.User, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createUser,
+	row := r.db.QueryRowContext(ctx, createQuery,
 		arg.Username,
 		arg.HashedPassword,
 		arg.FullName,
@@ -54,7 +57,6 @@ func (r *UserRepo) CreateUser(ctx context.Context, arg domain.CreateUserParams) 
 	)
 
 	if err != nil {
-
 		l.Error().Err(err).Send()
 
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -67,13 +69,14 @@ func (r *UserRepo) CreateUser(ctx context.Context, arg domain.CreateUserParams) 
 				}
 			}
 		}
+
 		return u, errorspkg.ErrInternal
 	}
 
 	return u, nil
 }
 
-const getUser = `
+const getQuery = `
 SELECT 
 	username, 
 	hashed_password, 
@@ -85,11 +88,11 @@ FROM users
 WHERE username = $1
 `
 
-func (r *UserRepo) GetUser(ctx context.Context, username string) (domain.User, error) {
-
+// Get returns the user with the given username.
+func (r *RepoPGS) Get(ctx context.Context, username string) (domain.User, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, getUser, username)
+	row := r.db.QueryRowContext(ctx, getQuery, username)
 
 	var u domain.User
 
@@ -103,7 +106,6 @@ func (r *UserRepo) GetUser(ctx context.Context, username string) (domain.User, e
 	)
 
 	if err != nil {
-
 		l.Error().Err(err).Send()
 
 		if err == sql.ErrNoRows {

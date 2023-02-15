@@ -18,14 +18,14 @@ import (
 	sh "github.com/go-petr/pet-bank/internal/session/delivery"
 	sr "github.com/go-petr/pet-bank/internal/session/repo"
 	ss "github.com/go-petr/pet-bank/internal/session/service"
+	"github.com/go-petr/pet-bank/internal/userdelivery"
 
 	"github.com/go-petr/pet-bank/internal/middleware"
 	th "github.com/go-petr/pet-bank/internal/transfer/delivery"
 	tr "github.com/go-petr/pet-bank/internal/transfer/repo"
 	ts "github.com/go-petr/pet-bank/internal/transfer/service"
-	uh "github.com/go-petr/pet-bank/internal/user/delivery"
-	ur "github.com/go-petr/pet-bank/internal/user/repo"
-	us "github.com/go-petr/pet-bank/internal/user/service"
+	"github.com/go-petr/pet-bank/internal/userrepo"
+	"github.com/go-petr/pet-bank/internal/userservice"
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
-	userRepo := ur.NewUserRepo(conn)
+	userRepo := userrepo.NewRepoPGS(conn)
 	accountRepo := accountrepo.NewRepoPGS(conn)
 	transferRepo := tr.NewTransferRepo(conn)
 	sessionRepo := sr.NewSessionRepo(conn)
@@ -51,7 +51,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("cannot create token maker")
 	}
 
-	userService := us.NewUserService(userRepo)
+	userService := userservice.New(userRepo)
 	accountService := accountservice.New(accountRepo)
 	transferService := ts.NewTransferService(transferRepo, accountService)
 	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
@@ -60,7 +60,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("cannot initialize session service")
 	}
 
-	userHandler := uh.NewUserHandler(userService, sessionService)
+	userHandler := userdelivery.NewHandler(userService, sessionService)
 	accountHandler := accountdelivery.NewHandler(accountService)
 	transferHandler := th.NewTransferHandler(transferService)
 	sessionHandler := sh.NewSessionHandler(sessionService)
@@ -71,8 +71,8 @@ func main() {
 	server.Use(middleware.RequestLogger(logger))
 	server.Use(gin.Recovery())
 
-	server.POST("/users", userHandler.CreateUser)
-	server.POST("/users/login", userHandler.LoginUser)
+	server.POST("/users", userHandler.Create)
+	server.POST("/users/login", userHandler.Login)
 	server.POST("/sessions", sessionHandler.RenewAccessToken)
 
 	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))

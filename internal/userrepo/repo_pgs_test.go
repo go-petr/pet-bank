@@ -1,4 +1,4 @@
-package repo
+package userrepo
 
 import (
 	"context"
@@ -18,11 +18,11 @@ import (
 )
 
 var (
-	testUserRepo *UserRepo
+	testUserRepo *RepoPGS
 )
 
 func TestMain(m *testing.M) {
-	config, err := configpkg.Load("../../../configs")
+	config, err := configpkg.Load("../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -32,13 +32,12 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	testUserRepo = NewUserRepo(testDB)
+	testUserRepo = NewRepoPGS(testDB)
 
 	os.Exit(m.Run())
 }
 
 func createRandomUser(t *testing.T) domain.User {
-
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
@@ -49,7 +48,7 @@ func createRandomUser(t *testing.T) domain.User {
 		Email:          randompkg.Email(),
 	}
 
-	user, err := testUserRepo.CreateUser(context.Background(), arg)
+	user, err := testUserRepo.Create(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
@@ -63,12 +62,11 @@ func createRandomUser(t *testing.T) domain.User {
 	return user
 }
 
-func TestCreateUser(t *testing.T) {
+func TestCreate(t *testing.T) {
 	createRandomUser(t)
 }
 
 func TestCreateUserUniqueViolation(t *testing.T) {
-
 	user1 := createRandomUser(t)
 
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
@@ -81,7 +79,7 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 		Email:          randompkg.Email(),
 	}
 
-	user2, err := testUserRepo.CreateUser(context.Background(), arg)
+	user2, err := testUserRepo.Create(context.Background(), arg)
 	require.EqualError(t, err, domain.ErrUsernameAlreadyExists.Error())
 	require.Empty(t, user2)
 
@@ -92,16 +90,15 @@ func TestCreateUserUniqueViolation(t *testing.T) {
 		Email:          user1.Email, // Email duplicate
 	}
 
-	user2, err = testUserRepo.CreateUser(context.Background(), arg)
+	user2, err = testUserRepo.Create(context.Background(), arg)
 	require.EqualError(t, err, domain.ErrEmailALreadyExists.Error())
 	require.Empty(t, user2)
 }
 
 func TestGetUser(t *testing.T) {
-
 	user1 := createRandomUser(t)
 
-	user2, err := testUserRepo.GetUser(context.Background(), user1.Username)
+	user2, err := testUserRepo.Get(context.Background(), user1.Username)
 	require.NoError(t, err)
 	require.NotEmpty(t, user2)
 
@@ -113,7 +110,6 @@ func TestGetUser(t *testing.T) {
 	require.WithinDuration(t, user1.CreatedAt, user2.CreatedAt, time.Second)
 
 	// Not found
-	_, err = testUserRepo.GetUser(context.Background(), "non-existent")
+	_, err = testUserRepo.Get(context.Background(), "non-existent")
 	require.EqualError(t, err, domain.ErrUserNotFound.Error())
-
 }

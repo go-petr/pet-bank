@@ -1,4 +1,5 @@
-package service
+// Package userservice manages business logic layer of users.
+package userservice
 
 import (
 	"context"
@@ -9,22 +10,27 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source service.go -destination service_mock.go -package service
-type userRepoInterface interface {
-	CreateUser(ctx context.Context, arg domain.CreateUserParams) (domain.User, error)
-	GetUser(ctx context.Context, username string) (domain.User, error)
+// Repo provides data access layer interface needed by user service layer.
+//
+//go:generate mockgen -source service.go -destination service_mock.go -package userservice
+type Repo interface {
+	Create(ctx context.Context, arg domain.CreateUserParams) (domain.User, error)
+	Get(ctx context.Context, username string) (domain.User, error)
 }
 
-type userService struct {
-	repo userRepoInterface
+// Service facilitates user service layer logic.
+type Service struct {
+	repo Repo
 }
 
-func NewUserService(ur userRepoInterface) *userService {
-	return &userService{
+// New return user service struct to manage user bussines logic.
+func New(ur Repo) *Service {
+	return &Service{
 		repo: ur,
 	}
 }
 
+// NewUserWihtoutPassword returns user with removed sensitive data.
 func NewUserWihtoutPassword(u domain.User) domain.UserWihtoutPassword {
 	return domain.UserWihtoutPassword{
 		Username:  u.Username,
@@ -34,7 +40,8 @@ func NewUserWihtoutPassword(u domain.User) domain.UserWihtoutPassword {
 	}
 }
 
-func (s *userService) CreateUser(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error) {
+// Create creates and returns user.
+func (s *Service) Create(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error) {
 	l := zerolog.Ctx(ctx)
 
 	var response domain.UserWihtoutPassword
@@ -52,7 +59,7 @@ func (s *userService) CreateUser(ctx context.Context, username, password, fullna
 		Email:          email,
 	}
 
-	gotUser, err := s.repo.CreateUser(ctx, arg)
+	gotUser, err := s.repo.Create(ctx, arg)
 	if err != nil {
 		return response, err
 	}
@@ -61,12 +68,14 @@ func (s *userService) CreateUser(ctx context.Context, username, password, fullna
 
 	return response, nil
 }
-func (s *userService) CheckPassword(ctx context.Context, username, pass string) (domain.UserWihtoutPassword, error) {
+
+// CheckPassword checks if the password is valid for the given username.
+func (s *Service) CheckPassword(ctx context.Context, username, pass string) (domain.UserWihtoutPassword, error) {
 	l := zerolog.Ctx(ctx)
 
 	var response domain.UserWihtoutPassword
 
-	gotUser, err := s.repo.GetUser(ctx, username)
+	gotUser, err := s.repo.Get(ctx, username)
 	if err != nil {
 		return response, err
 	}

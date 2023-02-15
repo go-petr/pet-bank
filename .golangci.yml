@@ -52,7 +52,7 @@ linters-settings:
       - name: argument-limit
         severity: warning
         disabled: false
-        arguments: [4]
+        arguments: [5]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#atomic
       - name: atomic
         severity: warning
@@ -187,7 +187,7 @@ linters-settings:
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-result-limit
       - name: function-result-limit
         severity: warning
-        disabled: false
+        disabled: true
         arguments: [2]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-length
       - name: function-length
@@ -233,7 +233,7 @@ linters-settings:
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#max-public-structs
       - name: max-public-structs
         severity: warning
-        disabled: false
+        disabled: true
         arguments: [3]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
       - name: modifies-parameter

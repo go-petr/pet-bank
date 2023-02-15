@@ -25,7 +25,7 @@ func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	}
 }
 
-const addAccountBalance = `
+const addBalanceQuery = `
 UPDATE accounts
 SET balance = balance + $1
 WHERE id = $2
@@ -36,7 +36,7 @@ RETURNING id, owner, balance, currency, created_at
 func (r *RepoPGS) AddBalance(ctx context.Context, amount string, id int32) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, addAccountBalance, amount, id)
+	row := r.db.QueryRowContext(ctx, addBalanceQuery, amount, id)
 
 	var a domain.Account
 
@@ -57,7 +57,7 @@ func (r *RepoPGS) AddBalance(ctx context.Context, amount string, id int32) (doma
 	return a, nil
 }
 
-const createAccount = `
+const createQuery = `
 INSERT INTO 
     accounts (owner, balance, currency)
 VALUES
@@ -69,7 +69,7 @@ RETURNING id, owner, balance, currency, created_at
 func (r *RepoPGS) Create(ctx context.Context, owner, balance, currency string) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createAccount, owner, balance, currency)
+	row := r.db.QueryRowContext(ctx, createQuery, owner, balance, currency)
 
 	var a domain.Account
 
@@ -99,18 +99,18 @@ func (r *RepoPGS) Create(ctx context.Context, owner, balance, currency string) (
 	return a, nil
 }
 
-const deleteAccount = `
+const deleteQuery = `
 DELETE FROM accounts
 WHERE id = $1
 `
 
 // Delete removes the account with the given id.
 func (r *RepoPGS) Delete(ctx context.Context, id int32) error {
-	_, err := r.db.ExecContext(ctx, deleteAccount, id)
+	_, err := r.db.ExecContext(ctx, deleteQuery, id)
 	return err
 }
 
-const getAccount = `
+const getQuery = `
 SELECT id, owner, balance, currency, created_at FROM accounts
 WHERE id = $1
 `
@@ -119,7 +119,7 @@ WHERE id = $1
 func (r *RepoPGS) Get(ctx context.Context, id int32) (domain.Account, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, getAccount, id)
+	row := r.db.QueryRowContext(ctx, getQuery, id)
 
 	var a domain.Account
 

@@ -17,7 +17,7 @@ var (
 	// ErrExpiredSession indicates that the expired session.
 	ErrExpiredSession = errors.New("expired session")
 	// ErrSessionNotFound indicates that the session is not found.
-	ErrSessionNotFound = errors.New("Session not found")
+	ErrSessionNotFound = errors.New("session not found")
 )
 
 // Session holds session data for particular domain.

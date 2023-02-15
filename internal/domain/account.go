@@ -1,3 +1,4 @@
+// Package domain provides defenitions of all entities.
 package domain
 
 import (

@@ -1,9 +1,9 @@
-package delivery
+// Package userdelivery manages delivery layer of users.
+package userdelivery
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,11 +13,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/user/service"
+	"github.com/go-petr/pet-bank/internal/userservice"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -31,12 +32,12 @@ func TestMain(m *testing.M) {
 		TokenSymmetricKey:   randompkg.String(32),
 		AccessTokenDuration: time.Minute,
 	}
+
 	gin.SetMode(gin.ReleaseMode)
 	os.Exit(m.Run())
 }
 
 func randomUser(t *testing.T) (domain.User, string) {
-
 	password := randompkg.String(10)
 
 	hashedPassword, err := passpkg.Hash(password)
@@ -52,23 +53,23 @@ func randomUser(t *testing.T) (domain.User, string) {
 	return user, password
 }
 
-func TestCreateUserAPI(t *testing.T) {
+func TestCreateAPI(t *testing.T) {
 	testUser, password := randomUser(t)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	sessionMaker := NewMockSessionMakerInterface(ctrl)
-	userService := NewMockuserServiceInterface(ctrl)
-	userHandler := NewUserHandler(userService, sessionMaker)
+	sessionMaker := NewMockSessionMaker(ctrl)
+	userService := NewMockService(ctrl)
+	userHandler := NewHandler(userService, sessionMaker)
 	server := gin.Default()
 	url := "/users"
-	server.POST(url, userHandler.CreateUser)
+	server.POST(url, userHandler.Create)
 
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
-		buildStubs    func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface)
+		buildStubs    func(userService *MockService, sessionMaker *MockSessionMaker)
 		checkResponse func(recorder *httptest.ResponseRecorder)
 	}{
 		{
@@ -79,10 +80,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 
 				sessionMaker.EXPECT().
@@ -101,10 +101,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 
 				sessionMaker.EXPECT().
@@ -123,10 +122,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"email":    "user%email.com",
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 
 				sessionMaker.EXPECT().
@@ -145,10 +143,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testUser.Username),
 						gomock.Eq(password),
 						gomock.Eq(testUser.FullName),
@@ -172,10 +169,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testUser.Username),
 						gomock.Eq(password),
 						gomock.Eq(testUser.FullName),
@@ -192,17 +188,16 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "CreateUserInternalError",
+			name: "CreateInternalError",
 			requestBody: gin.H{
 				"username": testUser.Username,
 				"password": password,
 				"fullname": testUser.FullName,
 				"email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testUser.Username),
 						gomock.Eq(password),
 						gomock.Eq(testUser.FullName),
@@ -226,10 +221,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testUser.Username),
 						gomock.Eq(password),
 						gomock.Eq(testUser.FullName),
@@ -258,16 +252,15 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": testUser.FullName,
 				"Email":    testUser.Email,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
-					CreateUser(gomock.Any(),
+					Create(gomock.Any(),
 						gomock.Eq(testUser.Username),
 						gomock.Eq(password),
 						gomock.Eq(testUser.FullName),
 						gomock.Eq(testUser.Email)).
 					Times(1).
-					Return(service.NewUserWihtoutPassword(testUser), nil)
+					Return(userservice.NewUserWihtoutPassword(testUser), nil)
 
 				arg := domain.CreateSessionParams{
 					Username: testUser.Username,
@@ -283,7 +276,7 @@ func TestCreateUserAPI(t *testing.T) {
 				data, err := ioutil.ReadAll(recorder.Body)
 				require.NoError(t, err)
 
-				var response userResponse
+				var response response
 				err = json.Unmarshal(data, &response)
 				require.NoError(t, err)
 
@@ -295,11 +288,9 @@ func TestCreateUserAPI(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(userService, sessionMaker)
 
 			body, err := json.Marshal(tc.requestBody)
@@ -316,24 +307,23 @@ func TestCreateUserAPI(t *testing.T) {
 	}
 }
 
-func TestLoginUserAPI(t *testing.T) {
-
+func TestLoginAPI(t *testing.T) {
 	testUser, password := randomUser(t)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	sessionMaker := NewMockSessionMakerInterface(ctrl)
-	userService := NewMockuserServiceInterface(ctrl)
-	userHandler := NewUserHandler(userService, sessionMaker)
+	sessionMaker := NewMockSessionMaker(ctrl)
+	userService := NewMockService(ctrl)
+	userHandler := NewHandler(userService, sessionMaker)
 	server := gin.Default()
 	url := "/users/login"
-	server.POST(url, userHandler.LoginUser)
+	server.POST(url, userHandler.Login)
 
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
-		buildStubs    func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface)
+		buildStubs    func(userService *MockService, sessionMaker *MockSessionMaker)
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
 		{
@@ -342,8 +332,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": "invalid-%user#1",
 				"password": password,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -363,8 +352,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": testUser.Username,
 				"password": "xyz",
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -384,8 +372,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": "NotFound",
 				"password": password,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(1).
@@ -406,8 +393,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": testUser.Username,
 				"password": "incorrect",
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Eq(testUser.Username), gomock.Eq("incorrect")).
 					Times(1).
@@ -428,12 +414,11 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": testUser.Username,
 				"password": password,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Eq(testUser.Username), gomock.Eq(password)).
 					Times(1).
-					Return(domain.UserWihtoutPassword{}, errors.New("Internal"))
+					Return(domain.UserWihtoutPassword{}, errorspkg.ErrInternal)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -450,17 +435,16 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": testUser.Username,
 				"password": password,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Eq(testUser.Username), gomock.Eq(password)).
 					Times(1).
-					Return(service.NewUserWihtoutPassword(testUser), nil)
+					Return(userservice.NewUserWihtoutPassword(testUser), nil)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return("", time.Now(), domain.Session{}, errors.New("Internal"))
+					Return("", time.Now(), domain.Session{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -473,12 +457,11 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": testUser.Username,
 				"password": password,
 			},
-			buildStubs: func(userService *MockuserServiceInterface, sessionMaker *MockSessionMakerInterface) {
-
+			buildStubs: func(userService *MockService, sessionMaker *MockSessionMaker) {
 				userService.EXPECT().
 					CheckPassword(gomock.Any(), gomock.Eq(testUser.Username), gomock.Eq(password)).
 					Times(1).
-					Return(service.NewUserWihtoutPassword(testUser), nil)
+					Return(userservice.NewUserWihtoutPassword(testUser), nil)
 
 				sessionMaker.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -492,11 +475,9 @@ func TestLoginUserAPI(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(userService, sessionMaker)
 
 			data, err := json.Marshal(tc.requestBody)

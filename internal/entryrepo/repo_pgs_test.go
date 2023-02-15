@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	ur "github.com/go-petr/pet-bank/internal/user/repo"
+	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -19,7 +19,7 @@ import (
 var (
 	testEntryRepo   *RepoPGS
 	testAccountRepo *accountrepo.RepoPGS
-	testUserRepo    *ur.UserRepo
+	testUserRepo    *userrepo.RepoPGS
 )
 
 func TestMain(m *testing.M) {
@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testEntryRepo = NewRepoPGS(testDB)
-	testUserRepo = ur.NewUserRepo(testDB)
+	testUserRepo = userrepo.NewRepoPGS(testDB)
 	testAccountRepo = accountrepo.NewRepoPGS(testDB)
 
 	os.Exit(m.Run())
@@ -67,7 +67,7 @@ func createRandomUser(t *testing.T) domain.User {
 		Email:          randompkg.Email(),
 	}
 
-	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
+	testUser, err := testUserRepo.Create(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, testUser)
 

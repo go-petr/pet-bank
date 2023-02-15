@@ -10,7 +10,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entryrepo"
-	ur "github.com/go-petr/pet-bank/internal/user/repo"
+	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -21,7 +21,7 @@ import (
 var (
 	testTransferRepo *transferRepo
 	testAccountRepo  *accountrepo.RepoPGS
-	testUserRepo     *ur.UserRepo
+	testUserRepo     *userrepo.RepoPGS
 	testEntryRepo    *entryrepo.RepoPGS
 )
 
@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	testUserRepo = ur.NewUserRepo(testDB)
+	testUserRepo = userrepo.NewRepoPGS(testDB)
 	testAccountRepo = accountrepo.NewRepoPGS(testDB)
 	testEntryRepo = entryrepo.NewRepoPGS(testDB)
 
@@ -56,7 +56,7 @@ func createRandomUser(t *testing.T) domain.User {
 		Email:          randompkg.Email(),
 	}
 
-	testUser, err := testUserRepo.CreateUser(context.Background(), arg)
+	testUser, err := testUserRepo.Create(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, testUser)
 

@@ -7,13 +7,13 @@ import (
 
 var (
 	// ErrUsernameAlreadyExists indicates the the user with the given username already exists.
-	ErrUsernameAlreadyExists = errors.New("Username already exists")
+	ErrUsernameAlreadyExists = errors.New("username already exists")
 	// ErrEmailALreadyExists indicates the the user with the given email already exists.
-	ErrEmailALreadyExists = errors.New("Email already exists")
+	ErrEmailALreadyExists = errors.New("email already exists")
 	// ErrUserNotFound indicates the the user is not found.
-	ErrUserNotFound = errors.New("User not found")
+	ErrUserNotFound = errors.New("user not found")
 	// ErrWrongPassword indicates the wrong password for the given domain.
-	ErrWrongPassword = errors.New("Wrong password")
+	ErrWrongPassword = errors.New("wrong password")
 )
 
 // User holds user data.
@@ -26,7 +26,7 @@ type User struct {
 	CreatedAt         time.Time `json:"created_at,omitempty"`
 }
 
-// CreateUserParams is the input data to create a domain.
+// CreateUserParams is the input data to create a user.
 type CreateUserParams struct {
 	Username       string `json:"username"`
 	HashedPassword string `json:"hashed_password"`
