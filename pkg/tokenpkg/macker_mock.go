@@ -2,7 +2,7 @@
 // Source: maker.go
 
 // Package token is a generated GoMock package.
-package token
+package tokenpkg
 
 import (
 	reflect "reflect"

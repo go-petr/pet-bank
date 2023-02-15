@@ -20,7 +20,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +60,7 @@ func TestCreateAPI(t *testing.T) {
 	accountService := NewMockService(ctrl)
 	accountHandler := NewHandler(accountService)
 
-	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
+	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
 	url := "/accounts"
@@ -75,7 +75,7 @@ func TestCreateAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
 		buildStubs    func(accountService *MockService)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -84,7 +84,7 @@ func TestCreateAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -101,9 +101,9 @@ func TestCreateAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": "RUB",
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -120,9 +120,9 @@ func TestCreateAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -142,9 +142,9 @@ func TestCreateAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -164,9 +164,9 @@ func TestCreateAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -186,9 +186,9 @@ func TestCreateAPI(t *testing.T) {
 			requestBody: gin.H{
 				"currency": testAccount.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -229,7 +229,7 @@ func TestCreateAPI(t *testing.T) {
 func TestGetAPI(t *testing.T) {
 	testUsername := randompkg.Owner()
 	testAccount := randomAccount(testUsername)
-	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
+	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -246,14 +246,14 @@ func TestGetAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		accountID     int32
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
 		buildStubs    func(accountService *MockService)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:      "NoAuthorization",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -267,9 +267,9 @@ func TestGetAPI(t *testing.T) {
 		{
 			name:      "InvalidID",
 			accountID: 0,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -283,9 +283,9 @@ func TestGetAPI(t *testing.T) {
 		{
 			name:      "NotFound",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -300,9 +300,9 @@ func TestGetAPI(t *testing.T) {
 		{
 			name:      "InternalError",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -317,9 +317,9 @@ func TestGetAPI(t *testing.T) {
 		{
 			name:      "UnauthorizedUser",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, "UnauthorizedUser", time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, "UnauthorizedUser", time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -334,9 +334,9 @@ func TestGetAPI(t *testing.T) {
 		{
 			name:      "OK",
 			accountID: testAccount.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -385,7 +385,7 @@ func TestListAPI(t *testing.T) {
 		name          string
 		pageID        int32
 		pageSize      int32
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
 		buildStubs    func(accountService *MockService)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -393,7 +393,7 @@ func TestListAPI(t *testing.T) {
 			name:     "NoAuthorization",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -408,9 +408,9 @@ func TestListAPI(t *testing.T) {
 			name:     "InvalidPageID",
 			pageID:   -1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -425,9 +425,9 @@ func TestListAPI(t *testing.T) {
 			name:     "InvalidPageSize",
 			pageID:   1,
 			pageSize: 500,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -442,9 +442,9 @@ func TestListAPI(t *testing.T) {
 			name:     "InternalError",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -460,9 +460,9 @@ func TestListAPI(t *testing.T) {
 			name:     "InternalError",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker,
-					middleware.AuthorizationTypeBearer, testUsername, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -482,7 +482,7 @@ func TestListAPI(t *testing.T) {
 		},
 	}
 
-	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
+	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
 	for i := range testCases {

@@ -1,4 +1,5 @@
-package delivery
+// Package sessiondelivery manages delivery layer of sessions.
+package sessiondelivery
 
 import (
 	"context"
@@ -10,17 +11,21 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source handlers.go -destination handlers_mock.go -package delivery
-type SessionServiceInterface interface {
+// Service provides service layer interface needed by session delivery layer.
+//
+//go:generate mockgen -source http.go -destination http_mock.go -package sessiondelivery
+type Service interface {
 	RenewAccessToken(ctx context.Context, refreshToken string) (string, time.Time, error)
 }
 
-type SessionHandler struct {
-	service SessionServiceInterface
+// Handler facilitates session delivery layer logic.
+type Handler struct {
+	service Service
 }
 
-func NewSessionHandler(ss SessionServiceInterface) *SessionHandler {
-	return &SessionHandler{
+// NewHandler returns session handler.
+func NewHandler(ss Service) *Handler {
+	return &Handler{
 		service: ss,
 	}
 }
@@ -34,8 +39,8 @@ type renewAccessTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
-func (h *SessionHandler) RenewAccessToken(gctx *gin.Context) {
-
+// RenewAccessToken handles http request to renew access token.
+func (h *Handler) RenewAccessToken(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(ctx)
 
@@ -43,12 +48,14 @@ func (h *SessionHandler) RenewAccessToken(gctx *gin.Context) {
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
 		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
 		return
 	}
 
 	accessToken, accessTokenExpiresAt, err := h.service.RenewAccessToken(ctx, req.RefreshToken)
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(err))
+
 		return
 	}
 

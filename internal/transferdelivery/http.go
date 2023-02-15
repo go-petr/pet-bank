@@ -12,7 +12,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
 // Service provides service layer interface needed by transfer delivery layer.
@@ -61,7 +61,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 		return
 	}
 
-	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 
 	arg := domain.CreateTransferParams{
 		FromAccountID: req.FromAccountID,

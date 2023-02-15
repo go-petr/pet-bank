@@ -1,4 +1,4 @@
-package token
+package tokenpkg
 
 import (
 	"errors"
@@ -23,7 +23,6 @@ type Payload struct {
 
 // NewPayload creates a new token payload with a specific username and duration.
 func NewPayload(username string, duration time.Duration) (*Payload, error) {
-
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
@@ -44,5 +43,6 @@ func (payload *Payload) Valid() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken
 	}
+
 	return nil
 }

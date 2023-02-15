@@ -1,4 +1,4 @@
-package token
+package tokenpkg
 
 import (
 	"testing"
@@ -9,7 +9,6 @@ import (
 )
 
 func TestPasetoMaker(t *testing.T) {
-
 	maker, err := NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
@@ -32,11 +31,9 @@ func TestPasetoMaker(t *testing.T) {
 	require.Equal(t, username, payload.Username)
 	require.WithinDuration(t, issuedAt, payload.IssuedAt, time.Second)
 	require.WithinDuration(t, expiredAt, payload.ExpiredAt, time.Second)
-
 }
 
 func TestExpiredPasetoToken(t *testing.T) {
-
 	maker, err := NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
@@ -49,5 +46,4 @@ func TestExpiredPasetoToken(t *testing.T) {
 	require.Error(t, err)
 	require.EqualError(t, err, ErrExpiredToken.Error())
 	require.Nil(t, payload)
-
 }

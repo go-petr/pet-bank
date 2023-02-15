@@ -3,4 +3,5 @@ package errorspkg
 
 import "errors"
 
+// ErrInternal indicates internal server error.
 var ErrInternal = errors.New("internal")

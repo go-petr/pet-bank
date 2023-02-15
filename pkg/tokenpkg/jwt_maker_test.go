@@ -1,4 +1,4 @@
-package token
+package tokenpkg
 
 import (
 	"testing"
@@ -10,7 +10,6 @@ import (
 )
 
 func TestJWTMaker(t *testing.T) {
-
 	maker, err := NewJWTMaker(randompkg.String(32))
 	require.NoError(t, err)
 
@@ -33,11 +32,9 @@ func TestJWTMaker(t *testing.T) {
 	require.Equal(t, username, payload.Username)
 	require.WithinDuration(t, issuedAt, payload.IssuedAt, time.Second)
 	require.WithinDuration(t, expiredAt, payload.ExpiredAt, time.Second)
-
 }
 
 func TestExpiredJWTToken(t *testing.T) {
-
 	maker, err := NewJWTMaker(randompkg.String(32))
 	require.NoError(t, err)
 
@@ -50,11 +47,9 @@ func TestExpiredJWTToken(t *testing.T) {
 	require.Error(t, err)
 	require.EqualError(t, err, ErrExpiredToken.Error())
 	require.Nil(t, payload)
-
 }
 
 func TestInvalidJWTTokenAlgNone(t *testing.T) {
-
 	payload, err := NewPayload(randompkg.Owner(), time.Minute)
 	require.NoError(t, err)
 
@@ -69,5 +64,4 @@ func TestInvalidJWTTokenAlgNone(t *testing.T) {
 	require.Error(t, err)
 	require.EqualError(t, err, ErrInvalidToken.Error())
 	require.Nil(t, payload)
-
 }

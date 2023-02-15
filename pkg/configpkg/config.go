@@ -8,6 +8,7 @@ import (
 )
 
 // Config stores all configuration of the application.
+//
 // The values are read by viper fron a config file or environement variables.
 type Config struct {
 	DBDriver             string        `mapstructure:"DB_DRIVER"`
@@ -19,19 +20,25 @@ type Config struct {
 	Environement         string        `mapstructure:"GO_ENV"`
 }
 
-// LoadConfig read configuration from file or environment variables.
-func Load(path string) (config Config, err error) {
+// Load read configuration from file or environment variables.
+func Load(path string) (Config, error) {
+	var c Config
+
 	viper.AddConfigPath(path)
 	viper.SetConfigName("app")
 	viper.SetConfigType("env")
 
 	viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
+	err := viper.ReadInConfig()
 	if err != nil {
-		return
+		return c, err
 	}
 
-	err = viper.Unmarshal(&config)
-	return
+	err = viper.Unmarshal(&c)
+	if err != nil {
+		return c, err
+	}
+
+	return c, nil
 }

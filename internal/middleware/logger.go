@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"os"
@@ -14,10 +13,10 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-type RequestIDKey struct{}
+// type requestIDKey struct{}
 
-func GetLogger(config configpkg.Config) zerolog.Logger {
-
+// CreateLogger returns logger depending on config environement.
+func CreateLogger(config configpkg.Config) zerolog.Logger {
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
 	var (
@@ -43,18 +42,9 @@ func GetLogger(config configpkg.Config) zerolog.Logger {
 	return log
 }
 
-func requestIDFromContext(ctx context.Context) string {
-	requestID, ok := ctx.Value(RequestIDKey{}).(string)
-	if !ok {
-		return "-"
-	}
-	return requestID
-}
-
 // RequestLogger logs a gin HTTP request in JSON format.
 func RequestLogger(logger zerolog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		start := time.Now()
 
 		requestID := c.Request.Header.Get("X-Request-ID")
@@ -72,7 +62,6 @@ func RequestLogger(logger zerolog.Logger) gin.HandlerFunc {
 		c.Next()
 
 		defer func() {
-
 			if panicVal := recover(); panicVal != nil {
 				logger.Error().Msgf("panic message: %v", panicVal)
 				c.Writer.WriteHeader(http.StatusInternalServerError)

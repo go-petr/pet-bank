@@ -1,4 +1,4 @@
-package service
+package sessionservice
 
 import (
 	"context"
@@ -10,64 +10,62 @@ import (
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	testConfig     configpkg.Config
-	testTokenMaker token.Maker
+	config     configpkg.Config
+	tokenMaker tokenpkg.Maker
 )
 
 func TestMain(m *testing.M) {
-	testConfig = configpkg.Config{
+	config = configpkg.Config{
 		TokenSymmetricKey:    randompkg.String(32),
 		AccessTokenDuration:  time.Minute,
 		RefreshTokenDuration: time.Minute,
 	}
+
 	os.Exit(m.Run())
 }
 
 func TestCreate(t *testing.T) {
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	var err error
-	testTokenMaker, err = token.NewPasetoMaker(testConfig.TokenSymmetricKey)
+	tokenMaker, err = tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
 	require.NoError(t, err)
 
-	sessionRepoMock := NewMockSessionRepoInterface(ctrl)
-	testSessionService, err := NewSessionService(sessionRepoMock, testConfig, testTokenMaker)
+	sessionRepoMock := NewMockRepo(ctrl)
+	testSessionService, err := New(sessionRepoMock, config, tokenMaker)
 	require.NoError(t, err)
 	require.NotEmpty(t, testSessionService)
 
-	testUsername := randompkg.Owner()
+	username := randompkg.Owner()
 	testSession := domain.Session{
-		Username: testUsername,
+		Username: username,
 	}
 
 	testCases := []struct {
 		name          string
 		arg           domain.CreateSessionParams
-		buildStubs    func(repo *MockSessionRepoInterface)
+		buildStubs    func(repo *MockRepo)
 		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error)
 	}{
 		{
 			name: "repo.CreateSession error",
 			arg: domain.CreateSessionParams{
-				Username: testUsername,
+				Username: username,
 			},
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
+					Create(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
 					Times(1).
 					Return(domain.Session{}, errorspkg.ErrInternal)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.Empty(t, sess)
@@ -77,17 +75,15 @@ func TestCreate(t *testing.T) {
 		{
 			name: "OK",
 			arg: domain.CreateSessionParams{
-				Username: testUsername,
+				Username: username,
 			},
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					CreateSession(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
+					Create(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
 					Times(1).
 					Return(testSession, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error) {
-
 				require.NotEmpty(t, accessToken)
 				require.NotEmpty(t, accessTokenExpiresAt)
 				require.Equal(t, testSession.ID, sess.ID)
@@ -98,11 +94,9 @@ func TestCreate(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(sessionRepoMock)
 
 			accessToken, accessTokenExpiresAt, sess, err := testSessionService.Create(
@@ -111,50 +105,45 @@ func TestCreate(t *testing.T) {
 			)
 
 			tc.checkResponse(accessToken, accessTokenExpiresAt, sess, err)
-
 		})
 	}
 }
 
 func TestRenewAccessToken(t *testing.T) {
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testTokenMaker, err := token.NewPasetoMaker(testConfig.TokenSymmetricKey)
+	tokenMaker, err := tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
 	require.NoError(t, err)
 
-	sessionRepoMock := NewMockSessionRepoInterface(ctrl)
-	testSessionService, err := NewSessionService(sessionRepoMock, testConfig, testTokenMaker)
+	sessionRepoMock := NewMockRepo(ctrl)
+	testSessionService, err := New(sessionRepoMock, config, tokenMaker)
 	require.NoError(t, err)
 	require.NotEmpty(t, testSessionService)
 
-	testUsername := randompkg.Owner()
-	testRefreshToken, testTokenPayload, err := testTokenMaker.CreateToken(testUsername, testConfig.RefreshTokenDuration)
+	username := randompkg.Owner()
+	refreshToken, tokenPayload, err := tokenMaker.CreateToken(username, config.RefreshTokenDuration)
 	require.NoError(t, err)
 
-	testUnauthorizedUsername := randompkg.Owner()
-	testUnauthorizedRefreshToken, testUnauthorizedRefreshTokenPayload, err := testTokenMaker.CreateToken(testUnauthorizedUsername, testConfig.RefreshTokenDuration)
+	unauthUsername := randompkg.Owner()
+	unauthRefreshToken, unauthRefreshTokenPayload, err := tokenMaker.CreateToken(unauthUsername, config.RefreshTokenDuration)
 	require.NoError(t, err)
 
 	testCases := []struct {
 		name          string
 		refreshToken  string
-		buildStubs    func(repo *MockSessionRepoInterface)
+		buildStubs    func(repo *MockRepo)
 		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, err error)
 	}{
 		{
 			name:         "Ivalid refresh token",
 			refreshToken: "invalid",
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Any()).
+					Get(gomock.Any(), gomock.Any()).
 					Times(0)
-
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.EqualError(t, err, errorspkg.ErrInternal.Error())
@@ -162,16 +151,14 @@ func TestRenewAccessToken(t *testing.T) {
 		},
 		{
 			name:         "repo.GetSession error",
-			refreshToken: testRefreshToken,
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			refreshToken: refreshToken,
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
 					Times(1).
 					Return(domain.Session{}, domain.ErrSessionNotFound)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.EqualError(t, err, domain.ErrSessionNotFound.Error())
@@ -180,35 +167,31 @@ func TestRenewAccessToken(t *testing.T) {
 
 		{
 			name:         "repo.GetSession blocked session",
-			refreshToken: testRefreshToken,
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			refreshToken: refreshToken,
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
 					Times(1).
 					Return(domain.Session{IsBlocked: true}, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.EqualError(t, err, domain.ErrBlockedSession.Error())
 			},
 		},
 		{
-			name:         "repo.GetSession testUnauthorizedRefreshToken",
-			refreshToken: testUnauthorizedRefreshToken,
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			name:         "repo.GetSession unauthRefreshToken",
+			refreshToken: unauthRefreshToken,
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Eq(testUnauthorizedRefreshTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(unauthRefreshTokenPayload.ID)).
 					Times(1).
 					Return(domain.Session{
-						Username: testUsername,
+						Username: username,
 					}, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.EqualError(t, err, domain.ErrInvalidUser.Error())
@@ -216,19 +199,17 @@ func TestRenewAccessToken(t *testing.T) {
 		},
 		{
 			name:         "repo.GetSession blocked session",
-			refreshToken: testRefreshToken,
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			refreshToken: refreshToken,
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
 					Times(1).
 					Return(domain.Session{
-						Username:     testUsername,
-						RefreshToken: testUnauthorizedRefreshToken,
+						Username:     username,
+						RefreshToken: unauthRefreshToken,
 					}, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.EqualError(t, err, domain.ErrMismatchedRefreshToken.Error())
@@ -236,20 +217,18 @@ func TestRenewAccessToken(t *testing.T) {
 		},
 		{
 			name:         "expired session",
-			refreshToken: testRefreshToken,
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			refreshToken: refreshToken,
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
 					Times(1).
 					Return(domain.Session{
-						Username:     testUsername,
-						RefreshToken: testRefreshToken,
+						Username:     username,
+						RefreshToken: refreshToken,
 						ExpiresAt:    time.Now().Add(-time.Hour),
 					}, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
 				require.EqualError(t, err, domain.ErrExpiredSession.Error())
@@ -257,20 +236,18 @@ func TestRenewAccessToken(t *testing.T) {
 		},
 		{
 			name:         "OK",
-			refreshToken: testRefreshToken,
-			buildStubs: func(repo *MockSessionRepoInterface) {
-
+			refreshToken: refreshToken,
+			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					GetSession(gomock.Any(), gomock.Eq(testTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
 					Times(1).
 					Return(domain.Session{
-						Username:     testUsername,
-						RefreshToken: testRefreshToken,
-						ExpiresAt:    testTokenPayload.ExpiredAt,
+						Username:     username,
+						RefreshToken: refreshToken,
+						ExpiresAt:    tokenPayload.ExpiredAt,
 					}, nil)
 			},
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-
 				require.NotEmpty(t, accessToken)
 				require.NotEmpty(t, accessTokenExpiresAt)
 				require.NoError(t, err)
@@ -279,11 +256,9 @@ func TestRenewAccessToken(t *testing.T) {
 	}
 
 	for i := range testCases {
-
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			tc.buildStubs(sessionRepoMock)
 
 			accessToken, accessTokenExpiresAt, err := testSessionService.RenewAccessToken(
@@ -292,7 +267,6 @@ func TestRenewAccessToken(t *testing.T) {
 			)
 
 			tc.checkResponse(accessToken, accessTokenExpiresAt, err)
-
 		})
 	}
 }

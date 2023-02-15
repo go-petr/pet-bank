@@ -13,7 +13,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/jsonresponse"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
 // Service provides service layer interface needed by account delivery layer.
@@ -52,7 +52,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 		return
 	}
 
-	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 
 	createdAccount, err := h.service.Create(ctx, authPayload.Username, req.Currency)
 	if err != nil {
@@ -102,7 +102,7 @@ func (h *Handler) Get(gctx *gin.Context) {
 		return
 	}
 
-	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 	if acc.Owner != authPayload.Username {
 		l.Warn().Err(err).Send()
 		err := errors.New("account doesn't belong to the authenticated user")
@@ -132,7 +132,7 @@ func (h *Handler) List(gctx *gin.Context) {
 		return
 	}
 
-	authPayload := gctx.MustGet(middleware.AuthorizationPayloadKey).(*token.Payload)
+	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 
 	accounts, err := h.service.List(ctx, authPayload.Username, req.PageSize, req.PageID)
 	if err != nil {

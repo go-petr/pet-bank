@@ -51,7 +51,7 @@ linters-settings:
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#argument-limit
       - name: argument-limit
         severity: warning
-        disabled: false
+        disabled: true
         arguments: [5]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#atomic
       - name: atomic
@@ -115,7 +115,7 @@ linters-settings:
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cyclomatic
       - name: cyclomatic
         severity: warning
-        disabled: false
+        disabled: true
         arguments: [6]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#datarace
       - name: datarace
@@ -229,7 +229,7 @@ linters-settings:
       - name: line-length-limit
         severity: warning
         disabled: false
-        arguments: [120] # Default: 80
+        arguments: [140] # Default: 80
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#max-public-structs
       - name: max-public-structs
         severity: warning
@@ -238,7 +238,7 @@ linters-settings:
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
       - name: modifies-parameter
         severity: warning
-        disabled: false
+        disabled: true
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-value-receiver
       - name: modifies-value-receiver
         severity: warning

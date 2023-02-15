@@ -1,4 +1,5 @@
-package service
+// Package sessionservice manages business logic layer of sessions.
+package sessionservice
 
 import (
 	"context"
@@ -7,33 +8,37 @@ import (
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source service.go -destination service_mock.go -package service
-type SessionRepoInterface interface {
-	CreateSession(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error)
-	GetSession(ctx context.Context, id uuid.UUID) (domain.Session, error)
+// Repo provides data access layer interface needed by session service layer.
+//
+//go:generate mockgen -source service.go -destination service_mock.go -package sessionservice
+type Repo interface {
+	Create(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error)
+	Get(ctx context.Context, id uuid.UUID) (domain.Session, error)
 }
 
-type SessionService struct {
-	repo       SessionRepoInterface
-	TokenMaker token.Maker
+// Service facilitates session service layer logic.
+type Service struct {
+	repo       Repo
+	TokenMaker tokenpkg.Maker
 	config     configpkg.Config
 }
 
-func NewSessionService(sr SessionRepoInterface, config configpkg.Config, tm token.Maker) (*SessionService, error) {
-	return &SessionService{
+// New returns session service struct to manage session bussines logic.
+func New(sr Repo, config configpkg.Config, tm tokenpkg.Maker) (*Service, error) {
+	return &Service{
 		repo:       sr,
 		TokenMaker: tm,
 		config:     config,
 	}, nil
 }
 
-func (s *SessionService) Create(ctx context.Context, arg domain.CreateSessionParams) (string, time.Time, domain.Session, error) {
-
+// Create session and access token.
+func (s *Service) Create(ctx context.Context, arg domain.CreateSessionParams) (string, time.Time, domain.Session, error) {
 	l := zerolog.Ctx(ctx)
 
 	var sess domain.Session
@@ -54,7 +59,7 @@ func (s *SessionService) Create(ctx context.Context, arg domain.CreateSessionPar
 	arg.RefreshToken = refreshToken
 	arg.ExpiresAt = refreshPayload.ExpiredAt
 
-	sess, err = s.repo.CreateSession(ctx, arg)
+	sess, err = s.repo.Create(ctx, arg)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return "", time.Time{}, sess, errorspkg.ErrInternal
@@ -63,8 +68,8 @@ func (s *SessionService) Create(ctx context.Context, arg domain.CreateSessionPar
 	return accessToken, accessPayload.ExpiredAt, sess, nil
 }
 
-func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken string) (string, time.Time, error) {
-
+// RenewAccessToken verifies refresh token, renews access token and returns it.
+func (s *Service) RenewAccessToken(ctx context.Context, refreshToken string) (string, time.Time, error) {
 	l := zerolog.Ctx(ctx)
 
 	refreshPayload, err := s.TokenMaker.VerifyToken(refreshToken)
@@ -73,7 +78,7 @@ func (s *SessionService) RenewAccessToken(ctx context.Context, refreshToken stri
 		return "", time.Time{}, errorspkg.ErrInternal
 	}
 
-	sess, err := s.repo.GetSession(ctx, refreshPayload.ID)
+	sess, err := s.repo.Get(ctx, refreshPayload.ID)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return "", time.Time{}, domain.ErrSessionNotFound

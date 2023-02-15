@@ -19,7 +19,7 @@ type Service struct {
 	repo Repo
 }
 
-// New return account service struct to manage account bussines logic.
+// New returns account service struct to manage account bussines logic.
 func New(ar Repo) *Service {
 	return &Service{repo: ar}
 }

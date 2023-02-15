@@ -1,4 +1,4 @@
-package repo
+package sessionrepo
 
 import (
 	"context"
@@ -20,12 +20,12 @@ import (
 )
 
 var (
-	testSessionRepo *SessionRepo
+	testSessionRepo *RepoPGS
 	testUserRepo    *userrepo.RepoPGS
 )
 
 func TestMain(m *testing.M) {
-	config, err := configpkg.Load("../../../configs")
+	config, err := configpkg.Load("../../configs")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -35,14 +35,13 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	testSessionRepo = NewSessionRepo(testDB)
+	testSessionRepo = NewRepoPGS(testDB)
 	testUserRepo = userrepo.NewRepoPGS(testDB)
 
 	os.Exit(m.Run())
 }
 
 func createRandomUser(t *testing.T) domain.User {
-
 	hashedPassword, err := passpkg.Hash(randompkg.String(10))
 	require.NoError(t, err)
 
@@ -68,7 +67,6 @@ func createRandomUser(t *testing.T) domain.User {
 }
 
 func createRandomSession(t *testing.T, username string) domain.Session {
-
 	arg := domain.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     username,
@@ -78,7 +76,7 @@ func createRandomSession(t *testing.T, username string) domain.Session {
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 
-	testSession, err := testSessionRepo.CreateSession(context.Background(), arg)
+	testSession, err := testSessionRepo.Create(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, testSession)
 
@@ -101,7 +99,6 @@ func TestCreateAccount(t *testing.T) {
 }
 
 func TestCreateAccountConstraintViolation(t *testing.T) {
-
 	arg := domain.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     "invalid",
@@ -111,17 +108,16 @@ func TestCreateAccountConstraintViolation(t *testing.T) {
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 
-	testSession, err := testSessionRepo.CreateSession(context.Background(), arg)
+	testSession, err := testSessionRepo.Create(context.Background(), arg)
 	require.EqualError(t, err, domain.ErrUserNotFound.Error())
 	require.Empty(t, testSession)
 }
 
 func TestGetSession(t *testing.T) {
-
 	testUser := createRandomUser(t)
 	testSession := createRandomSession(t, testUser.Username)
 
-	gotSession, err := testSessionRepo.GetSession(context.Background(), testSession.ID)
+	gotSession, err := testSessionRepo.Get(context.Background(), testSession.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotSession)
 

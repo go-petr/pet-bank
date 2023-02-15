@@ -15,7 +15,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +38,7 @@ func TestCreateTranferAPI(t *testing.T) {
 	testAccount2 := randomAccount(testUsername2)
 	amount := "100"
 
-	tokenMaker, err := token.NewPasetoMaker(randompkg.String(32))
+	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -56,7 +56,7 @@ func TestCreateTranferAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
 		buildStubs    func(transferService *MockService)
 		checkResponse func(recorder *httptest.ResponseRecorder)
 	}{
@@ -67,7 +67,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
 			},
 			buildStubs: func(transferService *MockService) {
 				transferService.EXPECT().Transfer(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -83,8 +83,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				transferService.EXPECT().Transfer(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -100,8 +101,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   0,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				transferService.EXPECT().Transfer(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -117,8 +119,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          "",
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				transferService.EXPECT().Transfer(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -134,8 +137,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				arg := domain.CreateTransferParams{
@@ -160,8 +164,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				arg := domain.CreateTransferParams{
@@ -186,8 +191,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				arg := domain.CreateTransferParams{
@@ -212,8 +218,9 @@ func TestCreateTranferAPI(t *testing.T) {
 				"to_account_id":   testAccount2.ID,
 				"amount":          amount,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				middleware.AddAuthorization(t, request, tokenMaker, middleware.AuthorizationTypeBearer, testUsername1, time.Minute)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, testUsername1, time.Minute)
+				require.NoError(t, err)
 			},
 			buildStubs: func(transferService *MockService) {
 				arg := domain.CreateTransferParams{

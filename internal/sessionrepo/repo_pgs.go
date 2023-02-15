@@ -1,4 +1,5 @@
-package repo
+// Package sessionrepo manages repository layer of entries.
+package sessionrepo
 
 import (
 	"context"
@@ -11,17 +12,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type SessionRepo struct {
+// RepoPGS facilitates session repository layer logic.
+type RepoPGS struct {
 	db *sql.DB
 }
 
-func NewSessionRepo(db *sql.DB) *SessionRepo {
-	return &SessionRepo{
+// NewRepoPGS returns account RepoPGS.
+func NewRepoPGS(db *sql.DB) *RepoPGS {
+	return &RepoPGS{
 		db: db,
 	}
 }
 
-const createSession = `
+const createQuery = `
 INSERT INTO sessions (
 	id,
 	username,
@@ -35,11 +38,11 @@ INSERT INTO sessions (
 	) RETURNING id, username, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at;
 `
 
-func (r *SessionRepo) CreateSession(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error) {
-
+// Create creates the session and then returns it.
+func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createSession,
+	row := r.db.QueryRowContext(ctx, createQuery,
 		arg.ID,
 		arg.Username,
 		arg.RefreshToken,
@@ -63,12 +66,10 @@ func (r *SessionRepo) CreateSession(ctx context.Context, arg domain.CreateSessio
 	)
 
 	if err != nil {
-
 		l.Error().Err(err).Send()
 
 		if pqErr, ok := err.(*pq.Error); ok {
-			switch pqErr.Constraint {
-			case "sessions_username_fkey":
+			if pqErr.Constraint == "sessions_username_fkey" {
 				return s, domain.ErrUserNotFound
 			}
 		}
@@ -93,8 +94,8 @@ FROM sessions
 WHERE id = $1
 `
 
-func (r *SessionRepo) GetSession(ctx context.Context, id uuid.UUID) (domain.Session, error) {
-
+// Get returns session with the given id.
+func (r *RepoPGS) Get(ctx context.Context, id uuid.UUID) (domain.Session, error) {
 	l := zerolog.Ctx(ctx)
 
 	row := r.db.QueryRowContext(ctx, getSession, id)

@@ -11,21 +11,20 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/token"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	_ "github.com/lib/pq"
 
 	"github.com/go-petr/pet-bank/internal/accountdelivery"
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/accountservice"
-	sh "github.com/go-petr/pet-bank/internal/session/delivery"
-	sr "github.com/go-petr/pet-bank/internal/session/repo"
-	ss "github.com/go-petr/pet-bank/internal/session/service"
-	"github.com/go-petr/pet-bank/internal/transferdelivery"
-	"github.com/go-petr/pet-bank/internal/userdelivery"
-
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/go-petr/pet-bank/internal/sessiondelivery"
+	"github.com/go-petr/pet-bank/internal/sessionrepo"
+	"github.com/go-petr/pet-bank/internal/sessionservice"
+	"github.com/go-petr/pet-bank/internal/transferdelivery"
 	"github.com/go-petr/pet-bank/internal/transferrepo"
 	"github.com/go-petr/pet-bank/internal/transferservice"
+	"github.com/go-petr/pet-bank/internal/userdelivery"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/internal/userservice"
 )
@@ -36,7 +35,7 @@ func main() {
 		log.Fatal().Err(err).Msg("cannot load config")
 	}
 
-	logger := middleware.GetLogger(config)
+	logger := middleware.CreateLogger(config)
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
@@ -55,13 +54,12 @@ func main() {
 }
 
 func createServer(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*gin.Engine, error) {
-
 	userRepo := userrepo.NewRepoPGS(conn)
 	accountRepo := accountrepo.NewRepoPGS(conn)
 	transferRepo := transferrepo.NewRepoPGS(conn)
-	sessionRepo := sr.NewSessionRepo(conn)
+	sessionRepo := sessionrepo.NewRepoPGS(conn)
 
-	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	tokenMaker, err := tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
 		return nil, errors.New("cannot create token maker")
 	}
@@ -69,7 +67,7 @@ func createServer(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) 
 	userService := userservice.New(userRepo)
 	accountService := accountservice.New(accountRepo)
 	transferService := transferservice.New(transferRepo, accountService)
-	sessionService, err := ss.NewSessionService(sessionRepo, config, tokenMaker)
+	sessionService, err := sessionservice.New(sessionRepo, config, tokenMaker)
 
 	if err != nil {
 		return nil, errors.New("cannot initialize session service")
@@ -78,7 +76,7 @@ func createServer(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) 
 	userHandler := userdelivery.NewHandler(userService, sessionService)
 	accountHandler := accountdelivery.NewHandler(accountService)
 	transferHandler := transferdelivery.NewHandler(transferService)
-	sessionHandler := sh.NewSessionHandler(sessionService)
+	sessionHandler := sessiondelivery.NewHandler(sessionService)
 
 	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()

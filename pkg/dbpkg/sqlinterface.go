@@ -6,6 +6,7 @@ import (
 	"database/sql"
 )
 
+// SQLInterface provides neccessary db methods to perform transactions and queries.
 type SQLInterface interface {
 	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
 	PrepareContext(context.Context, string) (*sql.Stmt, error)
