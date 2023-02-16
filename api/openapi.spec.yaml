@@ -50,6 +50,32 @@ components:
         created_at:
           type: string
 
+    Entry:
+      type: object
+      properties:
+        id:
+          type: integer
+        account_id:
+          type: integer
+        amount:
+          type: string
+        created_at:
+          type: string
+
+    Transfer:
+      type: object
+      properties:
+        id:
+          type: integer
+        from_account_id:
+          type: integer
+        to_account_id:
+          type: integer
+        amount:
+          type: string
+        created_at:
+          type: string
+
   responses:
     User:
       description: OK
@@ -107,7 +133,6 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/Account"
-
           example:
             data:
               accounts:
@@ -120,6 +145,59 @@ components:
                   owner: "firstuser"
                   balance: "0"
                   currency: "EUR"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+
+    TransferTxResult:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  transfer:
+                    type: object
+                    properties:
+                      transfer:
+                        $ref: "#/components/schemas/Transfer"
+                      from_account:
+                        $ref: "#/components/schemas/Account"
+                      to_account:
+                        $ref: "#/components/schemas/Account"
+                      from_entry:
+                        $ref: "#/components/schemas/Entry"
+                      to_entry:
+                        $ref: "#/components/schemas/Entry"
+          example:
+            data:
+              transfer:
+                transfer:
+                  id: 1
+                  from_account_id: 1
+                  to_account_id: 7
+                  amount: "100"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+                from_account:
+                  owner: "firstuser"
+                  balance: "900"
+                  currency: "EUR"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+                to_account:
+                  owner: "seconduser"
+                  balance: "1100"
+                  currency: "EUR"
+                  created_at: "2023-04-16T15:26:40.390795Z"
+                from_entry:
+                  id: 1
+                  account_id: 1
+                  amount: "-100"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+                to_entry:
+                  id: 2
+                  account_id: 7
+                  amount: "100"
                   created_at: "2023-03-16T15:26:40.390795Z"
 
     UnauthorizedError:
@@ -212,11 +290,7 @@ paths:
         "200":
           $ref: "#/components/responses/User"
         "400":
-          description: Invalid parameters in request body.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -301,6 +375,42 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /transfers:
+    post:
+      operationId: createTransfer
+      tags:
+        - "Transfers"
+      summary: Create money transfer between two accounts.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from_account_id:
+                  type: integer
+                to_account_id:
+                  type: integer
+                amount:
+                  type: string
+              example:
+                from_account_id: 1
+                to_account_id: 7
+                amount: "100"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/TransferTxResult"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
         # Definition of all error statuses
         default:
           $ref: "#/components/responses/UnexpectedError"
