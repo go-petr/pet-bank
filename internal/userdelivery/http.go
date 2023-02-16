@@ -46,9 +46,9 @@ type data struct {
 	User domain.UserWihtoutPassword `json:"user,omitempty"`
 }
 type response struct {
-	AccessToken           string    `json:"token,omitempty"`
+	AccessToken           string    `json:"access_token"`
 	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
-	RefreshToken          string    `json:"refresh_token,omitempty"`
+	RefreshToken          string    `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 	Data                  data      `json:"data,omitempty"`
 }

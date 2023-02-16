@@ -17,6 +17,7 @@ This bank service service provides APIs for the frontend to do following things:
 
 ## Data model
 <img src='./bank.png'/>
+
 # How to run
 
 ## Local
