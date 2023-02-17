@@ -35,6 +35,13 @@ func NewHandler(as Service) Handler {
 	return Handler{service: as}
 }
 
+type data struct {
+	Account domain.Account `json:"account"`
+}
+type response struct {
+	Data data `json:"data,omitempty"`
+}
+
 type createRequest struct {
 	Currency string `json:"currency" binding:"required,currency"`
 }
@@ -70,7 +77,11 @@ func (h *Handler) Create(gctx *gin.Context) {
 		return
 	}
 
-	gctx.JSON(http.StatusOK, createdAccount)
+	res := response{
+		Data: data{createdAccount},
+	}
+
+	gctx.JSON(http.StatusOK, res)
 }
 
 type getRequest struct {
@@ -111,12 +122,23 @@ func (h *Handler) Get(gctx *gin.Context) {
 		return
 	}
 
-	gctx.JSON(http.StatusOK, acc)
+	res := response{
+		Data: data{acc},
+	}
+
+	gctx.JSON(http.StatusOK, res)
 }
 
 type listRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
+}
+
+type dataAccounts struct {
+	Accounts []domain.Account `json:"accounts"`
+}
+type responseAccounts struct {
+	Data dataAccounts `json:"data,omitempty"`
 }
 
 // List handles http request to list accounts.
@@ -140,5 +162,9 @@ func (h *Handler) List(gctx *gin.Context) {
 		return
 	}
 
-	gctx.JSON(http.StatusOK, accounts)
+	res := responseAccounts{
+		Data: dataAccounts{accounts},
+	}
+
+	gctx.JSON(http.StatusOK, res)
 }

@@ -1,0 +1,463 @@
+# The OpenAPI 3.0 definition of the Bank API.
+openapi: 3.0.0
+info:
+  title: Bank API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080/
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: PASETO
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+      example:
+        error: message
+
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+        created_at:
+          type: string
+
+    Account:
+      type: object
+      properties:
+        id:
+          type: integer
+        owner:
+          type: string
+        balance:
+          type: string
+        currency:
+          type: string
+        created_at:
+          type: string
+
+    Entry:
+      type: object
+      properties:
+        id:
+          type: integer
+        account_id:
+          type: integer
+        amount:
+          type: string
+        created_at:
+          type: string
+
+    Transfer:
+      type: object
+      properties:
+        id:
+          type: integer
+        from_account_id:
+          type: integer
+        to_account_id:
+          type: integer
+        amount:
+          type: string
+        created_at:
+          type: string
+
+  responses:
+    User:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              access_token:
+                type: string
+              access_token_expires_at:
+                type: string
+              refresh_token:
+                type: string
+              refresh_token_expires_at:
+                type: string
+              data:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+          example:
+            access_token: "v2.local.4lR-x1PsXxr2ut4qGdvJ1vxVacTkuRlF6FjzN9x2wqRwyDfTHXIga0CnnVXdnhooKJDcBa2Fj5cadNNXczuwxgYMnYWPjQsYOAFk1z17CQ9v5QQe7xpBjWeyDNdjpfhIuB_3jN18a4RdjaggfAa2vZuR1PJZ61MyZ_SMglGm2bLSK_SZEW33hELlp34sxUDu9MW67T4h4YOsilUwWMqxVH00k_2iKNwf2bH78klnEn4N6x-M6rda2IkAGH2oXmxuXaAFvw.bnVsbA"
+            access_token_expires_at: "2023-02-16T15:25:49.124228958Z"
+            refresh_token: "v2.local.P4wt9nQyBJt1gqWbgHdYN7DVRnyRTFkTJhgSyw4vnSQQcGahk90D5WCYcl7hdM6DU_OJ3LPiRFtcMpBazSwfomtVwQj9SohSG109qfgIhRDpvSFBjD8_l4efCQs4b0sbKgIKcDHpvHwmwhfIyOVS0QKe1LCvjooUBOj1B4xdCl8mwgPKj3IvLbV2TDfgsDzfXXMyuIsD7ju2saJIqKohoi8Pg14g2YNyw9OrCS8flx3MXNAKxrpnvx3diHh_Z3PDbnDVHA.bnVsbA"
+            refresh_token_expires_at: "2023-02-17T15:10:49.124346Z"
+            data:
+              user:
+                username: firstuser
+                password: qwerty
+                fullname: "Foo Boo"
+                email: "foo@boo.email"
+
+    Account:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  account:
+                    $ref: "#/components/schemas/Account"
+          example:
+            data:
+              account:
+                id: 1
+                owner: "firstuser"
+                balance: "0"
+                currency: "USD"
+                created_at: "2023-02-16T15:26:40.390795Z"
+
+    Accounts:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+          example:
+            data:
+              accounts:
+                - id: 1
+                  owner: "firstuser"
+                  balance: "0"
+                  currency: "USD"
+                  created_at: "2023-02-16T15:26:40.390795Z"
+                - id: 2
+                  owner: "firstuser"
+                  balance: "0"
+                  currency: "EUR"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+
+    TransferTxResult:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  transfer:
+                    type: object
+                    properties:
+                      transfer:
+                        $ref: "#/components/schemas/Transfer"
+                      from_account:
+                        $ref: "#/components/schemas/Account"
+                      to_account:
+                        $ref: "#/components/schemas/Account"
+                      from_entry:
+                        $ref: "#/components/schemas/Entry"
+                      to_entry:
+                        $ref: "#/components/schemas/Entry"
+          example:
+            data:
+              transfer:
+                transfer:
+                  id: 1
+                  from_account_id: 1
+                  to_account_id: 7
+                  amount: "100"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+                from_account:
+                  owner: "firstuser"
+                  balance: "900"
+                  currency: "EUR"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+                to_account:
+                  owner: "seconduser"
+                  balance: "1100"
+                  currency: "EUR"
+                  created_at: "2023-04-16T15:26:40.390795Z"
+                from_entry:
+                  id: 1
+                  account_id: 1
+                  amount: "-100"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+                to_entry:
+                  id: 2
+                  account_id: 7
+                  amount: "100"
+                  created_at: "2023-03-16T15:26:40.390795Z"
+
+    AccessToken:
+      description: Authorization error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              access_token:
+                type: string
+              access_token_expires_at:
+                type: string
+          example:
+            access_token: "v2.local.4lR-x1PsXxr2ut4qGdvJ1vxVacTkuRlF6FjzN9x2wqRwyDfTHXIga0CnnVXdnhooKJDcBa2Fj5cadNNXczuwxgYMnYWPjQsYOAFk1z17CQ9v5QQe7xpBjWeyDNdjpfhIuB_3jN18a4RdjaggfAa2vZuR1PJZ61MyZ_SMglGm2bLSK_SZEW33hELlp34sxUDu9MW67T4h4YOsilUwWMqxVH00k_2iKNwf2bH78klnEn4N6x-M6rda2IkAGH2oXmxuXaAFvw.bnVsbA"
+            access_token_expires_at: "2023-02-16T15:25:49.124228958Z"
+
+    UnauthorizedError:
+      description: Authorization error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequestError:
+      description: Invalid parameters in request body.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFoundError:
+      description: The requested resource is not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnexpectedError:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: internal
+
+paths:
+  /users:
+    post:
+      operationId: createUser
+      tags:
+        - Users
+      summary: Create a new user.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                fullname:
+                  type: string
+                email:
+                  type: string
+            example:
+              username: firstuser
+              password: qwerty
+              fullname: "Foo Boo"
+              email: "foo@boo.email"
+      responses:
+        "200":
+          $ref: "#/components/responses/User"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "409":
+          description: User with the given username or email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: username already exists
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /users/login:
+    post:
+      operationId: loginUser
+      tags:
+        - Users
+      summary: Login a user.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/User"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /accounts:
+    post:
+      operationId: createAccount
+      tags:
+        - Accounts
+      summary: Create a new account.
+      security:
+        - BearerAuth: []
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currency:
+                  type: string
+              example:
+                currency: USD
+      responses:
+        "200":
+          $ref: "#/components/responses/Account"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "409":
+          description: Account with the given currency already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: account currency already exists
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+    get:
+      operationId: listAccount
+      tags:
+        - Accounts
+      summary: List all user's accounts.
+      security:
+        - BearerAuth: []
+
+      responses:
+        "200":
+          $ref: "#/components/responses/Accounts"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /accounts/id:
+    get:
+      operationId: getAccount
+      tags:
+        - Accounts
+      summary: Get an account.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+
+      responses:
+        "200":
+          $ref: "#/components/responses/Account"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /transfers:
+    post:
+      operationId: createTransfer
+      tags:
+        - "Transfers"
+      summary: Create money transfer between two accounts.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from_account_id:
+                  type: integer
+                to_account_id:
+                  type: integer
+                amount:
+                  type: string
+              example:
+                from_account_id: 1
+                to_account_id: 7
+                amount: "100"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/TransferTxResult"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /sessions:
+    post:
+      operationId: renewAccessToken
+      tags:
+        - "Sessions"
+      summary: Renew access token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+
+      responses:
+        "200":
+          $ref: "#/components/responses/AccessToken"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"

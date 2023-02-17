@@ -1,18 +1,10 @@
 # Build stage
 FROM golang:1.18.10-alpine3.17 AS builder
 WORKDIR /usr/app
-COPY . .
-RUN go build -o main cmd/server/main.go && \
-    apk --no-cache add curl && \
+RUN apk --no-cache add curl && \
     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz && \
     mv migrate.linux-amd64 migrate
-
-# Run stage
-FROM alpine:3.17
-WORKDIR /usr/app
-COPY --from=builder /usr/app/main /usr/app/migrate ./
-COPY configs ./configs
-COPY scripts ./scripts
-
+COPY . .
+RUN go build -o main cmd/server/main.go 
 EXPOSE 8080
 CMD ["/usr/app/main"]

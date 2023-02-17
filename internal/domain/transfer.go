@@ -45,8 +45,8 @@ type ListTransfersParams struct {
 // TransferTxResult is the result of the transfer transaction.
 type TransferTxResult struct {
 	Transfer    Transfer `json:"transfer"`
-	FromAccount Account  `json:"fromAccount"`
-	ToAccount   Account  `json:"toAccount"`
-	FromEntry   Entry    `json:"fromEntry"`
-	ToEntry     Entry    `json:"toEntry"`
+	FromAccount Account  `json:"from_account"`
+	ToAccount   Account  `json:"to_account"`
+	FromEntry   Entry    `json:"from_entry"`
+	ToEntry     Entry    `json:"to_entry"`
 }
