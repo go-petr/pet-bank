@@ -47,6 +47,8 @@ func main() {
 		logger.Fatal().Err(err).Msg("cannot create server")
 	}
 
+	logger.Info().Msg("BANK API SERVER HAS STARTED")
+
 	err = server.Run(config.ServerAddress)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot start server")

@@ -19,19 +19,17 @@ migrateup1:
 migratedown1:
 	migrate -path configs/db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 
-sqlc:
-	sqlc generate
-
-test:
-	go test -cover ./...
+test.integration:
+	docker-compose -f deployments/docker-compose.test.yaml up --build
+	docker-compose -f deployments/docker-compose.test.yaml down
 
 server:
 	go run cmd/server/main.go
 
-composeappup:
-	docker-compose -f deployments/docker-compose.yaml up --build
+dev.app.up:
+	docker-compose -f deployments/docker-compose.dev.yaml up --build
 
-composeappdown:
+dev.app.down:
 	 docker-compose -f deployments/docker-compose.yaml down
 
 .PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 server composeappdown
