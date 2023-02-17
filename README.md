@@ -9,11 +9,11 @@ This bank service provides APIs for the frontend to do the following things:
 
 ## Authorization rules 
 
-1. user can create an account only for him/herself
-2. user can get accounts that only he/she owns 
-3. user can list accounts that only belong to him/her
-4. user can send money only from his/her own account 
-5. user can only refresh his/her own access token
+1. The user can create an account only for him/herself
+2. The user can get accounts that only he/she owns 
+3. The user can list accounts that only belong to him/her
+4. The user can send money only from his/her own account 
+5. The user can only refresh his/her own access token
 
 ## Data model
 <img src='./bank.png'/>
