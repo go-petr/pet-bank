@@ -93,17 +93,21 @@ components:
               refresh_token_expires_at:
                 type: string
               data:
-                $ref: "#/components/schemas/User"
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
           example:
             access_token: "v2.local.4lR-x1PsXxr2ut4qGdvJ1vxVacTkuRlF6FjzN9x2wqRwyDfTHXIga0CnnVXdnhooKJDcBa2Fj5cadNNXczuwxgYMnYWPjQsYOAFk1z17CQ9v5QQe7xpBjWeyDNdjpfhIuB_3jN18a4RdjaggfAa2vZuR1PJZ61MyZ_SMglGm2bLSK_SZEW33hELlp34sxUDu9MW67T4h4YOsilUwWMqxVH00k_2iKNwf2bH78klnEn4N6x-M6rda2IkAGH2oXmxuXaAFvw.bnVsbA"
             access_token_expires_at: "2023-02-16T15:25:49.124228958Z"
             refresh_token: "v2.local.P4wt9nQyBJt1gqWbgHdYN7DVRnyRTFkTJhgSyw4vnSQQcGahk90D5WCYcl7hdM6DU_OJ3LPiRFtcMpBazSwfomtVwQj9SohSG109qfgIhRDpvSFBjD8_l4efCQs4b0sbKgIKcDHpvHwmwhfIyOVS0QKe1LCvjooUBOj1B4xdCl8mwgPKj3IvLbV2TDfgsDzfXXMyuIsD7ju2saJIqKohoi8Pg14g2YNyw9OrCS8flx3MXNAKxrpnvx3diHh_Z3PDbnDVHA.bnVsbA"
             refresh_token_expires_at: "2023-02-17T15:10:49.124346Z"
             data:
-              username: firstuser
-              password: qwerty
-              fullname: "Foo Boo"
-              email: "foo@boo.email"
+              user:
+                username: firstuser
+                password: qwerty
+                fullname: "Foo Boo"
+                email: "foo@boo.email"
 
     Account:
       description: OK
@@ -113,14 +117,18 @@ components:
             type: object
             properties:
               data:
-                $ref: "#/components/schemas/Account"
+                type: object
+                properties:
+                  account:
+                    $ref: "#/components/schemas/Account"
           example:
             data:
-              id: 1
-              owner: "firstuser"
-              balance: "0"
-              currency: "USD"
-              created_at: "2023-02-16T15:26:40.390795Z"
+              account:
+                id: 1
+                owner: "firstuser"
+                balance: "0"
+                currency: "USD"
+                created_at: "2023-02-16T15:26:40.390795Z"
 
     Accounts:
       description: OK
@@ -199,6 +207,21 @@ components:
                   account_id: 7
                   amount: "100"
                   created_at: "2023-03-16T15:26:40.390795Z"
+
+    AccessToken:
+      description: Authorization error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              access_token:
+                type: string
+              access_token_expires_at:
+                type: string
+          example:
+            access_token: "v2.local.4lR-x1PsXxr2ut4qGdvJ1vxVacTkuRlF6FjzN9x2wqRwyDfTHXIga0CnnVXdnhooKJDcBa2Fj5cadNNXczuwxgYMnYWPjQsYOAFk1z17CQ9v5QQe7xpBjWeyDNdjpfhIuB_3jN18a4RdjaggfAa2vZuR1PJZ61MyZ_SMglGm2bLSK_SZEW33hELlp34sxUDu9MW67T4h4YOsilUwWMqxVH00k_2iKNwf2bH78klnEn4N6x-M6rda2IkAGH2oXmxuXaAFvw.bnVsbA"
+            access_token_expires_at: "2023-02-16T15:25:49.124228958Z"
 
     UnauthorizedError:
       description: Authorization error
@@ -411,6 +434,30 @@ paths:
           $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        # Definition of all error statuses
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /sessions:
+    post:
+      operationId: renewAccessToken
+      tags:
+        - "Sessions"
+      summary: Renew access token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+
+      responses:
+        "200":
+          $ref: "#/components/responses/AccessToken"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
         # Definition of all error statuses
         default:
           $ref: "#/components/responses/UnexpectedError"
