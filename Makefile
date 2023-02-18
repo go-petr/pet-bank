@@ -23,6 +23,9 @@ test.integration:
 	docker-compose -f deployments/docker-compose.test.yaml up --build --attach api
 	docker-compose -f deployments/docker-compose.test.yaml down
 
+test.unit:
+	go test -count 1 ./...
+
 server:
 	go run cmd/server/main.go
 

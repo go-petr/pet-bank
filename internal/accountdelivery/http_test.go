@@ -54,19 +54,8 @@ func TestCreateAPI(t *testing.T) {
 	username := randompkg.Owner()
 	account := randomAccount(username)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	accountService := NewMockService(ctrl)
-	accountHandler := NewHandler(accountService)
-
 	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
-
-	url := "/accounts"
-	server := gin.Default()
-	server.Use(middleware.AuthMiddleware(tokenMaker))
-	server.POST(url, accountHandler.Create)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		require.NoError(t, v.RegisterValidation("currency", ValidCurrency))
@@ -212,6 +201,19 @@ func TestCreateAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			accountService := NewMockService(ctrl)
+			accountHandler := NewHandler(accountService)
+
+			url := "/accounts"
+			server := gin.Default()
+			server.Use(middleware.AuthMiddleware(tokenMaker))
+			server.POST(url, accountHandler.Create)
+
 			tc.buildStubs(accountService)
 
 			recorder := httptest.NewRecorder()
@@ -234,17 +236,6 @@ func TestGetAPI(t *testing.T) {
 	account := randomAccount(username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	accountService := NewMockService(ctrl)
-	accountHandler := NewHandler(accountService)
-
-	// start test server and send request
-	server := gin.Default()
-	server.Use(middleware.AuthMiddleware(tokenMaker))
-	server.GET("/accounts/:id", accountHandler.Get)
 
 	testCases := []struct {
 		name          string
@@ -361,6 +352,18 @@ func TestGetAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			accountService := NewMockService(ctrl)
+			accountHandler := NewHandler(accountService)
+
+			server := gin.Default()
+			server.Use(middleware.AuthMiddleware(tokenMaker))
+			server.GET("/accounts/:id", accountHandler.Get)
+
 			tc.buildStubs(accountService)
 
 			recorder := httptest.NewRecorder()
@@ -499,6 +502,8 @@ func TestListAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 

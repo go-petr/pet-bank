@@ -56,16 +56,6 @@ func randomUser(t *testing.T) (domain.User, string) {
 func TestCreateAPI(t *testing.T) {
 	testUser, password := randomUser(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	sessionMaker := NewMockSessionMaker(ctrl)
-	userService := NewMockService(ctrl)
-	userHandler := NewHandler(userService, sessionMaker)
-	server := gin.Default()
-	url := "/users"
-	server.POST(url, userHandler.Create)
-
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
@@ -291,6 +281,19 @@ func TestCreateAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			sessionMaker := NewMockSessionMaker(ctrl)
+			userService := NewMockService(ctrl)
+			userHandler := NewHandler(userService, sessionMaker)
+
+			server := gin.Default()
+			url := "/users"
+			server.POST(url, userHandler.Create)
+
 			tc.buildStubs(userService, sessionMaker)
 
 			body, err := json.Marshal(tc.requestBody)

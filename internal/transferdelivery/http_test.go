@@ -41,18 +41,6 @@ func TestCreateTranferAPI(t *testing.T) {
 	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
 	require.NoError(t, err)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	transferService := NewMockService(ctrl)
-	transferHandler := NewHandler(transferService)
-
-	server := gin.Default()
-	url := "/transfers"
-
-	server.Use(middleware.AuthMiddleware(tokenMaker))
-	server.POST(url, transferHandler.Create)
-
 	testCases := []struct {
 		name          string
 		requestBody   gin.H
@@ -244,6 +232,20 @@ func TestCreateTranferAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			transferService := NewMockService(ctrl)
+			transferHandler := NewHandler(transferService)
+
+			server := gin.Default()
+			url := "/transfers"
+
+			server.Use(middleware.AuthMiddleware(tokenMaker))
+			server.POST(url, transferHandler.Create)
+
 			tc.buildStubs(transferService)
 
 			recorder := httptest.NewRecorder()

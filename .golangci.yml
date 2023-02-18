@@ -370,7 +370,8 @@ linters-settings:
 
 issues:
   include:
-    # enable comment check for exported functions
-    - EXC0012 # EXC0012 revive: Annoying issue about not having a comment. The rare codebase has such comments.
-    - EXC0014 # EXC0014 revive: Annoying issue about not having a comment. The rare codebase has such comments.
-
+    # enable comments check
+    - EXC0012 # exported (.+) should have comment( \(or a comment on this block\))? or be unexported
+    - EXC0013 # package comment should be of the form "(.+)...
+    - EXC0014 # comment on exported (.+) should be of the form "(.+)..."
+    - EXC0015 # should have a package comment

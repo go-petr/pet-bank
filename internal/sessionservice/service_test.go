@@ -31,17 +31,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	var err error
 	tokenMaker, err = tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
 	require.NoError(t, err)
-
-	sessionRepoMock := NewMockRepo(ctrl)
-	testSessionService, err := New(sessionRepoMock, config, tokenMaker)
-	require.NoError(t, err)
-	require.NotEmpty(t, testSessionService)
 
 	username := randompkg.Owner()
 	testSession := domain.Session{
@@ -97,6 +89,16 @@ func TestCreate(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			sessionRepoMock := NewMockRepo(ctrl)
+			testSessionService, err := New(sessionRepoMock, config, tokenMaker)
+			require.NoError(t, err)
+			require.NotEmpty(t, testSessionService)
+
 			tc.buildStubs(sessionRepoMock)
 
 			accessToken, accessTokenExpiresAt, sess, err := testSessionService.Create(
