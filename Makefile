@@ -20,7 +20,7 @@ migratedown1:
 	migrate -path configs/db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 
 test.integration:
-	docker-compose -f deployments/docker-compose.test.yaml up --build
+	docker-compose -f deployments/docker-compose.test.yaml up --build --attach api
 	docker-compose -f deployments/docker-compose.test.yaml down
 
 server:

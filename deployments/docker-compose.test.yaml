@@ -3,7 +3,6 @@ services:
   postgres:
     container_name: bankdb
     image: postgres:14
-    tty: false
     ports:
       - "5432:5432"
     environment:
@@ -20,6 +19,10 @@ services:
       - "8080:8080"
     environment:
       - DB_SOURCE=postgresql://root:secret@postgres:5432/simple_bank?sslmode=disable
+      # the tests in the project don’t use cgo and the alpine base image 
+      # does not ship with a C compiler. Disabling cgo in this manner is necessary 
+      # even if your project has no cgo code within it since Go will still attempt to 
+      # use standard C libraries for certain networking tasks if cgo is enabled.
       - CGO_ENABLED=0
     depends_on:
       - postgres
@@ -32,4 +35,4 @@ services:
         "--",
         "/usr/app/scripts/start.sh"
       ]
-    command: [ "go", "test", "./..." ]
+    command: [ "go", "test", "-tags=integration", "./..." ]
