@@ -4,6 +4,7 @@ package httpserver
 import (
 	"database/sql"
 	"errors"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -27,8 +28,19 @@ import (
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
-// Create instantiates the domains and assign routes.
-func Create(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*gin.Engine, error) {
+// Server is the struct that contains the server router.
+type Server struct {
+	DB     *sql.DB
+	Engine *gin.Engine
+}
+
+// ServeHTTP implements the http.Handler interface for the Server type.
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.Engine.ServeHTTP(w, r)
+}
+
+// New creates Server type wiht instantiated domains and routes.
+func New(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*Server, error) {
 	userRepo := userrepo.NewRepoPGS(conn)
 	accountRepo := accountrepo.NewRepoPGS(conn)
 	transferRepo := transferrepo.NewRepoPGS(conn)
@@ -54,16 +66,16 @@ func Create(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*gin.
 	sessionHandler := sessiondelivery.NewHandler(sessionService)
 
 	gin.SetMode(gin.ReleaseMode)
-	server := gin.New()
+	engine := gin.New()
 
-	server.Use(middleware.RequestLogger(logger))
-	server.Use(gin.Recovery())
+	engine.Use(middleware.RequestLogger(logger))
+	engine.Use(gin.Recovery())
 
-	server.POST("/users", userHandler.Create)
-	server.POST("/users/login", userHandler.Login)
-	server.POST("/sessions", sessionHandler.RenewAccessToken)
+	engine.POST("/users", userHandler.Create)
+	engine.POST("/users/login", userHandler.Login)
+	engine.POST("/sessions", sessionHandler.RenewAccessToken)
 
-	authRoutes := server.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
+	authRoutes := engine.Group("/").Use(middleware.AuthMiddleware(sessionService.TokenMaker))
 
 	authRoutes.POST("/accounts", accountHandler.Create)
 	authRoutes.GET("/accounts/:id", accountHandler.Get)
@@ -76,6 +88,11 @@ func Create(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*gin.
 		if err != nil {
 			return nil, errors.New("cannot register currency validator")
 		}
+	}
+
+	server := &Server{
+		DB:     conn,
+		Engine: engine,
 	}
 
 	return server, nil

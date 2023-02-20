@@ -20,20 +20,23 @@ migratedown1:
 	migrate -path configs/db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 
 test.integration:
-	docker-compose -f deployments/docker-compose.test.yaml up --build --attach api
-	docker-compose -f deployments/docker-compose.test.yaml down
+	docker compose -f deployments/docker-compose.test.yaml up --build --attach api
+	docker compose -f deployments/docker-compose.test.yaml down
 
 test.unit:
 	go test -count 1 ./...
 
+test.api:
+	go test -v -count 1 -tags=integration ./cmd/httpserver/tests 
+
 server:
-	go run cmd/server/main.go
+	go run cmd/main.go
 
 dev.app.up:
-	docker-compose -f deployments/docker-compose.dev.yaml up --build
+	docker compose  -f deployments/docker-compose.dev.yaml up --build
 
 dev.app.down:
-	 docker-compose -f deployments/docker-compose.yaml down
+	docker compose -f deployments/docker-compose.dev.yaml down
 
 .PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 server composeappdown
 

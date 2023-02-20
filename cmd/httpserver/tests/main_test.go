@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 )
 
-var server *gin.Engine
+var server *httpserver.Server
 
 // TestMain calls testMain and passes the returned exit code to os.Exit(). The reason
 // that TestMain is basically a wrapper around testMain is because os.Exit() does not
@@ -36,15 +36,30 @@ func testMain(m *testing.M) int {
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot connect to db")
+		logger.Error().Err(err).Msg("cannot open database")
+		return 1
+	}
+
+	if err = conn.Ping(); err != nil {
+		logger.Error().Err(err).Msg("cannot connect to database")
 		return 1
 	}
 	defer conn.Close()
 
-	server, err = httpserver.Create(conn, logger, config)
+	gin.SetMode(gin.ReleaseMode)
+	server, err = httpserver.New(conn, logger, config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot start server")
 	}
 
 	return m.Run()
+}
+
+// DeleteUsers removes all seed data from the test database.
+func DeleteUsers(db *sql.DB) error {
+	if _, err := db.Exec("DELETE FROM users CASCADE;"); err != nil {
+		return err
+	}
+
+	return nil
 }

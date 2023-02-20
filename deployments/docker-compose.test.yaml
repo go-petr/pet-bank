@@ -7,7 +7,7 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=secret
+      - POSTGRES_PASSWORD=root
       - POSTGRES_DB=simple_bank
 
   api:
@@ -18,7 +18,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_SOURCE=postgresql://root:secret@postgres:5432/simple_bank?sslmode=disable
+      - DB_SOURCE=postgresql://root:root@postgres:5432/simple_bank?sslmode=disable
       # the tests in the project don’t use cgo and the alpine base image 
       # does not ship with a C compiler. Disabling cgo in this manner is necessary 
       # even if your project has no cgo code within it since Go will still attempt to 
@@ -35,4 +35,12 @@ services:
         "--",
         "/usr/app/scripts/start.sh"
       ]
-    command: [ "go", "test", "-tags=integration", "./..." ]
+    command:
+      [
+        "go",
+        "test",
+        # "-v",
+        "-count=5",
+        "-tags=integration",
+        "./..."
+      ]

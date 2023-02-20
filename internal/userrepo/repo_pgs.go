@@ -23,7 +23,7 @@ func NewRepoPGS(db *sql.DB) *RepoPGS {
 	}
 }
 
-const createQuery = `
+const CreateQuery = `
 INSERT INTO users (
     username,
     hashed_password,
@@ -38,7 +38,7 @@ INSERT INTO users (
 func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateUserParams) (domain.User, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createQuery,
+	row := r.db.QueryRowContext(ctx, CreateQuery,
 		arg.Username,
 		arg.HashedPassword,
 		arg.FullName,

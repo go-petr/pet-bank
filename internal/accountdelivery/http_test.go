@@ -210,7 +210,7 @@ func TestCreateAPI(t *testing.T) {
 			accountHandler := NewHandler(accountService)
 
 			url := "/accounts"
-			server := gin.Default()
+			server := gin.New()
 			server.Use(middleware.AuthMiddleware(tokenMaker))
 			server.POST(url, accountHandler.Create)
 
@@ -360,7 +360,7 @@ func TestGetAPI(t *testing.T) {
 			accountService := NewMockService(ctrl)
 			accountHandler := NewHandler(accountService)
 
-			server := gin.Default()
+			server := gin.New()
 			server.Use(middleware.AuthMiddleware(tokenMaker))
 			server.GET("/accounts/:id", accountHandler.Get)
 
@@ -512,7 +512,7 @@ func TestListAPI(t *testing.T) {
 
 			tc.buildStubs(accountService)
 
-			server := gin.Default()
+			server := gin.New()
 			server.Use(middleware.AuthMiddleware(tokenMaker))
 			server.GET("/accounts", accountHandler.List)
 

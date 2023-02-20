@@ -3,6 +3,7 @@ package userdelivery
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/web"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 )
 
@@ -67,8 +69,18 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
+		var (
+			ve     validator.ValidationErrors
+			errMsg string
+		)
+
+		if errors.As(err, &ve) {
+			field := ve[0]
+			errMsg = field.Field() + web.GetErrorMsg(field)
+		}
+
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
 
 		return
 	}

@@ -53,7 +53,7 @@ func randomUser(t *testing.T) (domain.User, string) {
 	return user, password
 }
 
-func TestCreateAPI(t *testing.T) {
+func TestCreate(t *testing.T) {
 	testUser, password := randomUser(t)
 
 	testCases := []struct {
@@ -290,7 +290,7 @@ func TestCreateAPI(t *testing.T) {
 			userService := NewMockService(ctrl)
 			userHandler := NewHandler(userService, sessionMaker)
 
-			server := gin.Default()
+			server := gin.New()
 			url := "/users"
 			server.POST(url, userHandler.Create)
 
@@ -319,7 +319,7 @@ func TestLoginAPI(t *testing.T) {
 	sessionMaker := NewMockSessionMaker(ctrl)
 	userService := NewMockService(ctrl)
 	userHandler := NewHandler(userService, sessionMaker)
-	server := gin.Default()
+	server := gin.New()
 	url := "/users/login"
 	server.POST(url, userHandler.Login)
 

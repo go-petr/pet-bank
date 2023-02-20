@@ -240,7 +240,8 @@ func TestCreateTranferAPI(t *testing.T) {
 			transferService := NewMockService(ctrl)
 			transferHandler := NewHandler(transferService)
 
-			server := gin.Default()
+			gin.SetMode(gin.ReleaseMode)
+			server := gin.New()
 			url := "/transfers"
 
 			server.Use(middleware.AuthMiddleware(tokenMaker))

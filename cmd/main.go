@@ -23,17 +23,21 @@ func main() {
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot connect to db")
+		logger.Fatal().Err(err).Msg("cannot open database")
 	}
 
-	server, err := httpserver.Create(conn, logger, config)
+	if err = conn.Ping(); err != nil {
+		logger.Fatal().Err(err).Msg("cannot connect to database")
+	}
+
+	server, err := httpserver.New(conn, logger, config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot create server")
 	}
 
 	logger.Info().Msg("BANK API SERVER HAS STARTED")
 
-	err = server.Run(config.ServerAddress)
+	err = server.Engine.Run(config.ServerAddress)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot start server")
 	}
