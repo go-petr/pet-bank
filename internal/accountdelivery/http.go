@@ -12,7 +12,8 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/pkg/web"
+
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
@@ -54,7 +55,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -65,14 +66,14 @@ func (h *Handler) Create(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrOwnerNotFound:
-			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+			gctx.JSON(http.StatusBadRequest, web.Error(err))
 			return
 		case domain.ErrCurrencyAlreadyExists:
-			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
+			gctx.JSON(http.StatusConflict, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -96,7 +97,7 @@ func (h *Handler) Get(gctx *gin.Context) {
 	var req getRequest
 	if err := gctx.ShouldBindUri(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -104,11 +105,11 @@ func (h *Handler) Get(gctx *gin.Context) {
 	acc, err := h.service.Get(ctx, req.ID)
 	if err != nil {
 		if err == domain.ErrAccountNotFound {
-			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
+			gctx.JSON(http.StatusNotFound, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -117,7 +118,7 @@ func (h *Handler) Get(gctx *gin.Context) {
 	if acc.Owner != authPayload.Username {
 		l.Warn().Err(err).Send()
 		err := errors.New("account doesn't belong to the authenticated user")
-		gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+		gctx.JSON(http.StatusUnauthorized, web.Error(err))
 
 		return
 	}
@@ -149,7 +150,7 @@ func (h *Handler) List(gctx *gin.Context) {
 	var req listRequest
 	if err := gctx.ShouldBindQuery(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -158,7 +159,7 @@ func (h *Handler) List(gctx *gin.Context) {
 
 	accounts, err := h.service.List(ctx, authPayload.Username, req.PageSize, req.PageID)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 		return
 	}
 

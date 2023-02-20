@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/rs/zerolog"
 )
 
@@ -68,7 +68,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -77,14 +77,14 @@ func (h *Handler) Create(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrUsernameAlreadyExists:
-			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
+			gctx.JSON(http.StatusConflict, web.Error(err))
 			return
 		case domain.ErrEmailALreadyExists:
-			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
+			gctx.JSON(http.StatusConflict, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -98,7 +98,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessionMaker.Create(ctx, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -127,7 +127,7 @@ func (h *Handler) Login(gctx *gin.Context) {
 	var req loginRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -136,14 +136,14 @@ func (h *Handler) Login(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrUserNotFound:
-			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
+			gctx.JSON(http.StatusNotFound, web.Error(err))
 			return
 		case domain.ErrWrongPassword:
-			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+			gctx.JSON(http.StatusUnauthorized, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -157,7 +157,7 @@ func (h *Handler) Login(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessionMaker.Create(ctx, arg)
 	if err != nil {
 		l.Warn().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}

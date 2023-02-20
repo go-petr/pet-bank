@@ -11,8 +11,8 @@ import (
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
+	"github.com/go-petr/pet-bank/pkg/web"
 )
 
 // Service provides service layer interface needed by transfer delivery layer.
@@ -56,7 +56,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 	var req request
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -76,7 +76,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 		switch err {
 		case
 			domain.ErrInvalidOwner:
-			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+			gctx.JSON(http.StatusUnauthorized, web.Error(err))
 
 			return
 		case
@@ -84,12 +84,12 @@ func (h *Handler) Create(gctx *gin.Context) {
 			domain.ErrNegativeAmount,
 			domain.ErrInsufficientBalance,
 			domain.ErrCurrencyMismatch:
-			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+			gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}

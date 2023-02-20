@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/rs/zerolog"
 )
 
@@ -47,14 +47,14 @@ func (h *Handler) RenewAccessToken(gctx *gin.Context) {
 	var req renewAccessTokenRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
 
 	accessToken, accessTokenExpiresAt, err := h.service.RenewAccessToken(ctx, req.RefreshToken)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(err))
+		gctx.JSON(http.StatusInternalServerError, web.Error(err))
 
 		return
 	}
