@@ -1,6 +1,6 @@
 //go:build integration
 
-package entryrepo
+package entryrepo_test
 
 import (
 	"context"
@@ -10,11 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/userrepo"
+	"github.com/go-petr/pet-bank/internal/entryrepo"
+	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -39,40 +38,6 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func SeedUser(t *testing.T, tx *sql.Tx) domain.User {
-	t.Helper()
-
-	arg := domain.CreateUserParams{
-		Username:       randompkg.Owner(),
-		HashedPassword: randompkg.String(32),
-		FullName:       randompkg.String(10),
-		Email:          randompkg.Email(),
-	}
-
-	userRepo := userrepo.NewRepoPGS(tx)
-	user, err := userRepo.Create(context.Background(), arg)
-	if err != nil {
-		t.Fatalf("userRepo.Create(context.Background(), %+v) returned error: %v", arg, err)
-	}
-
-	return user
-}
-
-func SeedAccountWith1000USDBalance(t *testing.T, tx *sql.Tx, username string) domain.Account {
-	t.Helper()
-
-	accountRepo := accountrepo.NewRepoPGS(tx)
-	const balance = "1000"
-
-	account, err := accountRepo.Create(context.Background(), username, balance, currencypkg.USD)
-	if err != nil {
-		stmt := `accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`
-		t.Fatalf(stmt, username, balance, currencypkg.USD, err)
-	}
-
-	return account
-}
-
 func TestCreate(t *testing.T) {
 	t.Parallel()
 
@@ -84,16 +49,16 @@ func TestCreate(t *testing.T) {
 		{
 			name: "OK",
 			wantEntry: func(tx *sql.Tx) domain.Entry {
-				user := SeedUser(t, tx)
-				account := SeedAccountWith1000USDBalance(t, tx, user.Username)
+				user := test.SeedUser(t, tx)
+				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
 				return domain.Entry{AccountID: account.ID, Amount: randompkg.MoneyAmountBetween(-100, 100)}
 			},
 		},
 		{
 			name: "NullAmount",
 			wantEntry: func(tx *sql.Tx) domain.Entry {
-				user := SeedUser(t, tx)
-				account := SeedAccountWith1000USDBalance(t, tx, user.Username)
+				user := test.SeedUser(t, tx)
+				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
 				return domain.Entry{AccountID: account.ID, Amount: ""}
 			},
 			wantErr: errorspkg.ErrInternal,
@@ -116,7 +81,7 @@ func TestCreate(t *testing.T) {
 			// Prepare test transaction and seed database
 			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
 			want := tc.wantEntry(tx)
-			entryRepo := NewRepoPGS(tx)
+			entryRepo := entryrepo.NewRepoPGS(tx)
 
 			// Run test
 			got, err := entryRepo.Create(context.Background(), want.Amount, want.AccountID)
@@ -146,32 +111,6 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func SeedEntry(t *testing.T, tx *sql.Tx, amount string, accountID int32) domain.Entry {
-	t.Helper()
-
-	entryRepo := NewRepoPGS(tx)
-
-	entry, err := entryRepo.Create(context.Background(), amount, accountID)
-	if err != nil {
-		t.Fatalf("entryRepo.Create(context.Background(), %v, %v) returned error: %v",
-			amount, accountID, err)
-	}
-
-	return entry
-}
-
-func SeedEntries(t *testing.T, tx *sql.Tx, count, accountID int32) []domain.Entry {
-	t.Helper()
-
-	entries := make([]domain.Entry, count)
-
-	for i := range entries {
-		entries[i] = SeedEntry(t, tx, randompkg.MoneyAmountBetween(-1000, 1000), accountID)
-	}
-
-	return entries
-}
-
 func TestGet(t *testing.T) {
 	t.Parallel()
 
@@ -183,9 +122,9 @@ func TestGet(t *testing.T) {
 		{
 			name: "OK",
 			wantEntry: func(tx *sql.Tx) domain.Entry {
-				user := SeedUser(t, tx)
-				account := SeedAccountWith1000USDBalance(t, tx, user.Username)
-				wantEntry := SeedEntry(t, tx, randompkg.MoneyAmountBetween(-10, 10), account.ID)
+				user := test.SeedUser(t, tx)
+				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				wantEntry := test.SeedEntry(t, tx, randompkg.MoneyAmountBetween(-10, 10), account.ID)
 
 				return wantEntry
 			},
@@ -208,7 +147,7 @@ func TestGet(t *testing.T) {
 			// Prepare test transaction and seed database
 			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
 			want := tc.wantEntry(tx)
-			entryRepo := NewRepoPGS(tx)
+			entryRepo := entryrepo.NewRepoPGS(tx)
 
 			// Run test
 			got, err := entryRepo.Get(context.Background(), want.ID)
@@ -256,9 +195,9 @@ func TestList(t *testing.T) {
 			limit:  100,
 			offset: 0,
 			wantAccountIDAndEntries: func(tx *sql.Tx) (int32, []domain.Entry) {
-				user := SeedUser(t, tx)
-				account := SeedAccountWith1000USDBalance(t, tx, user.Username)
-				entries := SeedEntries(t, tx, entriesCount, account.ID)
+				user := test.SeedUser(t, tx)
+				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				entries := test.SeedEntries(t, tx, entriesCount, account.ID)
 
 				return account.ID, entries
 			},
@@ -268,9 +207,9 @@ func TestList(t *testing.T) {
 			limit:  10,
 			offset: 0,
 			wantAccountIDAndEntries: func(tx *sql.Tx) (int32, []domain.Entry) {
-				user := SeedUser(t, tx)
-				account := SeedAccountWith1000USDBalance(t, tx, user.Username)
-				entries := SeedEntries(t, tx, entriesCount, account.ID)
+				user := test.SeedUser(t, tx)
+				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				entries := test.SeedEntries(t, tx, entriesCount, account.ID)
 
 				return account.ID, entries[:10]
 			},
@@ -280,9 +219,9 @@ func TestList(t *testing.T) {
 			limit:  10,
 			offset: 10,
 			wantAccountIDAndEntries: func(tx *sql.Tx) (int32, []domain.Entry) {
-				user := SeedUser(t, tx)
-				account := SeedAccountWith1000USDBalance(t, tx, user.Username)
-				entries := SeedEntries(t, tx, entriesCount, account.ID)
+				user := test.SeedUser(t, tx)
+				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				entries := test.SeedEntries(t, tx, entriesCount, account.ID)
 
 				return account.ID, entries[10:20]
 			},
@@ -315,7 +254,7 @@ func TestList(t *testing.T) {
 			// Prepare test transaction and seed database
 			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
 			wantAccountID, wantEntries := tc.wantAccountIDAndEntries(tx)
-			entryRepo := NewRepoPGS(tx)
+			entryRepo := entryrepo.NewRepoPGS(tx)
 
 			// Run test
 			entries, err := entryRepo.List(context.Background(), wantAccountID, tc.limit, tc.offset)

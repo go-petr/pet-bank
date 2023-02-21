@@ -1,6 +1,6 @@
 //go:build integration
 
-package userrepo
+package userrepo_test
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/test"
+	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -66,7 +68,7 @@ func TestCreate(t *testing.T) {
 					Email:          randompkg.Email(),
 				}
 
-				userRepo := NewRepoPGS(tx)
+				userRepo := userrepo.NewRepoPGS(tx)
 				_, err := userRepo.Create(context.Background(), arg)
 				if err != nil {
 					t.Fatalf(`userRepo.Create(context.Background(), %v) returned error: %v`,
@@ -89,7 +91,7 @@ func TestCreate(t *testing.T) {
 					Email:          randompkg.Email(),
 				}
 
-				userRepo := NewRepoPGS(tx)
+				userRepo := userrepo.NewRepoPGS(tx)
 				_, err := userRepo.Create(context.Background(), arg)
 				if err != nil {
 					t.Fatalf(`userRepo.Create(context.Background(), %v) returned error: %v`,
@@ -112,7 +114,7 @@ func TestCreate(t *testing.T) {
 
 			// Prepare test transaction
 			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
-			userRepo := NewRepoPGS(tx)
+			userRepo := userrepo.NewRepoPGS(tx)
 
 			// Run test
 			arg := tc.arg(tx)
@@ -148,25 +150,6 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func SeedUser(t *testing.T, tx *sql.Tx) domain.User {
-	t.Helper()
-
-	arg := domain.CreateUserParams{
-		Username:       randompkg.Owner(),
-		HashedPassword: randompkg.String(32),
-		FullName:       randompkg.String(10),
-		Email:          randompkg.Email(),
-	}
-
-	userRepo := NewRepoPGS(tx)
-	user, err := userRepo.Create(context.Background(), arg)
-	if err != nil {
-		t.Fatalf("userRepo.Create(context.Background(), %+v) returned error: %v", arg, err)
-	}
-
-	return user
-}
-
 func TestGet(t *testing.T) {
 	t.Parallel()
 
@@ -178,7 +161,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "OK",
 			want: func(tx *sql.Tx) domain.User {
-				return SeedUser(t, tx)
+				return test.SeedUser(t, tx)
 			},
 		},
 		{
@@ -199,7 +182,7 @@ func TestGet(t *testing.T) {
 			// Prepare test transaction and seed database
 			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
 			want := tc.want(tx)
-			userRepo := NewRepoPGS(tx)
+			userRepo := userrepo.NewRepoPGS(tx)
 
 			// Run test
 			got, err := userRepo.Get(context.Background(), want.Username)
