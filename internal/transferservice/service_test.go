@@ -26,7 +26,6 @@ func randomAccount(id int32, balance, currency string) domain.Account {
 }
 
 func TestTransfer(t *testing.T) {
-
 	testAccount1 := randomAccount(1, "1000", currencypkg.USD)
 	testAccount2 := randomAccount(2, "1000", currencypkg.USD)
 	testAccount3 := randomAccount(1, "1000", currencypkg.EUR)

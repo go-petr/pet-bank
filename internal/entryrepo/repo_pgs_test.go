@@ -43,10 +43,10 @@ func SeedUser(t *testing.T, tx *sql.Tx) domain.User {
 	t.Helper()
 
 	arg := domain.CreateUserParams{
-		Username:       "Username",
-		HashedPassword: "HashedPassword",
-		FullName:       "FullName",
-		Email:          "Email@Email.com",
+		Username:       randompkg.Owner(),
+		HashedPassword: randompkg.String(32),
+		FullName:       randompkg.String(10),
+		Email:          randompkg.Email(),
 	}
 
 	userRepo := userrepo.NewRepoPGS(tx)
