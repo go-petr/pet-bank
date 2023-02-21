@@ -29,6 +29,9 @@ test.unit:
 test.api:
 	go test -v -count 1 -tags=integration ./cmd/httpserver/tests 
 
+test.repo:
+	go test -v -count 1 -tags=integration ./internal/entryrepo
+
 server:
 	go run cmd/main.go
 

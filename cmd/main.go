@@ -2,13 +2,12 @@
 package main
 
 import (
-	"database/sql"
-
 	"github.com/rs/zerolog/log"
 
 	"github.com/go-petr/pet-bank/cmd/httpserver"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 
 	_ "github.com/lib/pq"
 )
@@ -21,16 +20,12 @@ func main() {
 
 	logger := middleware.CreateLogger(config)
 
-	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	db, err := dbpkg.Setup(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot open database")
-	}
-
-	if err = conn.Ping(); err != nil {
 		logger.Fatal().Err(err).Msg("cannot connect to database")
 	}
 
-	server, err := httpserver.New(conn, logger, config)
+	server, err := httpserver.New(db, logger, config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot create server")
 	}

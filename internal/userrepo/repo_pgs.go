@@ -6,6 +6,7 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -13,16 +14,17 @@ import (
 
 // RepoPGS facilitates user repository layer logic.
 type RepoPGS struct {
-	db *sql.DB
+	db dbpkg.SQLInterface
 }
 
 // NewRepoPGS returns account RepoPGS.
-func NewRepoPGS(db *sql.DB) *RepoPGS {
+func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	return &RepoPGS{
 		db: db,
 	}
 }
 
+// CreateQuery inserts into users table.
 const CreateQuery = `
 INSERT INTO users (
     username,
