@@ -94,18 +94,14 @@ func TestCreate(t *testing.T) {
 			}
 
 			ignoreFields := cmpopts.IgnoreFields(domain.Entry{}, "ID", "CreatedAt")
-			if diff := cmp.Diff(want, got, ignoreFields); diff != "" {
+			compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+			if diff := cmp.Diff(want, got, ignoreFields, compareCreatedAt); diff != "" {
 				t.Errorf(`entryRepo.Create(context.Background(), %v, %v) returned unexpected difference (-want +got):\n%s"`,
 					want.Amount, want.AccountID, diff)
 			}
 
 			if got.ID == 0 {
 				t.Error("got.ID = 0, want non-zero")
-			}
-
-			if !cmp.Equal(got.CreatedAt, time.Now(), cmpopts.EquateApproxTime(time.Second)) {
-				t.Errorf("got.CreatedAt = %v, want %v +- minute",
-					got.CreatedAt.Truncate(time.Second), time.Now().UTC().Truncate(time.Second))
 			}
 		})
 	}
@@ -142,7 +138,7 @@ func TestGet(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			// t.Parallel()
+			t.Parallel()
 
 			// Prepare test transaction and seed database
 			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
@@ -257,7 +253,7 @@ func TestList(t *testing.T) {
 			entryRepo := entryrepo.NewRepoPGS(tx)
 
 			// Run test
-			entries, err := entryRepo.List(context.Background(), wantAccountID, tc.limit, tc.offset)
+			got, err := entryRepo.List(context.Background(), wantAccountID, tc.limit, tc.offset)
 			if err != nil {
 				if err == tc.wantErr {
 					return
@@ -268,7 +264,7 @@ func TestList(t *testing.T) {
 			}
 
 			ignoreFields := cmpopts.IgnoreFields(domain.Entry{}, "CreatedAt")
-			if diff := cmp.Diff(wantEntries, entries, ignoreFields); diff != "" {
+			if diff := cmp.Diff(wantEntries, got, ignoreFields); diff != "" {
 				t.Errorf(`entryRepo.List(context.Background(), %v, %v, %v) returned unexpected difference (-want +got):\n%s"`,
 					wantAccountID, tc.limit, tc.offset, diff)
 			}

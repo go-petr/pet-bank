@@ -8,12 +8,20 @@ const (
 	RMB = "RMB"
 )
 
+// SupportedCurrencies holds all the supported currencies.
+var SupportedCurrencies = []string{
+	USD,
+	EUR,
+	RMB,
+}
+
 // IsSupportedCurrency returns true if the currncy is supported.
 func IsSupportedCurrency(currency string) bool {
-	switch currency {
-	case USD, EUR, RMB:
-		return true
-	default:
-		return false
+	for _, c := range SupportedCurrencies {
+		if c == currency {
+			return true
+		}
 	}
+
+	return false
 }

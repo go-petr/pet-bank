@@ -51,6 +51,10 @@ func (r *RepoPGS) AddBalance(ctx context.Context, amount string, id int32) (doma
 	if err != nil {
 		l.Error().Err(err).Send()
 
+		if err == sql.ErrNoRows {
+			return a, domain.ErrAccountNotFound
+		}
+
 		return a, errorspkg.ErrInternal
 	}
 
@@ -111,7 +115,9 @@ func (r *RepoPGS) Delete(ctx context.Context, id int32) error {
 }
 
 const getQuery = `
-SELECT id, owner, balance, currency, created_at FROM accounts
+SELECT 
+	id, owner, balance, currency, created_at 
+FROM accounts
 WHERE id = $1
 `
 
@@ -145,7 +151,9 @@ func (r *RepoPGS) Get(ctx context.Context, id int32) (domain.Account, error) {
 }
 
 const listAccounts = `
-SELECT id, owner, balance, currency, created_at FROM accounts
+SELECT 
+	id, owner, balance, currency, created_at 
+FROM accounts
 WHERE owner = $1
 ORDER BY id
 LIMIT $2 OFFSET $3
@@ -157,7 +165,8 @@ func (r *RepoPGS) List(ctx context.Context, owner string, limit, offset int32) (
 
 	rows, err := r.db.QueryContext(ctx, listAccounts, owner, limit, offset)
 	if err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return nil, errorspkg.ErrInternal
 	}
 	defer rows.Close()
 
@@ -165,14 +174,9 @@ func (r *RepoPGS) List(ctx context.Context, owner string, limit, offset int32) (
 
 	for rows.Next() {
 		var a domain.Account
-		if err := rows.Scan(
-			&a.ID,
-			&a.Owner,
-			&a.Balance,
-			&a.Currency,
-			&a.CreatedAt,
-		); err != nil {
-			return nil, err
+		if err := rows.Scan(&a.ID, &a.Owner, &a.Balance, &a.Currency, &a.CreatedAt); err != nil {
+			l.Error().Err(err).Send()
+			return nil, errorspkg.ErrInternal
 		}
 
 		items = append(items, a)

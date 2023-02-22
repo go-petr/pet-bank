@@ -85,3 +85,33 @@ func SeedAccountWith1000USDBalance(t *testing.T, tx *sql.Tx, username string) do
 
 	return account
 }
+
+// SeedAccountWith1000Balance creates Account with 1000 on balance inside a test transaction.
+func SeedAccountWith1000Balance(t *testing.T, tx *sql.Tx, username, currency string) domain.Account {
+	t.Helper()
+
+	accountRepo := accountrepo.NewRepoPGS(tx)
+
+	const balance = "1000"
+
+	account, err := accountRepo.Create(context.Background(), username, balance, currency)
+	if err != nil {
+		stmt := `accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`
+		t.Fatalf(stmt, username, balance, currencypkg.USD, err)
+	}
+
+	return account
+}
+
+// SeedAllCurrenciesAccountsWith1000Balance creates all currencies accounts wiht 1000 on balance.
+func SeedAllCurrenciesAccountsWith1000Balance(t *testing.T, tx *sql.Tx, username string) []domain.Account {
+	t.Helper()
+
+	accounts := make([]domain.Account, len(currencypkg.SupportedCurrencies))
+
+	for i, c := range currencypkg.SupportedCurrencies {
+		accounts[i] = SeedAccountWith1000Balance(t, tx, username, c)
+	}
+
+	return accounts
+}
