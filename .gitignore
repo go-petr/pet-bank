@@ -18,4 +18,9 @@
 tmp/
 **/.DS_Store
 
+# Output of the go tool
+*.out
 cover.html
+
+# Go workspace file
+go.work

@@ -11,6 +11,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/entryrepo"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/currencypkg"
+	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 )
 
@@ -18,9 +19,14 @@ import (
 func SeedUser(t *testing.T, tx *sql.Tx) domain.User {
 	t.Helper()
 
+	hashedPassword, err := passpkg.Hash(randompkg.String(32))
+	if err != nil {
+		t.Fatalf("passpkg.Hash(randompkg.String(10)) returned error: %v", err)
+	}
+
 	arg := domain.CreateUserParams{
 		Username:       randompkg.Owner(),
-		HashedPassword: randompkg.String(32),
+		HashedPassword: hashedPassword,
 		FullName:       randompkg.String(10),
 		Email:          randompkg.Email(),
 	}
