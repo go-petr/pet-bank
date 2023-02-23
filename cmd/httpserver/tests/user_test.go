@@ -4,8 +4,6 @@ package tests
 
 import (
 	"bytes"
-	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,50 +12,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/userrepo"
+	"github.com/go-petr/pet-bank/internal/test"
+	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func SeedUser(db *sql.DB) (domain.User, error) {
-
-	row := db.QueryRowContext(context.Background(), userrepo.CreateQuery,
-		"SeedUser",
-		"arg.HashedPassword",
-		"SeedUser.FullName",
-		"SeedUser@Email.com",
-	)
-
-	var u domain.User
-
-	err := row.Scan(
-		&u.Username,
-		&u.HashedPassword,
-		&u.FullName,
-		&u.Email,
-		&u.PasswordChangedAt,
-		&u.CreatedAt,
-	)
-
-	if err != nil {
-		return u, err
-	}
-
-	return u, nil
-}
-
 func TestCreateUserAPI(t *testing.T) {
 	defer func() {
-		if err := DeleteUsers(server.DB); err != nil {
-			t.Errorf("Clearing database error: %v", err)
-		}
+		integrationtest.Flush(t, server.DB)
 	}()
 
-	seededUser, err := SeedUser(server.DB)
-	if err != nil {
-		t.Fatalf("error seeding users: %v", err)
-	}
+	user := test.SeedUser(t, server.DB)
 
 	var (
 		username = "firstuser"
@@ -82,7 +49,6 @@ func TestCreateUserAPI(t *testing.T) {
 				"email":    email,
 			},
 			wantStatusCode: http.StatusOK,
-			wantError:      "",
 			checkData: func(reqBody gin.H, resp web.Response) {
 				if resp.AccessToken == "" {
 					t.Error(`resp.AccessToken="", want not empty`)
@@ -107,21 +73,16 @@ func TestCreateUserAPI(t *testing.T) {
 					t.Errorf(`resp.Data=%v, failed type conversion`, resp.Data)
 				}
 
-				wantData := domain.UserWihtoutPassword{
-					Username: reqBody["username"].(string),
-					FullName: reqBody["fullname"].(string),
-					Email:    reqBody["email"].(string),
+				want := domain.UserWihtoutPassword{
+					Username:  reqBody["username"].(string),
+					FullName:  reqBody["fullname"].(string),
+					Email:     reqBody["email"].(string),
+					CreatedAt: time.Now().Truncate(time.Second),
 				}
 
-				ignoreCreatedAt := cmpopts.IgnoreFields(domain.UserWihtoutPassword{}, "CreatedAt")
-				if diff := cmp.Diff(wantData, gotData.User, ignoreCreatedAt); diff != "" {
+				compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+				if diff := cmp.Diff(want, gotData.User, compareCreatedAt); diff != "" {
 					t.Errorf("resp.Data mismatch (-want +got):\n%s", diff)
-				}
-
-				delta := cmpopts.EquateApproxTime(time.Minute)
-				currentTime := time.Now()
-				if !cmp.Equal(gotData.User.CreatedAt, currentTime, delta) {
-					t.Errorf("gotData.User.CreatedAt=%v, want %v +- minute", gotData.User.CreatedAt, currentTime)
 				}
 			},
 		},
@@ -172,10 +133,10 @@ func TestCreateUserAPI(t *testing.T) {
 		{
 			name: "UniqueViolationUsername",
 			requestBody: gin.H{
-				"username": seededUser.Username,
-				"password": seededUser.HashedPassword,
-				"fullname": seededUser.FullName,
-				"email":    seededUser.Email,
+				"username": user.Username,
+				"password": user.HashedPassword,
+				"fullname": user.FullName,
+				"email":    user.Email,
 			},
 			wantStatusCode: http.StatusConflict,
 			wantError:      domain.ErrUsernameAlreadyExists.Error(),
@@ -186,7 +147,7 @@ func TestCreateUserAPI(t *testing.T) {
 				"username": username + "2",
 				"password": password,
 				"fullname": fullname + "2",
-				"email":    seededUser.Email,
+				"email":    user.Email,
 			},
 			wantStatusCode: http.StatusConflict,
 			wantError:      domain.ErrEmailALreadyExists.Error(),

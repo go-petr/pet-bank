@@ -3,7 +3,6 @@
 package tests
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/go-petr/pet-bank/cmd/httpserver"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 )
 
 var server *httpserver.Server
@@ -34,17 +34,10 @@ func testMain(m *testing.M) int {
 
 	logger := middleware.CreateLogger(config)
 
-	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	conn, err := dbpkg.Setup(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot open database")
-		return 1
+		logger.Fatal().Err(err).Msg("cannot setup database")
 	}
-
-	if err = conn.Ping(); err != nil {
-		logger.Error().Err(err).Msg("cannot connect to database")
-		return 1
-	}
-	defer conn.Close()
 
 	gin.SetMode(gin.ReleaseMode)
 	server, err = httpserver.New(conn, logger, config)
@@ -53,13 +46,4 @@ func testMain(m *testing.M) int {
 	}
 
 	return m.Run()
-}
-
-// DeleteUsers removes all seed data from the test database.
-func DeleteUsers(db *sql.DB) error {
-	if _, err := db.Exec("DELETE FROM users CASCADE;"); err != nil {
-		return err
-	}
-
-	return nil
 }
