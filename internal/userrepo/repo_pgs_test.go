@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg"
+	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -113,7 +113,7 @@ func TestCreate(t *testing.T) {
 			t.Parallel()
 
 			// Prepare test transaction
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			userRepo := userrepo.NewRepoPGS(tx)
 
 			// Run test
@@ -180,7 +180,7 @@ func TestGet(t *testing.T) {
 			// t.Parallel()
 
 			// Prepare test transaction and seed database
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			want := tc.want(tx)
 			userRepo := userrepo.NewRepoPGS(tx)
 

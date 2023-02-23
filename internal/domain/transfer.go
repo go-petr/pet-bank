@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	// ErrTransferNotFound indicates that the transfer is not found.
+	ErrTransferNotFound = errors.New("transfer not found")
 	// ErrCurrencyMismatch indicates that transfer accounts have different currencies.
 	ErrCurrencyMismatch = errors.New("accounts currency mismatch")
 	// ErrInvalidAmount indicates invalid amount.

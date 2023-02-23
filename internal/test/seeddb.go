@@ -3,7 +3,6 @@ package test
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/go-petr/pet-bank/internal/accountrepo"
@@ -11,12 +10,13 @@ import (
 	"github.com/go-petr/pet-bank/internal/entryrepo"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/currencypkg"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 )
 
 // SeedUser creates random User inside a test transaction.
-func SeedUser(t *testing.T, tx *sql.Tx) domain.User {
+func SeedUser(t *testing.T, tx dbpkg.SQLInterface) domain.User {
 	t.Helper()
 
 	hashedPassword, err := passpkg.Hash(randompkg.String(32))
@@ -42,7 +42,7 @@ func SeedUser(t *testing.T, tx *sql.Tx) domain.User {
 }
 
 // SeedEntry creates Entry inside a test transaction.
-func SeedEntry(t *testing.T, tx *sql.Tx, amount string, accountID int32) domain.Entry {
+func SeedEntry(t *testing.T, tx dbpkg.SQLInterface, amount string, accountID int32) domain.Entry {
 	t.Helper()
 
 	entryRepo := entryrepo.NewRepoPGS(tx)
@@ -57,7 +57,7 @@ func SeedEntry(t *testing.T, tx *sql.Tx, amount string, accountID int32) domain.
 }
 
 // SeedEntries creates Entries with random amounts inside a test transaction.
-func SeedEntries(t *testing.T, tx *sql.Tx, count, accountID int32) []domain.Entry {
+func SeedEntries(t *testing.T, tx dbpkg.SQLInterface, count, accountID int32) []domain.Entry {
 	t.Helper()
 
 	entries := make([]domain.Entry, count)
@@ -70,7 +70,7 @@ func SeedEntries(t *testing.T, tx *sql.Tx, count, accountID int32) []domain.Entr
 }
 
 // SeedAccountWith1000USDBalance creates USD Account with 1000 USD on balance inside a test transaction.
-func SeedAccountWith1000USDBalance(t *testing.T, tx *sql.Tx, username string) domain.Account {
+func SeedAccountWith1000USDBalance(t *testing.T, tx dbpkg.SQLInterface, username string) domain.Account {
 	t.Helper()
 
 	accountRepo := accountrepo.NewRepoPGS(tx)
@@ -87,7 +87,7 @@ func SeedAccountWith1000USDBalance(t *testing.T, tx *sql.Tx, username string) do
 }
 
 // SeedAccountWith1000Balance creates Account with 1000 on balance inside a test transaction.
-func SeedAccountWith1000Balance(t *testing.T, tx *sql.Tx, username, currency string) domain.Account {
+func SeedAccountWith1000Balance(t *testing.T, tx dbpkg.SQLInterface, username, currency string) domain.Account {
 	t.Helper()
 
 	accountRepo := accountrepo.NewRepoPGS(tx)
@@ -104,7 +104,7 @@ func SeedAccountWith1000Balance(t *testing.T, tx *sql.Tx, username, currency str
 }
 
 // SeedAllCurrenciesAccountsWith1000Balance creates all currencies accounts wiht 1000 on balance.
-func SeedAllCurrenciesAccountsWith1000Balance(t *testing.T, tx *sql.Tx, username string) []domain.Account {
+func SeedAllCurrenciesAccountsWith1000Balance(t *testing.T, tx dbpkg.SQLInterface, username string) []domain.Account {
 	t.Helper()
 
 	accounts := make([]domain.Account, len(currencypkg.SupportedCurrencies))

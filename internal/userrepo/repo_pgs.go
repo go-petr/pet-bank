@@ -72,7 +72,7 @@ func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateUserParams) (doma
 			}
 		}
 
-		return u, errorspkg.ErrInternal
+		return u, err
 	}
 
 	return u, nil

@@ -30,7 +30,7 @@ func Float64() float64 {
 
 // IntBetween generates a random integer between min and max.
 func IntBetween(min, max int) int32 {
-	return int32(Intn(max+min)) - int32(min)
+	return int32(min) + int32(Intn(max-min))
 }
 
 // FloatBetween generates a random decimal number between min and max rounded to 4 decimals.

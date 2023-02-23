@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg"
+	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
@@ -62,7 +62,6 @@ func SeedSession(t *testing.T, tx *sql.Tx, username string) domain.Session {
 }
 
 func TestCreate(t *testing.T) {
-	t.Parallel()
 
 	testCases := []struct {
 		name        string
@@ -124,7 +123,7 @@ func TestCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 
 			want := tc.wantSession(tx)
 
@@ -156,7 +155,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGetSession(t *testing.T) {
-	t.Parallel()
 
 	testCases := []struct {
 		name        string
@@ -186,7 +184,7 @@ func TestGetSession(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			want := tc.wantSession(tx)
 			sessionRepo := NewRepoPGS(tx)
 

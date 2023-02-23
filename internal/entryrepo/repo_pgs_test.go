@@ -14,7 +14,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/entryrepo"
 	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg"
+	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
@@ -39,7 +39,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-	t.Parallel()
 
 	testCases := []struct {
 		name      string
@@ -79,7 +78,7 @@ func TestCreate(t *testing.T) {
 			t.Parallel()
 
 			// Prepare test transaction and seed database
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			want := tc.wantEntry(tx)
 			entryRepo := entryrepo.NewRepoPGS(tx)
 
@@ -108,7 +107,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	t.Parallel()
 
 	testCases := []struct {
 		name      string
@@ -141,7 +139,7 @@ func TestGet(t *testing.T) {
 			t.Parallel()
 
 			// Prepare test transaction and seed database
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			want := tc.wantEntry(tx)
 			entryRepo := entryrepo.NewRepoPGS(tx)
 
@@ -176,7 +174,6 @@ func TestGet(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	t.Parallel()
 	const entriesCount = 30
 
 	testCases := []struct {
@@ -248,7 +245,7 @@ func TestList(t *testing.T) {
 			t.Parallel()
 
 			// Prepare test transaction and seed database
-			tx := dbpkg.SetupTX(t, dbDriver, dbSource)
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			wantAccountID, wantEntries := tc.wantAccountIDAndEntries(tx)
 			entryRepo := entryrepo.NewRepoPGS(tx)
 

@@ -8,19 +8,30 @@ import (
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entryrepo"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
 // RepoPGS facilitates transfer repository layer logic.
 type RepoPGS struct {
-	db *sql.DB
+	db   dbpkg.SQLInterface
+	conn *sql.DB
 }
 
-// NewRepoPGS returns account RepoPGS.
-func NewRepoPGS(db *sql.DB) *RepoPGS {
+// NewTxRepoPGS returns account RepoPGS.
+func NewTxRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	return &RepoPGS{
 		db: db,
+	}
+}
+
+// NewRepoPGS returns account RepoPGS wiht connection to start transactions.
+func NewRepoPGS(db *sql.DB) *RepoPGS {
+	return &RepoPGS{
+		db:   db,
+		conn: db,
 	}
 }
 
@@ -48,7 +59,19 @@ func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateTransferParams) (
 	)
 
 	if err != nil {
-		l.Error().Err(err).Send()
+		l.Error().Err(err).Msgf("Create(ctx context.Context, %+v)", arg)
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Constraint {
+			case "transfers_from_account_id_fkey":
+				return t, domain.ErrAccountNotFound
+			case "transfers_to_account_id_fkey":
+				return t, domain.ErrAccountNotFound
+			case "transfers_amount_check":
+				return t, domain.ErrInvalidAmount
+			}
+		}
+
 		return t, errorspkg.ErrInternal
 	}
 
@@ -57,7 +80,8 @@ func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateTransferParams) (
 
 const getQuery = `
 SELECT 
-	id, from_account_id, to_account_id, amount, created_at FROM transfers
+	id, from_account_id, to_account_id, amount, created_at 
+FROM transfers
 WHERE id = $1
 `
 
@@ -79,6 +103,11 @@ func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Transfer, error) {
 
 	if err != nil {
 		l.Error().Err(err).Send()
+
+		if err == sql.ErrNoRows {
+			return t, domain.ErrTransferNotFound
+		}
+
 		return t, errorspkg.ErrInternal
 	}
 
@@ -86,15 +115,16 @@ func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Transfer, error) {
 }
 
 const listTransfers = `
-SELECT id, from_account_id, to_account_id, amount, created_at FROM transfers
+SELECT 
+	id, from_account_id, to_account_id, amount, created_at 
+FROM transfers
 WHERE 
-    from_account_id = $1 OR
-    to_account_id = $2
+    from_account_id = $1 OR to_account_id = $2
 ORDER BY id
 LIMIT $3 OFFSET $4
 `
 
-// List returns the transfers with the given params.
+// List returns the transfers betweem the specified accounts.
 func (r *RepoPGS) List(ctx context.Context, arg domain.ListTransfersParams) ([]domain.Transfer, error) {
 	l := zerolog.Ctx(ctx)
 
@@ -105,7 +135,8 @@ func (r *RepoPGS) List(ctx context.Context, arg domain.ListTransfersParams) ([]d
 		arg.Offset,
 	)
 	if err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return nil, errorspkg.ErrInternal
 	}
 	defer rows.Close()
 
@@ -146,11 +177,9 @@ func (r *RepoPGS) List(ctx context.Context, arg domain.ListTransfersParams) ([]d
 func (r *RepoPGS) Transfer(ctx context.Context, arg domain.CreateTransferParams) (domain.TransferTxResult, error) {
 	l := zerolog.Ctx(ctx)
 
-	var (
-		result domain.TransferTxResult
-	)
+	var result domain.TransferTxResult
 
-	tx, err := r.db.BeginTx(ctx, nil)
+	tx, err := r.conn.BeginTx(ctx, nil)
 	if err != nil {
 		l.Error().Err(err).Send()
 		return result, errorspkg.ErrInternal
