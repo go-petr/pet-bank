@@ -44,17 +44,6 @@ func NewHandler(us Service, sm SessionMaker) *Handler {
 	}
 }
 
-type data struct {
-	User domain.UserWihtoutPassword `json:"user,omitempty"`
-}
-type response struct {
-	AccessToken           string    `json:"access_token"`
-	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
-	RefreshToken          string    `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
-	Data                  data      `json:"data,omitempty"`
-}
-
 type createRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -115,12 +104,16 @@ func (h *Handler) Create(gctx *gin.Context) {
 		return
 	}
 
-	res := response{
+	res := web.Response{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
-		Data:                  data{User: createdUser},
+		Data: struct {
+			User domain.UserWihtoutPassword `json:"user,omitempty"`
+		}{
+			User: createdUser,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
@@ -184,12 +177,16 @@ func (h *Handler) Login(gctx *gin.Context) {
 		return
 	}
 
-	res := response{
+	res := web.Response{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
-		Data:                  data{User: userWihtoutPassword},
+		Data: struct {
+			User domain.UserWihtoutPassword `json:"user,omitempty"`
+		}{
+			User: userWihtoutPassword,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)

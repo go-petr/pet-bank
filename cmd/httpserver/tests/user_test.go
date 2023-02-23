@@ -54,14 +54,14 @@ func TestCreateUserAPI(t *testing.T) {
 				if resp.AccessToken == "" {
 					t.Error(`resp.AccessToken="", want not empty`)
 				}
-				if resp.AccessTokenExpiresAt == "" {
-					t.Error(`resp.AccessTokenExpiresAt="", want not empty`)
+				if resp.AccessTokenExpiresAt.IsZero() {
+					t.Error(`resp.AccessTokenExpiresAt is zero, want non zero`)
 				}
 				if resp.RefreshToken == "" {
 					t.Error(`resp.RefreshToken="", want not empty`)
 				}
-				if resp.RefreshTokenExpiresAt == "" {
-					t.Error(`resp.RefreshTokenExpiresAt="", want not empty`)
+				if resp.RefreshTokenExpiresAt.IsZero() {
+					t.Error(`resp.RefreshTokenExpiresAt is zero, want non zero`)
 				}
 				if resp.Error != "" {
 					t.Errorf(`resp.Error=%q, want ""`, resp.Error)
@@ -226,14 +226,14 @@ func TestLoginUserAPI(t *testing.T) {
 				if resp.AccessToken == "" {
 					t.Error(`resp.AccessToken="", want not empty`)
 				}
-				if resp.AccessTokenExpiresAt == "" {
-					t.Error(`resp.AccessTokenExpiresAt="", want not empty`)
+				if resp.AccessTokenExpiresAt.IsZero() {
+					t.Error(`resp.AccessTokenExpiresAt is zero, want non zero`)
 				}
 				if resp.RefreshToken == "" {
 					t.Error(`resp.RefreshToken="", want not empty`)
 				}
-				if resp.RefreshTokenExpiresAt == "" {
-					t.Error(`resp.RefreshTokenExpiresAt="", want not empty`)
+				if resp.RefreshTokenExpiresAt.IsZero() {
+					t.Error(`resp.RefreshTokenExpiresAt is zero, want non zero`)
 				}
 				if resp.Error != "" {
 					t.Errorf(`resp.Error=%q, want ""`, resp.Error)

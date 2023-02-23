@@ -1,7 +1,11 @@
 // Package web defines common components for a web application.
 package web
 
-import "github.com/go-playground/validator/v10"
+import (
+	"time"
+
+	"github.com/go-playground/validator/v10"
+)
 
 // Error wraps a given err into json frinedly struct.
 func Error(err error) Response {
@@ -10,12 +14,12 @@ func Error(err error) Response {
 
 // Response holds the common response type for all APIs.
 type Response struct {
-	AccessToken           string `json:"access_token,omitempty"`
-	AccessTokenExpiresAt  string `json:"access_token_expires_at,omitempty"`
-	RefreshToken          string `json:"refresh_token,omitempty"`
-	RefreshTokenExpiresAt string `json:"refresh_token_expires_at,omitempty"`
-	Data                  any    `json:"data,omitempty"`
-	Error                 string `json:"error,omitempty"`
+	AccessToken           string    `json:"access_token,omitempty"`
+	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at,omitempty"`
+	RefreshToken          string    `json:"refresh_token,omitempty"`
+	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at,omitempty"`
+	Data                  any       `json:"data,omitempty"`
+	Error                 string    `json:"error,omitempty"`
 }
 
 // GetErrorMsg parses error message from request validator.
