@@ -138,8 +138,18 @@ func (h *Handler) Login(gctx *gin.Context) {
 
 	var req loginRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
+		var (
+			ve     validator.ValidationErrors
+			errMsg string
+		)
+
+		if errors.As(err, &ve) {
+			field := ve[0]
+			errMsg = field.Field() + web.GetErrorMsg(field)
+		}
+
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
 
 		return
 	}

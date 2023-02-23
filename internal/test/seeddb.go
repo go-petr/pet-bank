@@ -41,6 +41,32 @@ func SeedUser(t *testing.T, tx dbpkg.SQLInterface) domain.User {
 	return user
 }
 
+// SeedUserWith creates random User inside a test transaction.
+func SeedUserWith(t *testing.T, tx dbpkg.SQLInterface, password string) domain.User {
+	t.Helper()
+
+	hashedPassword, err := passpkg.Hash(password)
+	if err != nil {
+		t.Fatalf("passpkg.Hash(randompkg.String(10)) returned error: %v", err)
+	}
+
+	arg := domain.CreateUserParams{
+		Username:       randompkg.Owner(),
+		HashedPassword: hashedPassword,
+		FullName:       randompkg.String(10),
+		Email:          randompkg.Email(),
+	}
+
+	userRepo := userrepo.NewRepoPGS(tx)
+	user, err := userRepo.Create(context.Background(), arg)
+
+	if err != nil {
+		t.Fatalf("userRepo.Create(context.Background(), %+v) returned error: %v", arg, err)
+	}
+
+	return user
+}
+
 // SeedEntry creates Entry inside a test transaction.
 func SeedEntry(t *testing.T, tx dbpkg.SQLInterface, amount string, accountID int32) domain.Entry {
 	t.Helper()
