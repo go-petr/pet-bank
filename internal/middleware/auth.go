@@ -12,13 +12,19 @@ import (
 	"github.com/go-petr/pet-bank/pkg/web"
 )
 
-const (
+var (
 	// AuthHeaderKey is the key for authorization header.
 	AuthHeaderKey = "authorization"
 	// AuthTypeBearer is the type of athorization token.
 	AuthTypeBearer = "bearer"
 	// AuthPayloadKey is the key for authorization payload.
 	AuthPayloadKey = "authorization_payload"
+	// ErrAuthHeaderNotFound indicates that an authorization header is not found.
+	ErrAuthHeaderNotFound = errors.New("authorization header is not found")
+	// ErrBadAuthHeaderFormat indicates invalid authorization header format.
+	ErrBadAuthHeaderFormat = errors.New("invalid authorization header format")
+	// ErrUnsupportedAuthType indicates unsupported authorization type
+	ErrUnsupportedAuthType = errors.New("unsupported authorization type")
 )
 
 // AddAuthorization sets authorization token to the given request.
@@ -39,25 +45,19 @@ func AuthMiddleware(tokenMaker tokenpkg.Maker) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(AuthHeaderKey)
 		if len(authorizationHeader) == 0 {
-			err := errors.New("authorization header is not provided")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.Error(err))
-
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.Error(ErrAuthHeaderNotFound))
 			return
 		}
 
 		fields := strings.Fields(authorizationHeader)
 		if len(fields) < 2 {
-			err := errors.New("invalid authorization header format")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.Error(err))
-
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.Error(ErrBadAuthHeaderFormat))
 			return
 		}
 
 		authType := strings.ToLower(fields[0])
 		if authType != AuthTypeBearer {
-			err := fmt.Errorf("unsupported authorization type %s", authType)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.Error(err))
-
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.Error(ErrUnsupportedAuthType))
 			return
 		}
 

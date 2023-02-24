@@ -12,6 +12,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
+	"github.com/rs/zerolog"
 )
 
 var server *httpserver.Server
@@ -32,6 +33,7 @@ func testMain(m *testing.M) int {
 		return 1
 	}
 
+	zerolog.SetGlobalLevel(zerolog.FatalLevel)
 	logger := middleware.CreateLogger(config)
 
 	conn, err := dbpkg.Setup(config.DBDriver, config.DBSource)

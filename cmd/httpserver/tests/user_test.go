@@ -21,9 +21,7 @@ import (
 )
 
 func TestCreateUserAPI(t *testing.T) {
-	defer func() {
-		integrationtest.Flush(t, server.DB)
-	}()
+	defer integrationtest.Flush(t, server.DB)
 
 	user := test.SeedUser(t, server.DB)
 

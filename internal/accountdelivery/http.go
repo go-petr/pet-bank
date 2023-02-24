@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 
 	"github.com/go-petr/pet-bank/internal/domain"
@@ -54,8 +55,18 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
+		var (
+			ve     validator.ValidationErrors
+			errMsg string
+		)
+
+		if errors.As(err, &ve) {
+			field := ve[0]
+			errMsg = field.Field() + web.GetErrorMsg(field)
+		}
+
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
 
 		return
 	}
@@ -96,8 +107,18 @@ func (h *Handler) Get(gctx *gin.Context) {
 
 	var req getRequest
 	if err := gctx.ShouldBindUri(&req); err != nil {
+		var (
+			ve     validator.ValidationErrors
+			errMsg string
+		)
+
+		if errors.As(err, &ve) {
+			field := ve[0]
+			errMsg = field.Field() + web.GetErrorMsg(field)
+		}
+
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
 
 		return
 	}
@@ -149,8 +170,18 @@ func (h *Handler) List(gctx *gin.Context) {
 
 	var req listRequest
 	if err := gctx.ShouldBindQuery(&req); err != nil {
+		var (
+			ve     validator.ValidationErrors
+			errMsg string
+		)
+
+		if errors.As(err, &ve) {
+			field := ve[0]
+			errMsg = field.Field() + web.GetErrorMsg(field)
+		}
+
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Error(err))
+		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
 
 		return
 	}

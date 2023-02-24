@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
@@ -58,7 +59,7 @@ func TestCreateAPI(t *testing.T) {
 	require.NoError(t, err)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		require.NoError(t, v.RegisterValidation("currency", ValidCurrency))
+		require.NoError(t, v.RegisterValidation("currency", currencypkg.ValidCurrency))
 	}
 
 	testCases := []struct {

@@ -23,6 +23,9 @@ test.integration:
 	docker compose -f deployments/docker-compose.test.yaml up --build --attach api
 	docker compose -f deployments/docker-compose.test.yaml down
 
+test.integration.api:
+	go test -count 1 -cover -coverprofile cover.out  -tags=integration  ./cmd/httpserver/tests
+
 test.unit:
 	go test -count 1 ./...
 

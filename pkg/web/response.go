@@ -37,6 +37,8 @@ func GetErrorMsg(fe validator.FieldError) string {
 		return " must be at least " + fe.Param() + " characters long"
 	case "email":
 		return " must contain a valid email"
+	case "currency":
+		return " is not supported"
 	}
 
 	return "Unknown error"

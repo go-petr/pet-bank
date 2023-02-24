@@ -25,6 +25,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/internal/userservice"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
+	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
@@ -32,6 +33,7 @@ import (
 type Server struct {
 	DB     *sql.DB
 	Engine *gin.Engine
+	Config configpkg.Config
 }
 
 // ServeHTTP implements the http.Handler interface for the Server type.
@@ -84,7 +86,7 @@ func New(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*Server,
 	authRoutes.POST("/transfers", transferHandler.Create)
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		err := v.RegisterValidation("currency", accountdelivery.ValidCurrency)
+		err := v.RegisterValidation("currency", currencypkg.ValidCurrency)
 		if err != nil {
 			return nil, errors.New("cannot register currency validator")
 		}
@@ -93,6 +95,7 @@ func New(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*Server,
 	server := &Server{
 		DB:     conn,
 		Engine: engine,
+		Config: config,
 	}
 
 	return server, nil

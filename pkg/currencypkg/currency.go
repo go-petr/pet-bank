@@ -1,6 +1,8 @@
 // Package currencypkg provides common currency related functionality for apps.
 package currencypkg
 
+import "github.com/go-playground/validator/v10"
+
 // Constants for all supported currencies.
 const (
 	USD = "USD"
@@ -23,5 +25,13 @@ func IsSupportedCurrency(currency string) bool {
 		}
 	}
 
+	return false
+}
+
+// ValidCurrency validates whether the currency is supported.
+var ValidCurrency validator.Func = func(fl validator.FieldLevel) bool {
+	if c, ok := fl.Field().Interface().(string); ok {
+		return IsSupportedCurrency(c)
+	}
 	return false
 }
