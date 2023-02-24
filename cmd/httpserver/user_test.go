@@ -1,6 +1,6 @@
 //go:build integration
 
-package tests
+package httpserver_test
 
 import (
 	"bytes"

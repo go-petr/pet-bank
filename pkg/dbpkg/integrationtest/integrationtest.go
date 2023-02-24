@@ -15,17 +15,19 @@ import (
 
 // SetupServer returns test server that cleans up database after each integration test.
 func SetupServer(t *testing.T) *httpserver.Server {
-	config, err := configpkg.Load("../../../configs")
+	config, err := configpkg.Load("../../configs")
 	if err != nil {
-		t.Fatalf(`configpkg.Load("../../../configs") returned error: %v`, err)
+		t.Fatalf(`configpkg.Load("../../configs") returned error: %v`, err)
 	}
 
 	zerolog.SetGlobalLevel(zerolog.FatalLevel)
+
 	logger := middleware.CreateLogger(config)
 
 	db := SetupDB(t, config.DBDriver, config.DBSource)
 
 	gin.SetMode(gin.ReleaseMode)
+
 	server, err := httpserver.New(db, logger, config)
 	if err != nil {
 		t.Fatalf(`httpserver.New(db, logger, config) returned error: %v`, err)
