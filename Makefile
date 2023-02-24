@@ -44,5 +44,8 @@ dev.app.up:
 dev.app.down:
 	docker compose -f deployments/docker-compose.dev.yaml down
 
+countloc:
+	find . -type f -not -path "./vendor*" -not -path "*/\.*" -not -path "./docs*" | xargs wc -l
+
 .PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 server composeappdown
 

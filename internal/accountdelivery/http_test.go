@@ -51,7 +51,7 @@ func requireBodyMatchAccount(t *testing.T, body *bytes.Buffer, res response) {
 	require.Equal(t, res, gotRes)
 }
 
-func TestCreateAPI(t *testing.T) {
+func TestCreate(t *testing.T) {
 	username := randompkg.Owner()
 	account := randomAccount(username)
 
@@ -232,7 +232,7 @@ func TestCreateAPI(t *testing.T) {
 	}
 }
 
-func TestGetAPI(t *testing.T) {
+func TestGet(t *testing.T) {
 	username := randompkg.Owner()
 	account := randomAccount(username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
@@ -380,7 +380,7 @@ func TestGetAPI(t *testing.T) {
 	}
 }
 
-func TestListAPI(t *testing.T) {
+func TestList(t *testing.T) {
 	username := randompkg.Owner()
 
 	// n specifies number of account in DB

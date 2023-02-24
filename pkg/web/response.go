@@ -35,6 +35,8 @@ func GetErrorMsg(fe validator.FieldError) string {
 		return " accepts only alphanumeric characters"
 	case "min":
 		return " must be at least " + fe.Param() + " characters long"
+	case "max":
+		return " must be less than " + fe.Param()
 	case "email":
 		return " must contain a valid email"
 	case "currency":

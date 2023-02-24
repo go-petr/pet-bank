@@ -168,7 +168,7 @@ func (h *Handler) List(gctx *gin.Context) {
 	l := zerolog.Ctx(gctx)
 
 	var req listRequest
-	if err := gctx.ShouldBindQuery(&req); err != nil {
+	if err := gctx.ShouldBindJSON(&req); err != nil {
 		var (
 			ve     validator.ValidationErrors
 			errMsg string
@@ -189,7 +189,9 @@ func (h *Handler) List(gctx *gin.Context) {
 
 	accounts, err := h.service.List(ctx, authPayload.Username, req.PageSize, req.PageID)
 	if err != nil {
+
 		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
