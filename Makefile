@@ -19,21 +19,24 @@ migrateup1:
 migratedown1:
 	migrate -path configs/db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 
-test.integration:
+test.integration.container:
 	docker compose -f deployments/docker-compose.test.yaml up --build --attach api
 	docker compose -f deployments/docker-compose.test.yaml down
 
+test.integration:
+	go test -p 1 -count 1 -cover -coverprofile cover.out -tags=integration ./...
+
 test.integration.api:
-	go test -count 1 -cover -coverprofile cover.out  -tags=integration  ./cmd/httpserver/tests
+	go test -p 1 -count 1 -cover -coverprofile cover.out -tags=integration ./cmd/httpserver/tests
+
+test.integration.repo:
+	go test -p 1 -count 1 -cover -coverprofile cover.out -tags=integration ./internal/*repo
 
 test.unit:
 	go test -count 1 -cover -coverprofile cover.out ./...
 
 test.api:
-	go test -v -count 1 -tags=integration ./cmd/httpserver/tests 
-
-test.repo:
-	go test -v -count 1 -tags=integration ./internal/entryrepo
+	go test -count 1 -tags=integration ./cmd/httpserver/tests 
 
 server:
 	go run cmd/main.go

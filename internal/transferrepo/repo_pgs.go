@@ -182,7 +182,7 @@ func (r *RepoPGS) Transfer(ctx context.Context, arg domain.CreateTransferParams)
 	tx, err := r.conn.BeginTx(ctx, nil)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, errorspkg.ErrInternal
+		return result, err
 	}
 
 	defer func() {
@@ -197,19 +197,19 @@ func (r *RepoPGS) Transfer(ctx context.Context, arg domain.CreateTransferParams)
 	result.Transfer, err = r.Create(ctx, arg)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, errorspkg.ErrInternal
+		return result, err
 	}
 
 	result.FromEntry, err = entryRepo.Create(ctx, "-"+arg.Amount, arg.FromAccountID)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, errorspkg.ErrInternal
+		return result, err
 	}
 
 	result.ToEntry, err = entryRepo.Create(ctx, arg.Amount, arg.ToAccountID)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, errorspkg.ErrInternal
+		return result, err
 	}
 
 	var fromAccount, toAccount domain.Account
@@ -236,14 +236,14 @@ func (r *RepoPGS) Transfer(ctx context.Context, arg domain.CreateTransferParams)
 
 	if err != nil {
 		l.Error().Err(err).Send()
-		return result, errorspkg.ErrInternal
+		return result, err
 	}
 
 	result.FromAccount, result.ToAccount = fromAccount, toAccount
 
 	if err := tx.Commit(); err != nil {
 		l.Error().Err(err).Send()
-		return result, errorspkg.ErrInternal
+		return result, err
 	}
 
 	return result, nil

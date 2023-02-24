@@ -41,6 +41,7 @@ func TestMain(m *testing.M) {
 
 	logger := middleware.CreateLogger(config)
 	ctx = logger.WithContext(context.Background())
+	// ctx = context.Background()
 
 	os.Exit(m.Run())
 }
@@ -495,7 +496,7 @@ func TestTransferTxDeadlock(t *testing.T) {
 	transferRepo := transferrepo.NewRepoPGS(db)
 
 	// run n concurrent transfer transactions
-	n := 20
+	n := 30
 	amount := "10"
 
 	errs := make(chan error)
@@ -524,7 +525,7 @@ func TestTransferTxDeadlock(t *testing.T) {
 	for i := 0; i < n; i++ {
 		err := <-errs
 		if err != nil {
-			t.Fatalf("transferRepo.Transfer(ctx, arg) returned error: %v", err)
+			t.Errorf("transferRepo.Transfer(ctx, arg) returned error: %v", err)
 		}
 	}
 

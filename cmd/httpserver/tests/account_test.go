@@ -23,7 +23,7 @@ import (
 )
 
 func TestCreateAccountAPI(t *testing.T) {
-	defer integrationtest.Flush(t, server.DB)
+	server := integrationtest.SetupServer(t)
 
 	user := test.SeedUser(t, server.DB)
 	test.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
@@ -164,7 +164,7 @@ func TestCreateAccountAPI(t *testing.T) {
 }
 
 func TestGetAccountAPI(t *testing.T) {
-	defer integrationtest.Flush(t, server.DB)
+	server := integrationtest.SetupServer(t)
 
 	user := test.SeedUser(t, server.DB)
 	account := test.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
@@ -293,7 +293,7 @@ func TestGetAccountAPI(t *testing.T) {
 }
 
 func TestListAccountAPI(t *testing.T) {
-	defer integrationtest.Flush(t, server.DB)
+	server := integrationtest.SetupServer(t)
 
 	user := test.SeedUser(t, server.DB)
 	accounts := test.SeedAllCurrenciesAccountsWith1000Balance(t, server.DB, user.Username)

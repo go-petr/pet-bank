@@ -1,6 +1,6 @@
 //go:build integration
 
-package sessionrepo
+package sessionrepo_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/sessionrepo"
 	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
 	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
@@ -51,7 +52,7 @@ func SeedSession(t *testing.T, tx *sql.Tx, username string) domain.Session {
 		ExpiresAt:    time.Now().Truncate(time.Second).UTC(),
 	}
 
-	sessionRepo := NewRepoPGS(tx)
+	sessionRepo := sessionrepo.NewRepoPGS(tx)
 
 	session, err := sessionRepo.Create(context.Background(), arg)
 	if err != nil {
@@ -127,7 +128,7 @@ func TestCreate(t *testing.T) {
 
 			want := tc.wantSession(tx)
 
-			sessionRepo := NewRepoPGS(tx)
+			sessionRepo := sessionrepo.NewRepoPGS(tx)
 
 			arg := domain.CreateSessionParams{
 				ID:           want.ID,
@@ -186,7 +187,7 @@ func TestGetSession(t *testing.T) {
 
 			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 			want := tc.wantSession(tx)
-			sessionRepo := NewRepoPGS(tx)
+			sessionRepo := sessionrepo.NewRepoPGS(tx)
 
 			got, err := sessionRepo.Get(context.Background(), want.ID)
 			if err != nil {

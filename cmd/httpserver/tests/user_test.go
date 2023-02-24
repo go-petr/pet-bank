@@ -21,7 +21,7 @@ import (
 )
 
 func TestCreateUserAPI(t *testing.T) {
-	defer integrationtest.Flush(t, server.DB)
+	server := integrationtest.SetupServer(t)
 
 	user := test.SeedUser(t, server.DB)
 
@@ -199,9 +199,7 @@ func TestCreateUserAPI(t *testing.T) {
 }
 
 func TestLoginUserAPI(t *testing.T) {
-	defer func() {
-		integrationtest.Flush(t, server.DB)
-	}()
+	server := integrationtest.SetupServer(t)
 
 	password := randompkg.String(10)
 	user := test.SeedUserWith(t, server.DB, password)

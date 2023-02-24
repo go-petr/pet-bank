@@ -40,7 +40,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-	t.Parallel()
 
 	testCases := []struct {
 		name    string
@@ -151,7 +150,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	t.Parallel()
 
 	testCases := []struct {
 		name    string
