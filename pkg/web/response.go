@@ -23,25 +23,31 @@ type Response struct {
 }
 
 // GetErrorMsg parses error message from request validator.
-func GetErrorMsg(fe validator.FieldError) string {
-	switch fe.Tag() {
+func GetErrorMsg(ve validator.ValidationErrors) string {
+
+	field := ve[0]
+	errMsg := field.Field()
+
+	switch field.Tag() {
 	case "required":
-		return " field is required"
+		errMsg += " field is required"
 	case "lte":
-		return " must be less than " + fe.Param()
+		errMsg += " must be less than " + field.Param()
 	case "gte":
-		return " must be greater than " + fe.Param()
+		errMsg += " must be greater than " + field.Param()
 	case "alphanum":
-		return " accepts only alphanumeric characters"
+		errMsg += " accepts only alphanumeric characters"
 	case "min":
-		return " must be at least " + fe.Param() + " characters long"
+		errMsg += " must be at least " + field.Param() + " characters long"
 	case "max":
-		return " must be less than " + fe.Param()
+		errMsg += " must be less than " + field.Param()
 	case "email":
-		return " must contain a valid email"
+		errMsg += " must contain a valid email"
 	case "currency":
-		return " is not supported"
+		errMsg += " is not supported"
+	default:
+		errMsg += " unknown error"
 	}
 
-	return "Unknown error"
+	return errMsg
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -20,22 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func randomAccount(owner string) domain.Account {
-	return domain.Account{
-		ID:        randompkg.IntBetween(1, 100),
-		Owner:     owner,
-		Balance:   randompkg.MoneyAmountBetween(1000, 10_000),
-		Currency:  randompkg.Currency(),
-		CreatedAt: time.Now().Truncate(time.Second).UTC(),
-	}
-}
-
 func TestCreateTranferAPI(t *testing.T) {
 	testUsername1 := randompkg.Owner()
 	testUsername2 := randompkg.Owner()
 
-	testAccount1 := randomAccount(testUsername1)
-	testAccount2 := randomAccount(testUsername2)
+	testAccount1 := helpers.RandomAccount(testUsername1)
+	testAccount2 := helpers.RandomAccount(testUsername2)
 	amount := "100"
 
 	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
@@ -119,7 +110,7 @@ func TestCreateTranferAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Invalid owner",
+			name: "InvalidOwner",
 			requestBody: gin.H{
 				"from_account_id": testAccount1.ID,
 				"to_account_id":   testAccount2.ID,

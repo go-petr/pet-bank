@@ -3,9 +3,11 @@ package transferdelivery
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 
 	"github.com/go-petr/pet-bank/internal/domain"
@@ -56,6 +58,14 @@ func (h *Handler) Create(gctx *gin.Context) {
 	var req request
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
 		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return

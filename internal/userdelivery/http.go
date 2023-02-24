@@ -58,18 +58,16 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		var (
-			ve     validator.ValidationErrors
-			errMsg string
-		)
+		l.Info().Err(err).Send()
 
+		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			field := ve[0]
-			errMsg = field.Field() + web.GetErrorMsg(field)
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
 		}
 
-		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -131,18 +129,16 @@ func (h *Handler) Login(gctx *gin.Context) {
 
 	var req loginRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		var (
-			ve     validator.ValidationErrors
-			errMsg string
-		)
+		l.Info().Err(err).Send()
 
+		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			field := ve[0]
-			errMsg = field.Field() + web.GetErrorMsg(field)
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
 		}
 
-		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, web.Response{Error: errMsg})
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
