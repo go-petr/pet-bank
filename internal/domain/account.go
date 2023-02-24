@@ -13,6 +13,8 @@ var (
 	ErrCurrencyAlreadyExists = errors.New("account currency already exists")
 	// ErrOwnerNotFound indicates that the owner for the account is not found.
 	ErrOwnerNotFound = errors.New("owner not found")
+	// ErrAccountOwnerMismatch indicates that the requested account is not owned by the user.
+	ErrAccountOwnerMismatch = errors.New("account doesn't belong to the authenticated user")
 )
 
 // Account holds user balance data for specific currency.

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -60,7 +61,6 @@ func TestCreateAccountAPI(t *testing.T) {
 				}
 
 				want := domain.Account{
-					ID:        1,
 					Owner:     user.Username,
 					Balance:   "0",
 					Currency:  currencypkg.EUR,
@@ -162,6 +162,141 @@ func TestCreateAccountAPI(t *testing.T) {
 				}
 			} else {
 				tc.checkData(tc.requestBody, res)
+			}
+		})
+	}
+}
+
+func TestGetAccountAPI(t *testing.T) {
+	defer integrationtest.Flush(t, server.DB)
+
+	user := test.SeedUser(t, server.DB)
+	account := test.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
+	user2 := test.SeedUser(t, server.DB)
+	account2 := test.SeedAccountWith1000USDBalance(t, server.DB, user2.Username)
+	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
+	require.NoError(t, err)
+
+	type requestBody struct {
+		ID int32 `json:"id"`
+	}
+
+	testCases := []struct {
+		name           string
+		accountID      int32
+		setupAuth      func(t *testing.T, r *http.Request) error
+		wantStatusCode int
+		checkData      func(res web.Response)
+		wantError      string
+	}{
+		{
+			name:      "OK",
+			accountID: account.ID,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				authType := middleware.AuthTypeBearer
+				d := server.Config.AccessTokenDuration
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+			},
+			wantStatusCode: http.StatusOK,
+			checkData: func(res web.Response) {
+				gotData, ok := res.Data.(*struct {
+					Account domain.Account `json:"account"`
+				})
+				if !ok {
+					t.Errorf(`res.Data=%v, failed type conversion`, res.Data)
+				}
+
+				want := account
+
+				compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+				if diff := cmp.Diff(want, gotData.Account, compareCreatedAt); diff != "" {
+					t.Errorf("res.Data mismatch (-want +got):\n%s", diff)
+				}
+			},
+		},
+		{
+			name:      "NoAuthorization",
+			accountID: account.ID,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return nil
+			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
+		},
+		{
+			name:      "InvalidID",
+			accountID: -1,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				authType := middleware.AuthTypeBearer
+				d := server.Config.AccessTokenDuration
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+			},
+			wantStatusCode: http.StatusBadRequest,
+			wantError:      "ID must be at least 1 characters long",
+		},
+		{
+			name:      "ErrAccountNotFound",
+			accountID: 1200000000,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				authType := middleware.AuthTypeBearer
+				d := server.Config.AccessTokenDuration
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+			},
+			wantStatusCode: http.StatusNotFound,
+			wantError:      domain.ErrAccountNotFound.Error(),
+		},
+		{
+			name:      "ErrAccountOwnerMismatch",
+			accountID: account2.ID,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				authType := middleware.AuthTypeBearer
+				d := server.Config.AccessTokenDuration
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      domain.ErrAccountOwnerMismatch.Error(),
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+
+			// Send request
+			req, err := http.NewRequest(http.MethodGet, "/accounts/"+strconv.Itoa(int(tc.accountID)), nil)
+			if err != nil {
+				t.Fatalf("Creating request error: %v", err)
+			}
+
+			if err = tc.setupAuth(t, req); err != nil {
+				t.Fatalf("tc.setupAuth(t, %+v) returned error: %v", req, err)
+			}
+
+			w := httptest.NewRecorder()
+			server.ServeHTTP(w, req)
+
+			// Test response
+			if got := w.Code; got != tc.wantStatusCode {
+				t.Errorf("Status code: got %v, want %v", got, tc.wantStatusCode)
+			}
+
+			res := web.Response{
+				Data: &struct {
+					Account domain.Account `json:"account"`
+				}{},
+			}
+
+			if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+				t.Errorf("Decoding response body error: %v", err)
+			}
+
+			if tc.wantStatusCode != http.StatusOK {
+				if res.Error != tc.wantError {
+					t.Errorf(`resp.Error=%q, want %q`, res.Error, tc.wantError)
+				}
+			} else {
+				tc.checkData(res)
 			}
 		})
 	}

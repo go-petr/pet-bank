@@ -138,8 +138,7 @@ func (h *Handler) Get(gctx *gin.Context) {
 	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 	if acc.Owner != authPayload.Username {
 		l.Warn().Err(err).Send()
-		err := errors.New("account doesn't belong to the authenticated user")
-		gctx.JSON(http.StatusUnauthorized, web.Error(err))
+		gctx.JSON(http.StatusUnauthorized, web.Error(domain.ErrAccountOwnerMismatch))
 
 		return
 	}
