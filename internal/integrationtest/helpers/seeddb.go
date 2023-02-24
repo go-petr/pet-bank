@@ -1,5 +1,5 @@
-// Package test provides shared test helpers.
-package test
+// Package helpers provides shared test helpers.
+package helpers
 
 import (
 	"context"

@@ -12,11 +12,11 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/internal/transferrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
@@ -56,10 +56,10 @@ func TestCreate(t *testing.T) {
 		{
 			name: "OK",
 			wantTransfer: func(tx *sql.Tx) domain.Transfer {
-				user1 := test.SeedUser(t, tx)
-				account1 := test.SeedAccountWith1000USDBalance(t, tx, user1.Username)
-				user2 := test.SeedUser(t, tx)
-				account2 := test.SeedAccountWith1000USDBalance(t, tx, user2.Username)
+				user1 := helpers.SeedUser(t, tx)
+				account1 := helpers.SeedAccountWith1000USDBalance(t, tx, user1.Username)
+				user2 := helpers.SeedUser(t, tx)
+				account2 := helpers.SeedAccountWith1000USDBalance(t, tx, user2.Username)
 				transfer := domain.Transfer{
 					FromAccountID: account1.ID,
 					ToAccountID:   account2.ID,
@@ -73,8 +73,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "ErrFromAccountNotFound",
 			wantTransfer: func(tx *sql.Tx) domain.Transfer {
-				user1 := test.SeedUser(t, tx)
-				account1 := test.SeedAccountWith1000USDBalance(t, tx, user1.Username)
+				user1 := helpers.SeedUser(t, tx)
+				account1 := helpers.SeedAccountWith1000USDBalance(t, tx, user1.Username)
 				transfer := domain.Transfer{
 					FromAccountID: account1.ID,
 					ToAccountID:   0,
@@ -89,8 +89,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "ErrFromAccountNotFound",
 			wantTransfer: func(tx *sql.Tx) domain.Transfer {
-				user2 := test.SeedUser(t, tx)
-				account2 := test.SeedAccountWith1000USDBalance(t, tx, user2.Username)
+				user2 := helpers.SeedUser(t, tx)
+				account2 := helpers.SeedAccountWith1000USDBalance(t, tx, user2.Username)
 				transfer := domain.Transfer{
 					FromAccountID: 0,
 					ToAccountID:   account2.ID,
@@ -105,10 +105,10 @@ func TestCreate(t *testing.T) {
 		{
 			name: "InvalidAmount",
 			wantTransfer: func(tx *sql.Tx) domain.Transfer {
-				user1 := test.SeedUser(t, tx)
-				account1 := test.SeedAccountWith1000USDBalance(t, tx, user1.Username)
-				user2 := test.SeedUser(t, tx)
-				account2 := test.SeedAccountWith1000USDBalance(t, tx, user2.Username)
+				user1 := helpers.SeedUser(t, tx)
+				account1 := helpers.SeedAccountWith1000USDBalance(t, tx, user1.Username)
+				user2 := helpers.SeedUser(t, tx)
+				account2 := helpers.SeedAccountWith1000USDBalance(t, tx, user2.Username)
 				transfer := domain.Transfer{
 					FromAccountID: account1.ID,
 					ToAccountID:   account2.ID,
@@ -192,10 +192,10 @@ func TestGet(t *testing.T) {
 		{
 			name: "OK",
 			wantTransfer: func(tx *sql.Tx) domain.Transfer {
-				user1 := test.SeedUser(t, tx)
-				account1 := test.SeedAccountWith1000USDBalance(t, tx, user1.Username)
-				user2 := test.SeedUser(t, tx)
-				account2 := test.SeedAccountWith1000USDBalance(t, tx, user2.Username)
+				user1 := helpers.SeedUser(t, tx)
+				account1 := helpers.SeedAccountWith1000USDBalance(t, tx, user1.Username)
+				user2 := helpers.SeedUser(t, tx)
+				account2 := helpers.SeedAccountWith1000USDBalance(t, tx, user2.Username)
 				transfer := SeedTransfer(t, tx, account1.ID, account2.ID, randompkg.MoneyAmountBetween(10, 100))
 
 				return transfer
@@ -312,10 +312,10 @@ func TestListTransfers(t *testing.T) {
 			// Prepare test transaction and seed database
 			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
 
-			user1 := test.SeedUser(t, tx)
-			account1 := test.SeedAccountWith1000USDBalance(t, tx, user1.Username)
-			user2 := test.SeedUser(t, tx)
-			account2 := test.SeedAccountWith1000USDBalance(t, tx, user2.Username)
+			user1 := helpers.SeedUser(t, tx)
+			account1 := helpers.SeedAccountWith1000USDBalance(t, tx, user1.Username)
+			user2 := helpers.SeedUser(t, tx)
+			account2 := helpers.SeedAccountWith1000USDBalance(t, tx, user2.Username)
 
 			want := tc.wantTransfers(tx, account1.ID, account2.ID)
 			firstTransfer := want[0]
@@ -350,10 +350,10 @@ func TestListTransfers(t *testing.T) {
 func TestTransferTx(t *testing.T) {
 	db := integrationtest.SetupDB(t, dbDriver, dbSource)
 
-	user1 := test.SeedUser(t, db)
-	account1 := test.SeedAccountWith1000USDBalance(t, db, user1.Username)
-	user2 := test.SeedUser(t, db)
-	account2 := test.SeedAccountWith1000USDBalance(t, db, user2.Username)
+	user1 := helpers.SeedUser(t, db)
+	account1 := helpers.SeedAccountWith1000USDBalance(t, db, user1.Username)
+	user2 := helpers.SeedUser(t, db)
+	account2 := helpers.SeedAccountWith1000USDBalance(t, db, user2.Username)
 
 	transferRepo := transferrepo.NewRepoPGS(db)
 
@@ -488,10 +488,10 @@ func TestTransferTx(t *testing.T) {
 func TestTransferTxDeadlock(t *testing.T) {
 	db := integrationtest.SetupDB(t, dbDriver, dbSource)
 
-	user1 := test.SeedUser(t, db)
-	account1 := test.SeedAccountWith1000USDBalance(t, db, user1.Username)
-	user2 := test.SeedUser(t, db)
-	account2 := test.SeedAccountWith1000USDBalance(t, db, user2.Username)
+	user1 := helpers.SeedUser(t, db)
+	account1 := helpers.SeedAccountWith1000USDBalance(t, db, user1.Username)
+	user2 := helpers.SeedUser(t, db)
+	account2 := helpers.SeedAccountWith1000USDBalance(t, db, user2.Username)
 
 	transferRepo := transferrepo.NewRepoPGS(db)
 

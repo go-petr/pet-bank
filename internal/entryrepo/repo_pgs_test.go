@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entryrepo"
-	"github.com/go-petr/pet-bank/internal/test"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
@@ -48,16 +48,16 @@ func TestCreate(t *testing.T) {
 		{
 			name: "OK",
 			wantEntry: func(tx *sql.Tx) domain.Entry {
-				user := test.SeedUser(t, tx)
-				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
 				return domain.Entry{AccountID: account.ID, Amount: randompkg.MoneyAmountBetween(-100, 100)}
 			},
 		},
 		{
 			name: "NullAmount",
 			wantEntry: func(tx *sql.Tx) domain.Entry {
-				user := test.SeedUser(t, tx)
-				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
 				return domain.Entry{AccountID: account.ID, Amount: ""}
 			},
 			wantErr: errorspkg.ErrInternal,
@@ -116,9 +116,9 @@ func TestGet(t *testing.T) {
 		{
 			name: "OK",
 			wantEntry: func(tx *sql.Tx) domain.Entry {
-				user := test.SeedUser(t, tx)
-				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
-				wantEntry := test.SeedEntry(t, tx, randompkg.MoneyAmountBetween(-10, 10), account.ID)
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				wantEntry := helpers.SeedEntry(t, tx, randompkg.MoneyAmountBetween(-10, 10), account.ID)
 
 				return wantEntry
 			},
@@ -188,9 +188,9 @@ func TestList(t *testing.T) {
 			limit:  100,
 			offset: 0,
 			wantAccountIDAndEntries: func(tx *sql.Tx) (int32, []domain.Entry) {
-				user := test.SeedUser(t, tx)
-				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
-				entries := test.SeedEntries(t, tx, entriesCount, account.ID)
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				entries := helpers.SeedEntries(t, tx, entriesCount, account.ID)
 
 				return account.ID, entries
 			},
@@ -200,9 +200,9 @@ func TestList(t *testing.T) {
 			limit:  10,
 			offset: 0,
 			wantAccountIDAndEntries: func(tx *sql.Tx) (int32, []domain.Entry) {
-				user := test.SeedUser(t, tx)
-				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
-				entries := test.SeedEntries(t, tx, entriesCount, account.ID)
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				entries := helpers.SeedEntries(t, tx, entriesCount, account.ID)
 
 				return account.ID, entries[:10]
 			},
@@ -212,9 +212,9 @@ func TestList(t *testing.T) {
 			limit:  10,
 			offset: 10,
 			wantAccountIDAndEntries: func(tx *sql.Tx) (int32, []domain.Entry) {
-				user := test.SeedUser(t, tx)
-				account := test.SeedAccountWith1000USDBalance(t, tx, user.Username)
-				entries := test.SeedEntries(t, tx, entriesCount, account.ID)
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				entries := helpers.SeedEntries(t, tx, entriesCount, account.ID)
 
 				return account.ID, entries[10:20]
 			},

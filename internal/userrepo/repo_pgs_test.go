@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/test"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -159,7 +159,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "OK",
 			want: func(tx *sql.Tx) domain.User {
-				return test.SeedUser(t, tx)
+				return helpers.SeedUser(t, tx)
 			},
 		},
 		{

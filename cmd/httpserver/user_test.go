@@ -12,8 +12,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/test"
-	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
+
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/google/go-cmp/cmp"
@@ -23,7 +24,7 @@ import (
 func TestCreateUserAPI(t *testing.T) {
 	server := integrationtest.SetupServer(t)
 
-	user := test.SeedUser(t, server.DB)
+	user := helpers.SeedUser(t, server.DB)
 
 	var (
 		username = "firstuser"
@@ -202,7 +203,7 @@ func TestLoginUserAPI(t *testing.T) {
 	server := integrationtest.SetupServer(t)
 
 	password := randompkg.String(10)
-	user := test.SeedUserWith(t, server.DB, password)
+	user := helpers.SeedUserWith(t, server.DB, password)
 
 	testCases := []struct {
 		name           string

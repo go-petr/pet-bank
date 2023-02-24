@@ -12,10 +12,11 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/currencypkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
+
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/google/go-cmp/cmp"
@@ -25,8 +26,8 @@ import (
 func TestCreateAccountAPI(t *testing.T) {
 	server := integrationtest.SetupServer(t)
 
-	user := test.SeedUser(t, server.DB)
-	test.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
+	user := helpers.SeedUser(t, server.DB)
+	helpers.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
 	if err != nil {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
@@ -166,10 +167,10 @@ func TestCreateAccountAPI(t *testing.T) {
 func TestGetAccountAPI(t *testing.T) {
 	server := integrationtest.SetupServer(t)
 
-	user := test.SeedUser(t, server.DB)
-	account := test.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
-	user2 := test.SeedUser(t, server.DB)
-	account2 := test.SeedAccountWith1000USDBalance(t, server.DB, user2.Username)
+	user := helpers.SeedUser(t, server.DB)
+	account := helpers.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
+	user2 := helpers.SeedUser(t, server.DB)
+	account2 := helpers.SeedAccountWith1000USDBalance(t, server.DB, user2.Username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
 	if err != nil {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
@@ -295,8 +296,8 @@ func TestGetAccountAPI(t *testing.T) {
 func TestListAccountAPI(t *testing.T) {
 	server := integrationtest.SetupServer(t)
 
-	user := test.SeedUser(t, server.DB)
-	accounts := test.SeedAllCurrenciesAccountsWith1000Balance(t, server.DB, user.Username)
+	user := helpers.SeedUser(t, server.DB)
+	accounts := helpers.SeedAllCurrenciesAccountsWith1000Balance(t, server.DB, user.Username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
 	if err != nil {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)

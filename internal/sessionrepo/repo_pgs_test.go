@@ -12,10 +12,10 @@ import (
 	"testing"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/internal/sessionrepo"
-	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/dbpkg/integrationtest"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/google/go-cmp/cmp"
@@ -72,7 +72,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "OK",
 			wantSession: func(tx *sql.Tx) domain.Session {
-				user := test.SeedUser(t, tx)
+				user := helpers.SeedUser(t, tx)
 				return domain.Session{
 					ID:           uuid.New(),
 					Username:     user.Username,
@@ -102,7 +102,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "PubKeyDublicate",
 			wantSession: func(tx *sql.Tx) domain.Session {
-				user := test.SeedUser(t, tx)
+				user := helpers.SeedUser(t, tx)
 				s := SeedSession(t, tx, user.Username)
 				return domain.Session{
 					ID:           s.ID,
@@ -165,7 +165,7 @@ func TestGetSession(t *testing.T) {
 		{
 			name: "OK",
 			wantSession: func(tx *sql.Tx) domain.Session {
-				user := test.SeedUser(t, tx)
+				user := helpers.SeedUser(t, tx)
 				s := SeedSession(t, tx, user.Username)
 				return s
 			},

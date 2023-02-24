@@ -19,8 +19,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/internal/middleware"
-	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 
 func TestCreate(t *testing.T) {
 	username := randompkg.Owner()
-	account := test.RandomAccount(username)
+	account := helpers.RandomAccount(username)
 	tokenSymmetricKey := randompkg.String(32)
 
 	tokenMaker, err := tokenpkg.NewPasetoMaker(tokenSymmetricKey)
@@ -254,9 +254,9 @@ func TestCreate(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	username := randompkg.Owner()
-	account := test.RandomAccount(username)
+	account := helpers.RandomAccount(username)
 	username2 := randompkg.Owner()
-	account2 := test.RandomAccount(username2)
+	account2 := helpers.RandomAccount(username2)
 	tokenSymmetricKey := randompkg.String(32)
 
 	tokenMaker, err := tokenpkg.NewPasetoMaker(tokenSymmetricKey)
@@ -455,7 +455,7 @@ func TestList(t *testing.T) {
 	accounts := make([]domain.Account, n)
 
 	for i := 0; i < n; i++ {
-		accounts[i] = test.RandomAccount(username)
+		accounts[i] = helpers.RandomAccount(username)
 	}
 
 	testCases := []struct {
