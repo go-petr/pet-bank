@@ -48,7 +48,7 @@ func TestCreateTranferAPI(t *testing.T) {
 	testCases := []struct {
 		name           string
 		requestBody    requestBody
-		setupAuth      func(t *testing.T, r *http.Request) error
+		setupAuth      func(r *http.Request) error
 		wantStatusCode int
 		checkData      func(req requestBody, data any)
 		wantError      string
@@ -60,7 +60,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				ToAccountID:   account2.ID,
 				Amount:        amount,
 			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
+			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user1.Username, duration)
 			},
 			wantStatusCode: http.StatusOK,
@@ -114,13 +114,26 @@ func TestCreateTranferAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "NoAuthorization",
+			requestBody: requestBody{
+				FromAccountID: account1.ID,
+				ToAccountID:   account3.ID,
+				Amount:        amount,
+			},
+			setupAuth: func(r *http.Request) error {
+				return nil
+			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
+		},
+		{
 			name: "RequiredFromAccountID",
 			requestBody: requestBody{
 				FromAccountID: 0,
 				ToAccountID:   account2.ID,
 				Amount:        amount,
 			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
+			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user1.Username, duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
@@ -133,7 +146,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				ToAccountID:   0,
 				Amount:        amount,
 			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
+			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user1.Username, duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
@@ -146,7 +159,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				ToAccountID:   account2.ID,
 				Amount:        "",
 			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
+			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user1.Username, duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
@@ -159,7 +172,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				ToAccountID:   account2.ID,
 				Amount:        amount,
 			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
+			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user2.Username, duration)
 			},
 			wantStatusCode: http.StatusUnauthorized,
@@ -172,24 +185,11 @@ func TestCreateTranferAPI(t *testing.T) {
 				ToAccountID:   account3.ID,
 				Amount:        amount,
 			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
+			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user1.Username, duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantError:      domain.ErrCurrencyMismatch.Error(),
-		},
-		{
-			name: "NoAuthorization",
-			requestBody: requestBody{
-				FromAccountID: account1.ID,
-				ToAccountID:   account3.ID,
-				Amount:        amount,
-			},
-			setupAuth: func(t *testing.T, r *http.Request) error {
-				return nil
-			},
-			wantStatusCode: http.StatusUnauthorized,
-			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
 		},
 	}
 
@@ -209,7 +209,7 @@ func TestCreateTranferAPI(t *testing.T) {
 				t.Fatalf("Creating request error: %v", err)
 			}
 
-			if err = tc.setupAuth(t, req); err != nil {
+			if err = tc.setupAuth(req); err != nil {
 				t.Fatalf("tc.setupAuth(t, %+v) returned error: %v", req, err)
 			}
 

@@ -42,14 +42,6 @@ type request struct {
 	Amount        string `json:"amount" binding:"required"`
 }
 
-type data struct {
-	Transfer domain.TransferTxResult `json:"transfer"`
-}
-
-type response struct {
-	Data data `json:"data,omitempty"`
-}
-
 // Create handles http request to create a transfer between two accounts.
 func (h *Handler) Create(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
@@ -104,8 +96,12 @@ func (h *Handler) Create(gctx *gin.Context) {
 		return
 	}
 
-	res := response{
-		Data: data{result},
+	res := web.Response{
+		Data: struct {
+			Transfer domain.TransferTxResult `json:"transfer"`
+		}{
+			Transfer: result,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
