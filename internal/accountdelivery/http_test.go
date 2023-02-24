@@ -2,10 +2,10 @@ package accountdelivery
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,15 +15,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/go-petr/pet-bank/internal/test"
 	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
+	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -31,88 +34,108 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func randomAccount(owner string) domain.Account {
-	return domain.Account{
-		ID:        randompkg.IntBetween(1, 100),
-		Owner:     owner,
-		Balance:   randompkg.MoneyAmountBetween(1000, 10_000),
-		Currency:  randompkg.Currency(),
-		CreatedAt: time.Now().Truncate(time.Second).UTC(),
-	}
-}
-
-func requireBodyMatchAccount(t *testing.T, body *bytes.Buffer, res response) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err)
-
-	var gotRes response
-	err = json.Unmarshal(data, &gotRes)
-	require.NoError(t, err)
-	require.Equal(t, res, gotRes)
-}
-
 func TestCreate(t *testing.T) {
 	username := randompkg.Owner()
-	account := randomAccount(username)
+	account := test.RandomAccount(username)
+	tokenSymmetricKey := randompkg.String(32)
 
-	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
-	require.NoError(t, err)
+	tokenMaker, err := tokenpkg.NewPasetoMaker(tokenSymmetricKey)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", tokenSymmetricKey, err)
+	}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		require.NoError(t, v.RegisterValidation("currency", currencypkg.ValidCurrency))
+		if err := v.RegisterValidation("currency", currencypkg.ValidCurrency); err != nil {
+			t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", tokenSymmetricKey, err)
+		}
+	}
+
+	authType := middleware.AuthTypeBearer
+	duration := time.Minute
+
+	type requestBody struct {
+		Currency string `json:"currency"`
 	}
 
 	testCases := []struct {
-		name          string
-		requestBody   gin.H
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
-		buildStubs    func(accountService *MockService)
-		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+		name           string
+		requestBody    requestBody
+		setupAuth      func(t *testing.T, r *http.Request) error
+		buildStubs     func(accountService *MockService)
+		wantStatusCode int
+		wantError      string
+		checkData      func(req requestBody, data any)
 	}{
 		{
-			name: "NoAuthorization",
-			requestBody: gin.H{
-				"currency": account.Currency,
+			name: "OK",
+			requestBody: requestBody{
+				Currency: account.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
+			},
+			buildStubs: func(accountService *MockService) {
+				accountService.EXPECT().
+					Create(gomock.Any(), gomock.Eq(account.Owner), gomock.Eq(account.Currency)).
+					Times(1).
+					Return(account, nil)
+			},
+			wantStatusCode: http.StatusOK,
+			checkData: func(req requestBody, data any) {
+				got, ok := data.(*struct {
+					Account domain.Account `json:"account"`
+				})
+				if !ok {
+					t.Errorf(`res.Data=%v, failed type conversion`, data)
+				}
+
+				want := account
+
+				compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+				if diff := cmp.Diff(want, got.Account, compareCreatedAt); diff != "" {
+					t.Errorf("res.Data mismatch (-want +got):\n%s", diff)
+				}
+			},
+		},
+		{
+			name: "NoAuthorization",
+			requestBody: requestBody{
+				Currency: account.Currency,
+			},
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return nil
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
 					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
 		},
-
 		{
 			name: "InvalidCurrency",
-			requestBody: gin.H{
-				"currency": "RUB",
+			requestBody: requestBody{
+				Currency: "RUB",
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
 					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
+			wantStatusCode: http.StatusBadRequest,
+			wantError:      "Currency is not supported",
 		},
-
 		{
 			name: "ErrOwnerNotFound",
-			requestBody: gin.H{
-				"currency": account.Currency,
+			requestBody: requestBody{
+				Currency: account.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -122,19 +145,16 @@ func TestCreate(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, domain.ErrOwnerNotFound)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
+			wantStatusCode: http.StatusBadRequest,
+			wantError:      domain.ErrOwnerNotFound.Error(),
 		},
-
 		{
 			name: "ErrCurrencyAlreadyExists",
-			requestBody: gin.H{
-				"currency": account.Currency,
+			requestBody: requestBody{
+				Currency: account.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -144,19 +164,16 @@ func TestCreate(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, domain.ErrCurrencyAlreadyExists)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusConflict, recorder.Code)
-			},
+			wantStatusCode: http.StatusConflict,
+			wantError:      domain.ErrCurrencyAlreadyExists.Error(),
 		},
-
 		{
 			name: "InternalServerError",
-			requestBody: gin.H{
-				"currency": account.Currency,
+			requestBody: requestBody{
+				Currency: account.Currency,
 			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -166,35 +183,10 @@ func TestCreate(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			checkData: func(req requestBody, data any) {
 			},
-		},
-
-		{
-			name: "OK",
-			requestBody: gin.H{
-				"currency": account.Currency,
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
-			},
-			buildStubs: func(accountService *MockService) {
-				accountService.EXPECT().
-					Create(gomock.Any(),
-						gomock.Eq(account.Owner),
-						gomock.Eq(account.Currency)).
-					Times(1).
-					Return(account, nil)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-				res := response{
-					Data: data{account},
-				}
-				requireBodyMatchAccount(t, recorder.Body, res)
-			},
+			wantStatusCode: http.StatusInternalServerError,
+			wantError:      errorspkg.ErrInternal.Error(),
 		},
 	}
 
@@ -204,83 +196,148 @@ func TestCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Initialize mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-
 			accountService := NewMockService(ctrl)
 			accountHandler := NewHandler(accountService)
 
-			url := "/accounts"
 			server := gin.New()
 			server.Use(middleware.AuthMiddleware(tokenMaker))
-			server.POST(url, accountHandler.Create)
+			server.POST("/accounts", accountHandler.Create)
 
 			tc.buildStubs(accountService)
 
-			recorder := httptest.NewRecorder()
-
+			// Send request
 			body, err := json.Marshal(tc.requestBody)
-			require.NoError(t, err)
+			if err != nil {
+				t.Fatalf("Encoding request body error: %v", err)
+			}
 
-			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
-			require.NoError(t, err)
+			req, err := http.NewRequest(http.MethodPost, "/accounts", bytes.NewReader(body))
+			if err != nil {
+				t.Fatalf("Creating request error: %v", err)
+			}
 
-			tc.setupAuth(t, req, tokenMaker)
+			if err = tc.setupAuth(t, req); err != nil {
+				t.Fatalf("tc.setupAuth(t, %+v) returned error: %v", req, err)
+			}
+
+			recorder := httptest.NewRecorder()
 			server.ServeHTTP(recorder, req)
-			tc.checkResponse(t, recorder)
+
+			// Test response
+			if got := recorder.Code; got != tc.wantStatusCode {
+				t.Errorf("Status code: got %v, want %v", got, tc.wantStatusCode)
+			}
+
+			res := web.Response{
+				Data: &struct {
+					Account domain.Account `json:"account"`
+				}{},
+			}
+
+			if err := json.NewDecoder(recorder.Body).Decode(&res); err != nil {
+				t.Errorf("Decoding response body error: %v", err)
+			}
+
+			if tc.wantStatusCode != http.StatusOK {
+				if res.Error != tc.wantError {
+					t.Errorf(`resp.Error=%q, want %q`, res.Error, tc.wantError)
+				}
+			} else {
+				tc.checkData(tc.requestBody, res.Data)
+			}
 		})
 	}
 }
 
 func TestGet(t *testing.T) {
 	username := randompkg.Owner()
-	account := randomAccount(username)
-	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
-	require.NoError(t, err)
+	account := test.RandomAccount(username)
+	username2 := randompkg.Owner()
+	account2 := test.RandomAccount(username2)
+	tokenSymmetricKey := randompkg.String(32)
+
+	tokenMaker, err := tokenpkg.NewPasetoMaker(tokenSymmetricKey)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", tokenSymmetricKey, err)
+	}
+
+	authType := middleware.AuthTypeBearer
+	duration := time.Minute
 
 	testCases := []struct {
-		name          string
-		accountID     int32
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
-		buildStubs    func(accountService *MockService)
-		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+		name           string
+		accountID      int32
+		setupAuth      func(t *testing.T, r *http.Request) error
+		buildStubs     func(accountService *MockService)
+		wantStatusCode int
+		wantError      string
+		checkData      func(data any)
 	}{
+		{
+			name:      "OK",
+			accountID: account.ID,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
+			},
+			buildStubs: func(accountService *MockService) {
+				accountService.EXPECT().
+					Get(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(account, nil)
+			},
+			wantStatusCode: http.StatusOK,
+			checkData: func(data any) {
+				got, ok := data.(*struct {
+					Account domain.Account `json:"account"`
+				})
+				if !ok {
+					t.Errorf(`res.Data=%v, failed type conversion`, data)
+				}
+
+				want := account
+
+				compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+				if diff := cmp.Diff(want, got.Account, compareCreatedAt); diff != "" {
+					t.Errorf("res.Data mismatch (-want +got):\n%s", diff)
+				}
+			},
+		},
 		{
 			name:      "NoAuthorization",
 			accountID: account.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return nil
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
 					Get(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
 		},
 		{
 			name:      "InvalidID",
-			accountID: 0,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			accountID: -1,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
 					Get(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
+			wantStatusCode: http.StatusBadRequest,
+			wantError:      "ID must be at least 1 characters long",
 		},
 		{
-			name:      "NotFound",
+			name:      "ErrAccountNotFound",
 			accountID: account.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -288,16 +345,14 @@ func TestGet(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, domain.ErrAccountNotFound)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, recorder.Code)
-			},
+			wantStatusCode: http.StatusNotFound,
+			wantError:      domain.ErrAccountNotFound.Error(),
 		},
 		{
 			name:      "InternalError",
 			accountID: account.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
@@ -305,47 +360,23 @@ func TestGet(t *testing.T) {
 					Times(1).
 					Return(domain.Account{}, sql.ErrConnDone)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			},
+			wantStatusCode: http.StatusInternalServerError,
+			wantError:      errorspkg.ErrInternal.Error(),
 		},
 		{
 			name:      "UnauthorizedUser",
-			accountID: account.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, "UnauthorizedUser", time.Minute)
-				require.NoError(t, err)
+			accountID: account2.ID,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
 			buildStubs: func(accountService *MockService) {
 				accountService.EXPECT().
-					Get(gomock.Any(), gomock.Eq(account.ID)).
+					Get(gomock.Any(), gomock.Eq(account2.ID)).
 					Times(1).
-					Return(account, nil)
+					Return(account2, nil)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
-		},
-		{
-			name:      "OK",
-			accountID: account.ID,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
-			},
-			buildStubs: func(accountService *MockService) {
-				accountService.EXPECT().
-					Get(gomock.Any(), gomock.Eq(account.ID)).
-					Times(1).
-					Return(account, nil)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-				res := response{
-					Data: data{account},
-				}
-				requireBodyMatchAccount(t, recorder.Body, res)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      domain.ErrAccountOwnerMismatch.Error(),
 		},
 	}
 
@@ -355,9 +386,9 @@ func TestGet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Initialize mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-
 			accountService := NewMockService(ctrl)
 			accountHandler := NewHandler(accountService)
 
@@ -367,137 +398,165 @@ func TestGet(t *testing.T) {
 
 			tc.buildStubs(accountService)
 
-			recorder := httptest.NewRecorder()
-
+			// Send request
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
-			request, err := http.NewRequest(http.MethodGet, url, nil)
-			require.NoError(t, err)
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			if err != nil {
+				t.Fatalf("Creating request error: %v", err)
+			}
 
-			tc.setupAuth(t, request, tokenMaker)
-			server.ServeHTTP(recorder, request)
-			tc.checkResponse(t, recorder)
+			if err = tc.setupAuth(t, req); err != nil {
+				t.Fatalf("tc.setupAuth(t, %+v) returned error: %v", req, err)
+			}
+
+			recorder := httptest.NewRecorder()
+			server.ServeHTTP(recorder, req)
+
+			// Test response
+			if got := recorder.Code; got != tc.wantStatusCode {
+				t.Errorf("Status code: got %v, want %v", got, tc.wantStatusCode)
+			}
+
+			res := web.Response{
+				Data: &struct {
+					Account domain.Account `json:"account"`
+				}{},
+			}
+
+			if err := json.NewDecoder(recorder.Body).Decode(&res); err != nil {
+				t.Fatalf("Decoding response body error: %v", err)
+			}
+
+			if tc.wantStatusCode != http.StatusOK {
+				if res.Error != tc.wantError {
+					t.Errorf(`resp.Error=%q, want %q`, res.Error, tc.wantError)
+				}
+			} else {
+				tc.checkData(res.Data)
+			}
 		})
 	}
 }
 
 func TestList(t *testing.T) {
 	username := randompkg.Owner()
+	tokenSymmetricKey := randompkg.String(32)
+
+	tokenMaker, err := tokenpkg.NewPasetoMaker(tokenSymmetricKey)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", tokenSymmetricKey, err)
+	}
+
+	authType := middleware.AuthTypeBearer
+	duration := time.Minute
 
 	// n specifies number of account in DB
 	n := 10
 	accounts := make([]domain.Account, n)
 
 	for i := 0; i < n; i++ {
-		accounts[i] = randomAccount(username)
+		accounts[i] = test.RandomAccount(username)
 	}
 
 	testCases := []struct {
-		name          string
-		pageID        int32
-		pageSize      int32
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
-		buildStubs    func(accountService *MockService)
-		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+		name           string
+		pageID         int32
+		pageSize       int32
+		setupAuth      func(t *testing.T, r *http.Request) error
+		buildStubs     func(accountService *MockService, pageID, pageSize int32)
+		wantStatusCode int
+		checkData      func(data any)
+		wantError      string
 	}{
+		{
+			name:     "OK",
+			pageID:   1,
+			pageSize: 10,
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
+			},
+			buildStubs: func(accountService *MockService, pageID, pageSize int32) {
+				accountService.EXPECT().
+					List(context.Background(), username, pageID, pageSize).
+					Times(1).
+					Return(accounts, nil)
+			},
+			wantStatusCode: http.StatusOK,
+			checkData: func(data any) {
+				got := data.(*struct {
+					Accounts []domain.Account `json:"accounts"`
+				})
+
+				want := accounts
+
+				compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+				if diff := cmp.Diff(want, got.Accounts, compareCreatedAt); diff != "" {
+					t.Errorf("res.Data mismatch (-want +got):\n%s", diff)
+				}
+			},
+		},
 		{
 			name:     "NoAuthorization",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return nil
 			},
-			buildStubs: func(accountService *MockService) {
+			buildStubs: func(accountService *MockService, pageID, pageSize int32) {
 				accountService.EXPECT().
 					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
 		},
 		{
 			name:     "InvalidPageID",
-			pageID:   -1,
+			pageID:   0,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
-			buildStubs: func(accountService *MockService) {
+			buildStubs: func(accountService *MockService, pageID, pageSize int32) {
 				accountService.EXPECT().
 					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
+			wantStatusCode: http.StatusBadRequest,
+			wantError:      "PageID field is required",
 		},
 		{
-			name:     "InvalidPageSize",
+			name:     "ExceededPageSize",
 			pageID:   1,
 			pageSize: 500,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
-			buildStubs: func(accountService *MockService) {
+			buildStubs: func(accountService *MockService, pageID, pageSize int32) {
 				accountService.EXPECT().
 					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
+			wantStatusCode: http.StatusBadRequest,
+			wantError:      "PageSize must be less than 100",
 		},
 		{
 			name:     "InternalError",
 			pageID:   1,
 			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return middleware.AddAuthorization(r, tokenMaker, authType, username, duration)
 			},
-			buildStubs: func(accountService *MockService) {
+			buildStubs: func(accountService *MockService, pageID, pageSize int32) {
 				accountService.EXPECT().
 					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]domain.Account{}, sql.ErrConnDone)
+					Return([]domain.Account{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			},
-		},
-		{
-			name:     "InternalError",
-			pageID:   1,
-			pageSize: 5,
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := middleware.AddAuthorization(request, tokenMaker, middleware.AuthTypeBearer, username, time.Minute)
-				require.NoError(t, err)
-			},
-			buildStubs: func(accountService *MockService) {
-				accountService.EXPECT().
-					List(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-					Times(1).
-					Return(accounts, nil)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-
-				res := responseAccounts{
-					Data: dataAccounts{accounts},
-				}
-
-				var gotRes responseAccounts
-				err := json.Unmarshal(recorder.Body.Bytes(), &gotRes)
-				require.NoError(t, err)
-
-				require.Equal(t, res, gotRes)
-			},
+			wantStatusCode: http.StatusInternalServerError,
+			wantError:      errorspkg.ErrInternal.Error(),
 		},
 	}
-
-	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
-	require.NoError(t, err)
 
 	for i := range testCases {
 		tc := testCases[i]
@@ -505,27 +564,54 @@ func TestList(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Initialize mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-
 			accountService := NewMockService(ctrl)
 			accountHandler := NewHandler(accountService)
-
-			tc.buildStubs(accountService)
 
 			server := gin.New()
 			server.Use(middleware.AuthMiddleware(tokenMaker))
 			server.GET("/accounts", accountHandler.List)
 
-			recorder := httptest.NewRecorder()
+			tc.buildStubs(accountService, tc.pageID, tc.pageSize)
 
+			// Send request
 			url := fmt.Sprintf("/accounts?page_id=%v&page_size=%v", tc.pageID, tc.pageSize)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
-			require.NoError(t, err)
+			if err != nil {
+				t.Fatalf("Creating request error: %v", err)
+			}
 
-			tc.setupAuth(t, req, tokenMaker)
+			if err = tc.setupAuth(t, req); err != nil {
+				t.Fatalf("tc.setupAuth(t, %+v) returned error: %v", req, err)
+			}
+
+			recorder := httptest.NewRecorder()
 			server.ServeHTTP(recorder, req)
-			tc.checkResponse(t, recorder)
+
+			// Test response
+			if got := recorder.Code; got != tc.wantStatusCode {
+				t.Errorf("Status code: got %v, want %v", got, tc.wantStatusCode)
+			}
+
+			res := web.Response{
+				Data: &struct {
+					Accounts []domain.Account `json:"accounts"`
+				}{},
+			}
+
+			if err := json.NewDecoder(recorder.Body).Decode(&res); err != nil {
+				t.Fatalf("Decoding response body error: %v", err)
+			}
+
+			if tc.wantStatusCode != http.StatusOK {
+				if res.Error != tc.wantError {
+					t.Errorf(`resp.Error=%q, want %q`, res.Error, tc.wantError)
+				}
+			} else {
+				tc.checkData(res.Data)
+			}
 		})
 	}
 }

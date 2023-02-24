@@ -27,7 +27,7 @@ test.integration.api:
 	go test -count 1 -cover -coverprofile cover.out  -tags=integration  ./cmd/httpserver/tests
 
 test.unit:
-	go test -count 1 ./...
+	go test -count 1 -cover -coverprofile cover.out ./...
 
 test.api:
 	go test -v -count 1 -tags=integration ./cmd/httpserver/tests 

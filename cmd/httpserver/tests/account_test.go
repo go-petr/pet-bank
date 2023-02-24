@@ -5,9 +5,9 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 	"time"
 
@@ -20,7 +20,6 @@ import (
 	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreateAccountAPI(t *testing.T) {
@@ -29,11 +28,16 @@ func TestCreateAccountAPI(t *testing.T) {
 	user := test.SeedUser(t, server.DB)
 	test.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
+	}
 
 	type requestBody struct {
 		Currency string `json:"currency"`
 	}
+
+	authType := middleware.AuthTypeBearer
+	duration := server.Config.AccessTokenDuration
 
 	testCases := []struct {
 		name           string
@@ -47,9 +51,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			name:        "OK",
 			requestBody: requestBody{Currency: currencypkg.EUR},
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusOK,
 			checkData: func(req requestBody, res web.Response) {
@@ -87,9 +89,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			name:        "InvalidCurrency",
 			requestBody: requestBody{Currency: "FAIL"},
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantError:      "Currency is not supported",
@@ -98,9 +98,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			name:        "ErrOwnerNotFound",
 			requestBody: requestBody{Currency: currencypkg.EUR},
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, "username", d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, "username", duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantError:      domain.ErrOwnerNotFound.Error(),
@@ -109,9 +107,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			name:        "ErrCurrencyAlreadyExists",
 			requestBody: requestBody{Currency: currencypkg.USD},
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusConflict,
 			wantError:      domain.ErrCurrencyAlreadyExists.Error(),
@@ -175,11 +171,12 @@ func TestGetAccountAPI(t *testing.T) {
 	user2 := test.SeedUser(t, server.DB)
 	account2 := test.SeedAccountWith1000USDBalance(t, server.DB, user2.Username)
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
-	require.NoError(t, err)
-
-	type requestBody struct {
-		ID int32 `json:"id"`
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
 	}
+
+	authType := middleware.AuthTypeBearer
+	duration := server.Config.AccessTokenDuration
 
 	testCases := []struct {
 		name           string
@@ -193,9 +190,7 @@ func TestGetAccountAPI(t *testing.T) {
 			name:      "OK",
 			accountID: account.ID,
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusOK,
 			checkData: func(res web.Response) {
@@ -227,9 +222,7 @@ func TestGetAccountAPI(t *testing.T) {
 			name:      "InvalidID",
 			accountID: -1,
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantError:      "ID must be at least 1 characters long",
@@ -238,9 +231,7 @@ func TestGetAccountAPI(t *testing.T) {
 			name:      "ErrAccountNotFound",
 			accountID: 1200000000,
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusNotFound,
 			wantError:      domain.ErrAccountNotFound.Error(),
@@ -249,9 +240,7 @@ func TestGetAccountAPI(t *testing.T) {
 			name:      "ErrAccountOwnerMismatch",
 			accountID: account2.ID,
 			setupAuth: func(t *testing.T, r *http.Request) error {
-				authType := middleware.AuthTypeBearer
-				d := server.Config.AccessTokenDuration
-				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, d)
+				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
 			wantStatusCode: http.StatusUnauthorized,
 			wantError:      domain.ErrAccountOwnerMismatch.Error(),
@@ -264,7 +253,8 @@ func TestGetAccountAPI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// Send request
-			req, err := http.NewRequest(http.MethodGet, "/accounts/"+strconv.Itoa(int(tc.accountID)), nil)
+			url := fmt.Sprintf("/accounts/%d", tc.accountID)
+			req, err := http.NewRequest(http.MethodGet, url, nil)
 			if err != nil {
 				t.Fatalf("Creating request error: %v", err)
 			}
@@ -312,25 +302,22 @@ func TestListAccountAPI(t *testing.T) {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
 	}
 
-	type requestBody struct {
-		PageID   int32 `form:"page_id" binding:"required,min=1"`
-		PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
-	}
-
 	authType := middleware.AuthTypeBearer
 	duration := server.Config.AccessTokenDuration
 
 	testCases := []struct {
 		name           string
-		requestBody    requestBody
+		pageID         int32
+		pageSize       int32
 		setupAuth      func(t *testing.T, r *http.Request) error
 		wantStatusCode int
 		checkData      func(res web.Response)
 		wantError      string
 	}{
 		{
-			name:        "OK",
-			requestBody: requestBody{PageID: 1, PageSize: 5},
+			name:     "OK",
+			pageID:   1,
+			pageSize: 5,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
@@ -352,8 +339,9 @@ func TestListAccountAPI(t *testing.T) {
 			},
 		},
 		{
-			name:        "PageSize:2",
-			requestBody: requestBody{PageID: 1, PageSize: 2},
+			name:     "PageSize:2",
+			pageID:   1,
+			pageSize: 2,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
@@ -375,8 +363,9 @@ func TestListAccountAPI(t *testing.T) {
 			},
 		},
 		{
-			name:        "PageID:2PageSize:2",
-			requestBody: requestBody{PageID: 2, PageSize: 2},
+			name:     "PageID:2PageSize:2",
+			pageID:   2,
+			pageSize: 2,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
@@ -398,8 +387,9 @@ func TestListAccountAPI(t *testing.T) {
 			},
 		},
 		{
-			name:        "NoAuthorization",
-			requestBody: requestBody{PageID: 1, PageSize: 5},
+			name:     "NoAuthorization",
+			pageID:   1,
+			pageSize: 5,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return nil
 			},
@@ -407,8 +397,9 @@ func TestListAccountAPI(t *testing.T) {
 			wantError:      middleware.ErrAuthHeaderNotFound.Error(),
 		},
 		{
-			name:        "InvalidPageID",
-			requestBody: requestBody{PageID: 0, PageSize: 5},
+			name:     "InvalidPageID",
+			pageID:   0,
+			pageSize: 5,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
@@ -416,8 +407,9 @@ func TestListAccountAPI(t *testing.T) {
 			wantError:      "PageID field is required",
 		},
 		{
-			name:        "ExceededPageSize",
-			requestBody: requestBody{PageID: 1, PageSize: 500},
+			name:     "ExceededPageSize",
+			pageID:   1,
+			pageSize: 500,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
@@ -425,8 +417,9 @@ func TestListAccountAPI(t *testing.T) {
 			wantError:      "PageSize must be less than 100",
 		},
 		{
-			name:        "NoAccountsForGivenOwner",
-			requestBody: requestBody{PageID: 1, PageSize: 50},
+			name:     "NoAccountsForGivenOwner",
+			pageID:   1,
+			pageSize: 5,
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, "user.Username", duration)
 			},
@@ -455,12 +448,8 @@ func TestListAccountAPI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// Send request
-			body, err := json.Marshal(tc.requestBody)
-			if err != nil {
-				t.Fatalf("Encoding request body error: %v", err)
-			}
-
-			req, err := http.NewRequest(http.MethodGet, "/accounts", bytes.NewReader(body))
+			url := fmt.Sprintf("/accounts?page_id=%v&page_size=%v", tc.pageID, tc.pageSize)
+			req, err := http.NewRequest(http.MethodGet, url, nil)
 			if err != nil {
 				t.Fatalf("Creating request error: %v", err)
 			}

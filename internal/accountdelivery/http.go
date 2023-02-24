@@ -37,13 +37,6 @@ func NewHandler(as Service) Handler {
 	return Handler{service: as}
 }
 
-type data struct {
-	Account domain.Account `json:"account"`
-}
-type response struct {
-	Data data `json:"data,omitempty"`
-}
-
 type createRequest struct {
 	Currency string `json:"currency" binding:"required,currency"`
 }
@@ -89,8 +82,12 @@ func (h *Handler) Create(gctx *gin.Context) {
 		return
 	}
 
-	res := response{
-		Data: data{createdAccount},
+	res := web.Response{
+		Data: &struct {
+			Account domain.Account `json:"account"`
+		}{
+			Account: createdAccount,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
@@ -123,7 +120,7 @@ func (h *Handler) Get(gctx *gin.Context) {
 		return
 	}
 
-	acc, err := h.service.Get(ctx, req.ID)
+	account, err := h.service.Get(ctx, req.ID)
 	if err != nil {
 		if err == domain.ErrAccountNotFound {
 			gctx.JSON(http.StatusNotFound, web.Error(err))
@@ -136,15 +133,19 @@ func (h *Handler) Get(gctx *gin.Context) {
 	}
 
 	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
-	if acc.Owner != authPayload.Username {
+	if account.Owner != authPayload.Username {
 		l.Warn().Err(err).Send()
 		gctx.JSON(http.StatusUnauthorized, web.Error(domain.ErrAccountOwnerMismatch))
 
 		return
 	}
 
-	res := response{
-		Data: data{acc},
+	res := web.Response{
+		Data: &struct {
+			Account domain.Account `json:"account"`
+		}{
+			Account: account,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
@@ -155,20 +156,13 @@ type listRequest struct {
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
 }
 
-type dataAccounts struct {
-	Accounts []domain.Account `json:"accounts"`
-}
-type responseAccounts struct {
-	Data dataAccounts `json:"data,omitempty"`
-}
-
 // List handles http request to list accounts.
 func (h *Handler) List(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 	l := zerolog.Ctx(gctx)
 
 	var req listRequest
-	if err := gctx.ShouldBindJSON(&req); err != nil {
+	if err := gctx.ShouldBindQuery(&req); err != nil {
 		var (
 			ve     validator.ValidationErrors
 			errMsg string
@@ -187,16 +181,19 @@ func (h *Handler) List(gctx *gin.Context) {
 
 	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 
-	accounts, err := h.service.List(ctx, authPayload.Username, req.PageSize, req.PageID)
+	accounts, err := h.service.List(ctx, authPayload.Username, req.PageID, req.PageSize)
 	if err != nil {
-
 		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
-	res := responseAccounts{
-		Data: dataAccounts{accounts},
+	res := web.Response{
+		Data: &struct {
+			Accounts []domain.Account `json:"accounts"`
+		}{
+			Accounts: accounts,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
