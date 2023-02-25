@@ -58,8 +58,6 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		l.Info().Err(err).Send()
-
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
 			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
@@ -67,7 +65,8 @@ func (h *Handler) Create(gctx *gin.Context) {
 			return
 		}
 
-		gctx.JSON(http.StatusBadRequest, web.Error(err))
+		l.Error().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
