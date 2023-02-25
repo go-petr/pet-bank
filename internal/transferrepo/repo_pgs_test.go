@@ -47,7 +47,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-
 	testCases := []struct {
 		name         string
 		wantTransfer func(tx *sql.Tx) domain.Transfer
@@ -164,7 +163,6 @@ func TestCreate(t *testing.T) {
 }
 
 func SeedTransfer(t *testing.T, tx *sql.Tx, fromAccountID, toAccountID int32, amount string) domain.Transfer {
-
 	transferRepo := transferrepo.NewTxRepoPGS(tx)
 
 	arg := domain.CreateTransferParams{
@@ -183,7 +181,6 @@ func SeedTransfer(t *testing.T, tx *sql.Tx, fromAccountID, toAccountID int32, am
 }
 
 func TestGet(t *testing.T) {
-
 	testCases := []struct {
 		name         string
 		wantTransfer func(tx *sql.Tx) domain.Transfer
@@ -244,7 +241,6 @@ func TestGet(t *testing.T) {
 }
 
 func SeedTransfers(t *testing.T, tx *sql.Tx, fromAccountID, toAccountID int32, count int) []domain.Transfer {
-
 	transfers := make([]domain.Transfer, count)
 
 	for i := range transfers {
@@ -395,10 +391,12 @@ func TestTransferTx(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decimal.NewFromString(%v) returned error: %v", account1.Balance, err)
 	}
+
 	account2BalanceBefore, err := decimal.NewFromString(account2.Balance)
 	if err != nil {
 		t.Fatalf("decimal.NewFromString(%v) returned error: %v", account2.Balance, err)
 	}
+
 	amountDecimal, err := decimal.NewFromString(amount)
 	if err != nil {
 		t.Fatalf("decimal.NewFromString(%v) returned error: %v", amount, err)
@@ -436,6 +434,7 @@ func TestTransferTx(t *testing.T) {
 		if err != nil {
 			t.Fatalf("decimal.NewFromString(%v) returned error: %v", got.FromAccount.Balance, err)
 		}
+
 		account2BalanceAfter, err := decimal.NewFromString(got.ToAccount.Balance)
 		if err != nil {
 			t.Fatalf("decimal.NewFromString(%v) returned error: %v", got.ToAccount.Balance, err)
@@ -443,6 +442,7 @@ func TestTransferTx(t *testing.T) {
 
 		diff1 := account1BalanceBefore.Sub(account1BalanceAfter)
 		diff2 := account2BalanceAfter.Sub(account2BalanceBefore)
+
 		if !diff1.Equal(diff2) {
 			t.Fatalf("diff1 = %v, diff2 = %v, want equal", diff1, diff2)
 		}
@@ -451,9 +451,11 @@ func TestTransferTx(t *testing.T) {
 		if k < 1 || k > n {
 			t.Fatalf("k = %v, want k >= 1 && k <= n", k)
 		}
+
 		if existed[k] {
 			t.Fatalf("k = %v already exists, want k to be unique", k)
 		}
+
 		existed[k] = true
 	}
 
@@ -502,7 +504,6 @@ func TestTransferTxDeadlock(t *testing.T) {
 	errs := make(chan error)
 
 	for i := 0; i < n; i++ {
-
 		fromAccountID, toAccountID := account1.ID, account2.ID
 		// Change transfer direction
 		if i%2 == 0 {

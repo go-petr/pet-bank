@@ -24,7 +24,6 @@ type Response struct {
 
 // GetErrorMsg parses error message from request validator.
 func GetErrorMsg(ve validator.ValidationErrors) string {
-
 	field := ve[0]
 	errMsg := field.Field()
 

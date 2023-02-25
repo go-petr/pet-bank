@@ -42,7 +42,6 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 		{
 			name: "OK",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, payload, err := tokenMaker.CreateToken(user.Username, duration)
@@ -74,13 +73,11 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 				if err != nil {
 					t.Errorf("tokenMaker.VerifyToken(got.AccessToken) returned error: %v", err)
 				}
-
 			},
 		},
 		{
 			name: "ErrExpiredToken",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, _, err := tokenMaker.CreateToken(user.Username, -time.Minute)
@@ -99,7 +96,6 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 		{
 			name: "ErrSessionNotFound",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, _, err := tokenMaker.CreateToken(user.Username, duration)
@@ -118,7 +114,6 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 		{
 			name: "ErrBlockedSession",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, payload, err := tokenMaker.CreateToken(user.Username, duration)
@@ -148,7 +143,6 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 		{
 			name: "ErrInvalidUser",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, payload, err := tokenMaker.CreateToken(user.Username, duration)
@@ -179,7 +173,6 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 		{
 			name: "ErrMismatchedRefreshToken",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, payload, err := tokenMaker.CreateToken(user.Username, duration)
@@ -215,7 +208,6 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 		{
 			name: "ErrExpiredSession",
 			requestBody: func(t *testing.T) requestBody {
-
 				user := helpers.SeedUser(t, server.DB)
 
 				refreshToken, payload, err := tokenMaker.CreateToken(user.Username, duration)

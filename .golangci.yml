@@ -1,3 +1,21 @@
+# Options for analysis running.
+run:
+  # The default concurrency value is the number of available CPU.
+  concurrency: 4
+  # Timeout for analysis, e.g. 30s, 5m.
+  # Default: 1m
+  timeout: 5m
+  # Exit code when at least one issue was found.
+  # Default: 1
+  issues-exit-code: 2
+  # Include test files or not.
+  # Default: true
+  tests: true
+  # List of build tags, all linters use it.
+  # Default: [].
+  build-tags:
+    - integration
+
 linters: # https://golangci-lint.run/usage/linters/
   disable-all: true
   enable:

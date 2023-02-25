@@ -40,7 +40,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-
 	testCases := []struct {
 		name        string
 		wantAccount func(tx *sql.Tx) domain.Account
@@ -136,7 +135,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
 	testCases := []struct {
 		name        string
 		wantAccount func(tx *sql.Tx) domain.Account
@@ -190,7 +188,6 @@ func TestGet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-
 	testCases := []struct {
 		name        string
 		wantAccount func(tx *sql.Tx) domain.Account
@@ -238,8 +235,6 @@ func TestDelete(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	const entriesCount = 30
-
 	testCases := []struct {
 		name         string
 		limit        int32
@@ -322,7 +317,6 @@ func TestList(t *testing.T) {
 }
 
 func TestAddBalance(t *testing.T) {
-
 	testCases := []struct {
 		name        string
 		amount      string

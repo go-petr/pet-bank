@@ -40,7 +40,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-
 	testCases := []struct {
 		name    string
 		arg     func(tx *sql.Tx) domain.CreateUserParams
@@ -150,7 +149,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
 	testCases := []struct {
 		name    string
 		want    func(tx *sql.Tx) domain.User

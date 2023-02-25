@@ -42,7 +42,6 @@ func TestMain(m *testing.M) {
 }
 
 func SeedSession(t *testing.T, tx *sql.Tx, username string) domain.Session {
-
 	arg := domain.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     username,
@@ -63,7 +62,6 @@ func SeedSession(t *testing.T, tx *sql.Tx, username string) domain.Session {
 }
 
 func TestCreate(t *testing.T) {
-
 	testCases := []struct {
 		name        string
 		wantSession func(tx *sql.Tx) domain.Session
@@ -156,7 +154,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGetSession(t *testing.T) {
-
 	testCases := []struct {
 		name        string
 		wantSession func(tx *sql.Tx) domain.Session

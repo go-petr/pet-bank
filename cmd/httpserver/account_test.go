@@ -28,6 +28,7 @@ func TestCreateAccountAPI(t *testing.T) {
 
 	user := helpers.SeedUser(t, server.DB)
 	helpers.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
+
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
 	if err != nil {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
@@ -119,7 +120,6 @@ func TestCreateAccountAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			// Send request
 			body, err := json.Marshal(tc.requestBody)
 			if err != nil {
@@ -171,6 +171,7 @@ func TestGetAccountAPI(t *testing.T) {
 	account := helpers.SeedAccountWith1000USDBalance(t, server.DB, user.Username)
 	user2 := helpers.SeedUser(t, server.DB)
 	account2 := helpers.SeedAccountWith1000USDBalance(t, server.DB, user2.Username)
+
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
 	if err != nil {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
@@ -252,7 +253,6 @@ func TestGetAccountAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			// Send request
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -298,6 +298,7 @@ func TestListAccountAPI(t *testing.T) {
 
 	user := helpers.SeedUser(t, server.DB)
 	accounts := helpers.SeedAllCurrenciesAccountsWith1000Balance(t, server.DB, user.Username)
+
 	tokenMaker, err := tokenpkg.NewPasetoMaker(server.Config.TokenSymmetricKey)
 	if err != nil {
 		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", server.Config.TokenSymmetricKey, err)
@@ -447,7 +448,6 @@ func TestListAccountAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			// Send request
 			url := fmt.Sprintf("/accounts?page_id=%v&page_size=%v", tc.pageID, tc.pageSize)
 			req, err := http.NewRequest(http.MethodGet, url, nil)

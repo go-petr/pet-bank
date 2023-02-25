@@ -39,7 +39,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-
 	testCases := []struct {
 		name      string
 		wantEntry func(tx *sql.Tx) domain.Entry
@@ -107,7 +106,6 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
 	testCases := []struct {
 		name      string
 		wantEntry func(tx *sql.Tx) domain.Entry

@@ -23,7 +23,7 @@ var (
 	ErrAuthHeaderNotFound = errors.New("authorization header is not found")
 	// ErrBadAuthHeaderFormat indicates invalid authorization header format.
 	ErrBadAuthHeaderFormat = errors.New("invalid authorization header format")
-	// ErrUnsupportedAuthType indicates unsupported authorization type
+	// ErrUnsupportedAuthType indicates unsupported authorization type.
 	ErrUnsupportedAuthType = errors.New("unsupported authorization type")
 )
 
