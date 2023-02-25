@@ -3,11 +3,15 @@ package sessiondelivery
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
+	"github.com/go-petr/pet-bank/pkg/web"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 )
 
@@ -34,11 +38,6 @@ type renewAccessTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-type renewAccessTokenResponse struct {
-	AccessToken          string    `json:"access_token"`
-	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
-}
-
 // RenewAccessToken handles http request to renew access token.
 func (h *Handler) RenewAccessToken(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
@@ -46,22 +45,45 @@ func (h *Handler) RenewAccessToken(gctx *gin.Context) {
 
 	var req renewAccessTokenRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		l.Error().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
 	accessToken, accessTokenExpiresAt, err := h.service.RenewAccessToken(ctx, req.RefreshToken)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(err))
+		switch err {
+		case
+			domain.ErrSessionNotFound:
+			gctx.JSON(http.StatusUnauthorized, web.Error(err))
+			return
+		case
+			domain.ErrExpiredToken,
+			domain.ErrBlockedSession,
+			domain.ErrInvalidUser,
+			domain.ErrMismatchedRefreshToken,
+			domain.ErrExpiredSession:
+			gctx.JSON(http.StatusForbidden, web.Error(err))
+			return
+		}
+
+		l.Info().Err(err).Send()
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
-	rsp := renewAccessTokenResponse{
+	res := web.Response{
 		AccessToken:          accessToken,
 		AccessTokenExpiresAt: accessTokenExpiresAt,
 	}
-	gctx.JSON(http.StatusOK, rsp)
+	gctx.JSON(http.StatusOK, res)
 }

@@ -1,4 +1,6 @@
-package userrepo
+//go:build integration
+
+package userrepo_test
 
 import (
 	"context"
@@ -9,16 +11,20 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
+	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	_ "github.com/lib/pq"
 )
 
 var (
-	testUserRepo *RepoPGS
+	dbDriver string
+	dbSource string
 )
 
 func TestMain(m *testing.M) {
@@ -27,89 +33,175 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot load config:", err)
 	}
 
-	testDB, err := sql.Open(config.DBDriver, config.DBSource)
-	if err != nil {
-		log.Fatal("cannot connect to db:", err)
-	}
-
-	testUserRepo = NewRepoPGS(testDB)
+	dbDriver = config.DBDriver
+	dbSource = config.DBSource
 
 	os.Exit(m.Run())
 }
 
-func createRandomUser(t *testing.T) domain.User {
-	hashedPassword, err := passpkg.Hash(randompkg.String(10))
-	require.NoError(t, err)
-
-	arg := domain.CreateUserParams{
-		Username:       randompkg.Owner(),
-		HashedPassword: hashedPassword,
-		FullName:       randompkg.Owner(),
-		Email:          randompkg.Email(),
-	}
-
-	user, err := testUserRepo.Create(context.Background(), arg)
-	require.NoError(t, err)
-	require.NotEmpty(t, user)
-
-	require.Equal(t, arg.Username, user.Username)
-	require.Equal(t, arg.HashedPassword, user.HashedPassword)
-	require.Equal(t, arg.FullName, user.FullName)
-	require.Equal(t, arg.Email, user.Email)
-
-	require.NotZero(t, user.CreatedAt)
-
-	return user
-}
-
 func TestCreate(t *testing.T) {
-	createRandomUser(t)
-}
+	testCases := []struct {
+		name    string
+		arg     func(tx *sql.Tx) domain.CreateUserParams
+		wantErr error
+	}{
+		{
+			name: "OK",
+			arg: func(tx *sql.Tx) domain.CreateUserParams {
+				return domain.CreateUserParams{
+					Username:       randompkg.Owner(),
+					HashedPassword: randompkg.String(32),
+					FullName:       randompkg.String(10),
+					Email:          randompkg.Email(),
+				}
+			},
+		},
+		{
+			name: "ErrUsernameAlreadyExists",
+			arg: func(tx *sql.Tx) domain.CreateUserParams {
+				arg := domain.CreateUserParams{
+					Username:       randompkg.Owner(),
+					HashedPassword: randompkg.String(32),
+					FullName:       randompkg.String(10),
+					Email:          randompkg.Email(),
+				}
 
-func TestCreateUserUniqueViolation(t *testing.T) {
-	user1 := createRandomUser(t)
+				userRepo := userrepo.NewRepoPGS(tx)
+				_, err := userRepo.Create(context.Background(), arg)
+				if err != nil {
+					t.Fatalf(`userRepo.Create(context.Background(), %v) returned error: %v`,
+						arg, err.Error())
+				}
 
-	hashedPassword, err := passpkg.Hash(randompkg.String(10))
-	require.NoError(t, err)
+				arg.Email = randompkg.Email()
 
-	arg := domain.CreateUserParams{
-		Username:       user1.Username, // Username duplicate
-		HashedPassword: hashedPassword,
-		FullName:       randompkg.Owner(),
-		Email:          randompkg.Email(),
+				return arg
+			},
+			wantErr: domain.ErrUsernameAlreadyExists,
+		},
+		{
+			name: "ErrEmailALreadyExists",
+			arg: func(tx *sql.Tx) domain.CreateUserParams {
+				arg := domain.CreateUserParams{
+					Username:       randompkg.Owner(),
+					HashedPassword: randompkg.String(32),
+					FullName:       randompkg.String(10),
+					Email:          randompkg.Email(),
+				}
+
+				userRepo := userrepo.NewRepoPGS(tx)
+				_, err := userRepo.Create(context.Background(), arg)
+				if err != nil {
+					t.Fatalf(`userRepo.Create(context.Background(), %v) returned error: %v`,
+						arg, err.Error())
+				}
+
+				arg.Username = randompkg.Owner()
+
+				return arg
+			},
+			wantErr: domain.ErrEmailALreadyExists,
+		},
 	}
 
-	user2, err := testUserRepo.Create(context.Background(), arg)
-	require.EqualError(t, err, domain.ErrUsernameAlreadyExists.Error())
-	require.Empty(t, user2)
+	for i := range testCases {
+		tc := testCases[i]
 
-	arg = domain.CreateUserParams{
-		Username:       randompkg.Owner(),
-		HashedPassword: hashedPassword,
-		FullName:       randompkg.Owner(),
-		Email:          user1.Email, // Email duplicate
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Prepare test transaction
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			userRepo := userrepo.NewRepoPGS(tx)
+
+			// Run test
+			arg := tc.arg(tx)
+			got, err := userRepo.Create(context.Background(), arg)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+				t.Fatalf(`userRepo.Create(context.Background(), %v) returned error: %v`,
+					arg, err.Error())
+			}
+
+			want := domain.User{
+				Username:          arg.Username,
+				HashedPassword:    arg.HashedPassword,
+				FullName:          arg.FullName,
+				Email:             arg.Email,
+				PasswordChangedAt: time.Now().UTC().Truncate(time.Second),
+				CreatedAt:         time.Now().UTC().Truncate(time.Second),
+			}
+
+			ignoreFields := cmpopts.IgnoreFields(domain.User{}, "PasswordChangedAt", "CreatedAt")
+			if diff := cmp.Diff(want, got, ignoreFields); diff != "" {
+				t.Errorf(`userRepo.Create(context.Background(), %v) returned unexpected difference (-want +got):\n%s"`,
+					arg, diff)
+			}
+
+			if !cmp.Equal(got.CreatedAt, want.CreatedAt, cmpopts.EquateApproxTime(time.Second)) {
+				t.Errorf("got.CreatedAt = %v, want %v +- minute",
+					got.CreatedAt.Truncate(time.Second), want.CreatedAt)
+			}
+		})
 	}
-
-	user2, err = testUserRepo.Create(context.Background(), arg)
-	require.EqualError(t, err, domain.ErrEmailALreadyExists.Error())
-	require.Empty(t, user2)
 }
 
-func TestGetUser(t *testing.T) {
-	user1 := createRandomUser(t)
+func TestGet(t *testing.T) {
+	testCases := []struct {
+		name    string
+		want    func(tx *sql.Tx) domain.User
+		wantErr error
+	}{
+		{
+			name: "OK",
+			want: func(tx *sql.Tx) domain.User {
+				return helpers.SeedUser(t, tx)
+			},
+		},
+		{
+			name: "ErrUserNotFound",
+			want: func(tx *sql.Tx) domain.User {
+				return domain.User{Username: "notfound"}
+			},
+			wantErr: domain.ErrUserNotFound,
+		},
+	}
 
-	user2, err := testUserRepo.Get(context.Background(), user1.Username)
-	require.NoError(t, err)
-	require.NotEmpty(t, user2)
+	for i := range testCases {
+		tc := testCases[i]
 
-	require.Equal(t, user1.Username, user2.Username)
-	require.Equal(t, user1.HashedPassword, user2.HashedPassword)
-	require.Equal(t, user1.FullName, user2.FullName)
-	require.Equal(t, user1.Email, user2.Email)
-	require.WithinDuration(t, user1.PasswordChangedAt, user2.PasswordChangedAt, time.Second)
-	require.WithinDuration(t, user1.CreatedAt, user2.CreatedAt, time.Second)
+		t.Run(tc.name, func(t *testing.T) {
+			// t.Parallel()
 
-	// Not found
-	_, err = testUserRepo.Get(context.Background(), "non-existent")
-	require.EqualError(t, err, domain.ErrUserNotFound.Error())
+			// Prepare test transaction and seed database
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			want := tc.want(tx)
+			userRepo := userrepo.NewRepoPGS(tx)
+
+			// Run test
+			got, err := userRepo.Get(context.Background(), want.Username)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+
+				t.Errorf(`userRepo.Get(context.Background(), %v) returned unexpected error: %v`,
+					want.Username, err)
+				return
+			}
+
+			ignoreFields := cmpopts.IgnoreFields(domain.User{}, "CreatedAt")
+			if diff := cmp.Diff(want, got, ignoreFields); diff != "" {
+				t.Errorf(`userRepo.Get(context.Background(), %v) returned unexpected difference (-want +got):\n%s"`,
+					want.Username, diff)
+			}
+
+			if !cmp.Equal(got.CreatedAt, want.CreatedAt, cmpopts.EquateApproxTime(time.Second)) {
+				t.Errorf("got.CreatedAt = %v, want %v +- minute",
+					got.CreatedAt.Truncate(time.Second), want.CreatedAt.Truncate(time.Second))
+			}
+		})
+	}
 }

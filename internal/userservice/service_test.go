@@ -63,12 +63,6 @@ func EqCreateUserParams(arg domain.CreateUserParams, password string) gomock.Mat
 func TestCreate(t *testing.T) {
 	testUser, testPassword := randomUser(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	userRepo := NewMockRepo(ctrl)
-	userService := New(userRepo)
-
 	type input struct {
 		Username string
 		Password string
@@ -159,6 +153,14 @@ func TestCreate(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			userRepo := NewMockRepo(ctrl)
+			userService := New(userRepo)
+
 			tc.buildStubs(userRepo)
 
 			response, err := userService.Create(context.Background(),

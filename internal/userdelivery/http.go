@@ -3,13 +3,15 @@ package userdelivery
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/pkg/web"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 )
 
@@ -42,17 +44,6 @@ func NewHandler(us Service, sm SessionMaker) *Handler {
 	}
 }
 
-type data struct {
-	User domain.UserWihtoutPassword `json:"user,omitempty"`
-}
-type response struct {
-	AccessToken           string    `json:"access_token"`
-	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
-	RefreshToken          string    `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
-	Data                  data      `json:"data,omitempty"`
-}
-
 type createRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -67,8 +58,15 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		l.Error().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -77,14 +75,14 @@ func (h *Handler) Create(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrUsernameAlreadyExists:
-			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
+			gctx.JSON(http.StatusConflict, web.Error(err))
 			return
 		case domain.ErrEmailALreadyExists:
-			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
+			gctx.JSON(http.StatusConflict, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -98,17 +96,21 @@ func (h *Handler) Create(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessionMaker.Create(ctx, arg)
 	if err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
-	res := response{
+	res := web.Response{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
-		Data:                  data{User: createdUser},
+		Data: struct {
+			User domain.UserWihtoutPassword `json:"user,omitempty"`
+		}{
+			User: createdUser,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
@@ -127,7 +129,15 @@ func (h *Handler) Login(gctx *gin.Context) {
 	var req loginRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
@@ -136,14 +146,14 @@ func (h *Handler) Login(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrUserNotFound:
-			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
+			gctx.JSON(http.StatusNotFound, web.Error(err))
 			return
 		case domain.ErrWrongPassword:
-			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+			gctx.JSON(http.StatusUnauthorized, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -157,17 +167,21 @@ func (h *Handler) Login(gctx *gin.Context) {
 	accessToken, accessTokenExpiresAt, session, err := h.sessionMaker.Create(ctx, arg)
 	if err != nil {
 		l.Warn().Err(err).Send()
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
-	res := response{
+	res := web.Response{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
 		RefreshTokenExpiresAt: session.ExpiresAt,
-		Data:                  data{User: userWihtoutPassword},
+		Data: struct {
+			User domain.UserWihtoutPassword `json:"user,omitempty"`
+		}{
+			User: userWihtoutPassword,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)

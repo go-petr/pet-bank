@@ -1,6 +1,14 @@
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var (
+	// ErrEntryNotFound indicates that the entry is not found.
+	ErrEntryNotFound = errors.New("entry not found")
+)
 
 // Entry holds balance change data for an account.
 type Entry struct {

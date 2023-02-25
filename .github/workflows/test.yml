@@ -15,7 +15,7 @@ jobs:
         image: postgres:14
         env:
           POSTGRES_USER: root
-          POSTGRES_PASSWORD: secret
+          POSTGRES_PASSWORD: root
           POSTGRES_DB: simple_bank
         ports:
           - 5432:5432
@@ -44,4 +44,4 @@ jobs:
         run: make migrateup
 
       - name: Test
-        run: make test
+        run: make test.integration

@@ -1,3 +1,4 @@
+// Package tokenpkg implements common token makers.
 package tokenpkg
 
 import "time"

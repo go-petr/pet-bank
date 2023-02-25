@@ -16,7 +16,7 @@ This bank service provides APIs for the frontend to do the following things:
 5. The user can only refresh his/her own access token
 
 ## Data model
-<img src='./bank.png'/>
+<img src='./docs/bank.png'/>
 
 ## OpenAPI Specification
 

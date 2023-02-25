@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  postgres:
+    container_name: bankdb
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=simple_bank
+  api:
+    container_name: bankapi
+    build:
+      context: ../
+      dockerfile: build/package/Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      # needed to run migrations
+      - DB_SOURCE=postgresql://root:root@postgres:5432/simple_bank?sslmode=disable
+    depends_on:
+      - postgres
+    volumes:
+      - $PWD:/usr/app
+    entrypoint:
+      [
+        "/usr/app/scripts/wait-for.sh",
+        "postgres:5432",
+        "--",
+        "/usr/app/scripts/start.sh"
+      ]
+    command: [ "go", "run", "cmd/main.go" ]

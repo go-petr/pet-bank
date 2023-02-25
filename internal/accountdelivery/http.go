@@ -8,11 +8,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
+	"github.com/go-petr/pet-bank/pkg/web"
+
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
@@ -35,13 +37,6 @@ func NewHandler(as Service) Handler {
 	return Handler{service: as}
 }
 
-type data struct {
-	Account domain.Account `json:"account"`
-}
-type response struct {
-	Data data `json:"data,omitempty"`
-}
-
 type createRequest struct {
 	Currency string `json:"currency" binding:"required,currency"`
 }
@@ -53,8 +48,15 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req createRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		l.Error().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -65,20 +67,24 @@ func (h *Handler) Create(gctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrOwnerNotFound:
-			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+			gctx.JSON(http.StatusBadRequest, web.Error(err))
 			return
 		case domain.ErrCurrencyAlreadyExists:
-			gctx.JSON(http.StatusConflict, jsonresponse.Error(err))
+			gctx.JSON(http.StatusConflict, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
-	res := response{
-		Data: data{createdAccount},
+	res := web.Response{
+		Data: &struct {
+			Account domain.Account `json:"account"`
+		}{
+			Account: createdAccount,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
@@ -96,34 +102,45 @@ func (h *Handler) Get(gctx *gin.Context) {
 	var req getRequest
 	if err := gctx.ShouldBindUri(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
 
-	acc, err := h.service.Get(ctx, req.ID)
+	account, err := h.service.Get(ctx, req.ID)
 	if err != nil {
 		if err == domain.ErrAccountNotFound {
-			gctx.JSON(http.StatusNotFound, jsonresponse.Error(err))
+			gctx.JSON(http.StatusNotFound, web.Error(err))
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
 	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
-	if acc.Owner != authPayload.Username {
+	if account.Owner != authPayload.Username {
 		l.Warn().Err(err).Send()
-		err := errors.New("account doesn't belong to the authenticated user")
-		gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+		gctx.JSON(http.StatusUnauthorized, web.Error(domain.ErrAccountOwnerMismatch))
 
 		return
 	}
 
-	res := response{
-		Data: data{acc},
+	res := web.Response{
+		Data: &struct {
+			Account domain.Account `json:"account"`
+		}{
+			Account: account,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)
@@ -134,13 +151,6 @@ type listRequest struct {
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
 }
 
-type dataAccounts struct {
-	Accounts []domain.Account `json:"accounts"`
-}
-type responseAccounts struct {
-	Data dataAccounts `json:"data,omitempty"`
-}
-
 // List handles http request to list accounts.
 func (h *Handler) List(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
@@ -149,21 +159,34 @@ func (h *Handler) List(gctx *gin.Context) {
 	var req listRequest
 	if err := gctx.ShouldBindQuery(&req); err != nil {
 		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 		return
 	}
 
 	authPayload := gctx.MustGet(middleware.AuthPayloadKey).(*tokenpkg.Payload)
 
-	accounts, err := h.service.List(ctx, authPayload.Username, req.PageSize, req.PageID)
+	accounts, err := h.service.List(ctx, authPayload.Username, req.PageID, req.PageSize)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
+
 		return
 	}
 
-	res := responseAccounts{
-		Data: dataAccounts{accounts},
+	res := web.Response{
+		Data: &struct {
+			Accounts []domain.Account `json:"accounts"`
+		}{
+			Accounts: accounts,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)

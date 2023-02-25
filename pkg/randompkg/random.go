@@ -2,29 +2,41 @@
 package randompkg
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/big"
 	"strings"
-	"time"
 
 	"github.com/shopspring/decimal"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 const alphabet = "abcdefghijklmnopqrstuvwxyz"
 
-// IntBetween generates a random integer between min and max.
-func IntBetween(min, max int32) int32 {
-	return min + rand.Int31n(max-min+1)
+// Intn is a shortcut for generating a random integer between 0 and max using crypto/rand.
+func Intn(max int) int64 {
+	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+
+	return nBig.Int64()
 }
 
-// FloatBetween generates a random decimal number between min and max rounded.
+// Float64 is a shortcut for generating a random float between 0 and 1 using crypto/rand.
+func Float64() float64 {
+	return float64(Intn(1<<32)) / (1 << 32)
+}
+
+// IntBetween generates a random integer between min and max.
+func IntBetween(min, max int) int32 {
+	return int32(min) + int32(Intn(max-min))
+}
+
+// FloatBetween generates a random decimal number between min and max rounded to 4 decimals.
 func FloatBetween(min, max float64) float64 {
-	return math.Floor((min+rand.Float64()*(max-min))*10_000) / 10_000
+	numInRange := min + Float64()*(max-min)
+	return math.Floor(numInRange*10_000) / 10_000
 }
 
 // String generates a random string of length n.
@@ -34,7 +46,7 @@ func String(n int) string {
 	k := len(alphabet)
 
 	for i := 0; i < n; i++ {
-		c := alphabet[rand.Intn(k)]
+		c := alphabet[Intn(k)]
 
 		_ = sb.WriteByte(c) // The returned err is always nil.
 	}
@@ -47,7 +59,7 @@ func Owner() string {
 	return String(6)
 }
 
-// MoneyAmountBetween generates a random amount of money between 1,000 and 10,000.
+// MoneyAmountBetween generates a random amount of money between min and max rounded to 4 decimals.
 func MoneyAmountBetween(min, max float64) string {
 	return decimal.NewFromFloat(FloatBetween(min, max)).String()
 }
@@ -55,7 +67,7 @@ func MoneyAmountBetween(min, max float64) string {
 // Currency generates a random currency code.
 func Currency() string {
 	currencies := []string{"USD", "EUR", "RMB"}
-	return currencies[rand.Intn(len(currencies))]
+	return currencies[Intn(len(currencies))]
 }
 
 // Email generates a random email.

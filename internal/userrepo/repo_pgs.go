@@ -6,6 +6,7 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -13,17 +14,18 @@ import (
 
 // RepoPGS facilitates user repository layer logic.
 type RepoPGS struct {
-	db *sql.DB
+	db dbpkg.SQLInterface
 }
 
 // NewRepoPGS returns account RepoPGS.
-func NewRepoPGS(db *sql.DB) *RepoPGS {
+func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	return &RepoPGS{
 		db: db,
 	}
 }
 
-const createQuery = `
+// CreateQuery inserts into users table.
+const CreateQuery = `
 INSERT INTO users (
     username,
     hashed_password,
@@ -38,7 +40,7 @@ INSERT INTO users (
 func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateUserParams) (domain.User, error) {
 	l := zerolog.Ctx(ctx)
 
-	row := r.db.QueryRowContext(ctx, createQuery,
+	row := r.db.QueryRowContext(ctx, CreateQuery,
 		arg.Username,
 		arg.HashedPassword,
 		arg.FullName,
@@ -70,7 +72,7 @@ func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateUserParams) (doma
 			}
 		}
 
-		return u, errorspkg.ErrInternal
+		return u, err
 	}
 
 	return u, nil

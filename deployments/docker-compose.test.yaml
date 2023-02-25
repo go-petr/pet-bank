@@ -1,0 +1,46 @@
+version: "3.9"
+services:
+  postgres:
+    container_name: bankdb
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=simple_bank
+
+  api:
+    container_name: bankapi
+    build:
+      context: ../
+      dockerfile: build/package/Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_SOURCE=postgresql://root:root@postgres:5432/simple_bank?sslmode=disable
+      # the tests in the project don’t use cgo and the alpine base image 
+      # does not ship with a C compiler. Disabling cgo in this manner is necessary 
+      # even if your project has no cgo code within it since Go will still attempt to 
+      # use standard C libraries for certain networking tasks if cgo is enabled.
+      - CGO_ENABLED=0
+    depends_on:
+      - postgres
+    volumes:
+      - $PWD:/usr/app
+    entrypoint:
+      [
+        "/usr/app/scripts/wait-for.sh",
+        "postgres:5432",
+        "--",
+        "/usr/app/scripts/start.sh"
+      ]
+    command:
+      [
+        "go",
+        "test",
+        "-p=1",
+        "-count=10",
+        "-tags=integration",
+        "./..."
+      ]

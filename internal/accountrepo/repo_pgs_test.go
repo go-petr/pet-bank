@@ -1,26 +1,30 @@
-package accountrepo
+//go:build integration
+
+package accountrepo_test
 
 import (
 	"context"
 	"database/sql"
 	"log"
 	"os"
-
-	"testing"
 	"time"
 
+	"testing"
+
+	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
-	"github.com/go-petr/pet-bank/internal/userrepo"
+	"github.com/go-petr/pet-bank/internal/integrationtest"
+	"github.com/go-petr/pet-bank/internal/integrationtest/helpers"
 	"github.com/go-petr/pet-bank/pkg/configpkg"
-	"github.com/go-petr/pet-bank/pkg/passpkg"
+	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var (
-	testRepo     *RepoPGS
-	testUserRepo *userrepo.RepoPGS
+	dbDriver string
+	dbSource string
 )
 
 func TestMain(m *testing.M) {
@@ -29,103 +33,69 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot load config:", err)
 	}
 
-	testDB, err := sql.Open(config.DBDriver, config.DBSource)
-	if err != nil {
-		log.Fatal("cannot connect to db:", err)
-	}
-
-	testRepo = NewRepoPGS(testDB)
-	testUserRepo = userrepo.NewRepoPGS(testDB)
+	dbDriver = config.DBDriver
+	dbSource = config.DBSource
 
 	os.Exit(m.Run())
 }
 
-func createRandomUser(t *testing.T) domain.User {
-	hashedPassword, err := passpkg.Hash(randompkg.String(10))
-	require.NoError(t, err)
-
-	arg := domain.CreateUserParams{
-		Username:       randompkg.Owner(),
-		HashedPassword: hashedPassword,
-		FullName:       randompkg.Owner(),
-		Email:          randompkg.Owner(),
-	}
-
-	testUser, err := testUserRepo.Create(context.Background(), arg)
-	require.NoError(t, err)
-	require.NotEmpty(t, testUser)
-
-	require.Equal(t, arg.Username, testUser.Username)
-	require.Equal(t, arg.HashedPassword, testUser.HashedPassword)
-	require.Equal(t, arg.FullName, testUser.FullName)
-	require.Equal(t, arg.Email, testUser.Email)
-
-	require.NotZero(t, testUser.CreatedAt)
-
-	return testUser
-}
-
-func createRandomAccount(t *testing.T, testUser domain.User) domain.Account {
-	testBalance := randompkg.MoneyAmountBetween(1_000, 10_000)
-	testCurrency := randompkg.Currency()
-
-	account, err := testRepo.Create(context.Background(), testUser.Username, testBalance, testCurrency)
-	require.NoError(t, err)
-	require.NotEmpty(t, account)
-
-	require.Equal(t, testUser.Username, account.Owner)
-	require.Equal(t, testBalance, account.Balance)
-	require.Equal(t, testCurrency, account.Currency)
-
-	require.NotZero(t, account.ID)
-	require.NotZero(t, account.CreatedAt)
-
-	return account
-}
-
 func TestCreate(t *testing.T) {
-	testUser := createRandomUser(t)
-	createRandomAccount(t, testUser)
-}
-
-func TestCreateConstraintViolations(t *testing.T) {
-	testUser := createRandomUser(t)
-	testAccount := createRandomAccount(t, testUser)
-
-	type input struct {
-		owner    string
-		balance  string
-		currency string
-	}
-
 	testCases := []struct {
-		name          string
-		input         input
-		checkResponse func(response domain.Account, err error)
+		name        string
+		wantAccount func(tx *sql.Tx) domain.Account
+		wantErr     error
 	}{
 		{
-			name: "ErrOwnerNotFound",
-			input: input{
-				"NotFound",
-				randompkg.MoneyAmountBetween(1_000, 10_000),
-				testAccount.Currency,
-			},
-			checkResponse: func(response domain.Account, err error) {
-				require.EqualError(t, err, domain.ErrOwnerNotFound.Error())
-				require.Empty(t, response)
+			name: "OK",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				return domain.Account{
+					Owner:     user.Username,
+					Balance:   randompkg.MoneyAmountBetween(100, 1000),
+					Currency:  randompkg.Currency(),
+					CreatedAt: time.Now().UTC().Truncate(time.Second),
+				}
 			},
 		},
 		{
+			name: "ErrOwnerNotFound",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				return domain.Account{
+					Owner:     "ErrOwnerNotFound",
+					Balance:   randompkg.MoneyAmountBetween(100, 1000),
+					Currency:  randompkg.Currency(),
+					CreatedAt: time.Now().UTC().Truncate(time.Second),
+				}
+			},
+			wantErr: domain.ErrOwnerNotFound,
+		},
+		{
 			name: "ErrCurrencyAlreadyExists",
-			input: input{
-				testUser.Username,
-				randompkg.MoneyAmountBetween(1_000, 10_000),
-				testAccount.Currency,
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				return domain.Account{
+					Owner:     user.Username,
+					Balance:   randompkg.MoneyAmountBetween(100, 1000),
+					Currency:  account.Currency,
+					CreatedAt: time.Now().UTC().Truncate(time.Second),
+				}
 			},
-			checkResponse: func(response domain.Account, err error) {
-				require.EqualError(t, err, domain.ErrCurrencyAlreadyExists.Error())
-				require.Empty(t, response)
+			wantErr: domain.ErrCurrencyAlreadyExists,
+		},
+		{
+			name: "InvalidBalance",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				return domain.Account{
+					Owner:     user.Username,
+					Balance:   "",
+					Currency:  account.Currency,
+					CreatedAt: time.Now().UTC().Truncate(time.Second),
+				}
 			},
+			wantErr: errorspkg.ErrInternal,
 		},
 	}
 
@@ -133,82 +103,284 @@ func TestCreateConstraintViolations(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			response, err := testRepo.Create(context.Background(), tc.input.owner, tc.input.balance, tc.input.currency)
+			t.Parallel()
 
-			tc.checkResponse(response, err)
+			// Prepare test transaction and seed database
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			want := tc.wantAccount(tx)
+			accountRepo := accountrepo.NewRepoPGS(tx)
+
+			// Run test
+			got, err := accountRepo.Create(context.Background(), want.Owner, want.Balance, want.Currency)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+				t.Fatalf(`accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`,
+					want.Owner, want.Balance, want.Currency, err.Error())
+			}
+
+			ignoreFields := cmpopts.IgnoreFields(domain.Account{}, "ID")
+			compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+			if diff := cmp.Diff(want, got, ignoreFields, compareCreatedAt); diff != "" {
+				t.Errorf(`accountRepo.Create(context.Background(), %v, %v, %v) returned unexpected difference (-want +got):\n%s"`,
+					want.Owner, want.Balance, want.Currency, diff)
+			}
+
+			if got.ID == 0 {
+				t.Error("got.ID = 0, want non-zero")
+			}
 		})
 	}
 }
 
 func TestGet(t *testing.T) {
-	testUser := createRandomUser(t)
-	testAccount := createRandomAccount(t, testUser)
+	testCases := []struct {
+		name        string
+		wantAccount func(tx *sql.Tx) domain.Account
+		wantErr     error
+	}{
+		{
+			name: "OK",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				return account
+			},
+		},
+		{
+			name: "ErrAccountNotFound",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				return domain.Account{ID: 0}
+			},
+			wantErr: domain.ErrAccountNotFound,
+		},
+	}
 
-	account2, err := testRepo.Get(
-		context.Background(),
-		testAccount.ID,
-	)
-	require.NoError(t, err)
-	require.NotEmpty(t, account2)
+	for i := range testCases {
+		tc := testCases[i]
 
-	require.Equal(t, testAccount.ID, account2.ID)
-	require.Equal(t, testAccount.Owner, account2.Owner)
-	require.Equal(t, testAccount.Balance, account2.Balance)
-	require.Equal(t, testAccount.Currency, account2.Currency)
-	require.WithinDuration(t, testAccount.CreatedAt, account2.CreatedAt, time.Second)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Prepare test transaction and seed database
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			want := tc.wantAccount(tx)
+			accountRepo := accountrepo.NewRepoPGS(tx)
+
+			// Run test
+			got, err := accountRepo.Get(context.Background(), want.ID)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+				t.Fatalf(`accountRepo.Get(context.Background(), %v) returned error: %v`,
+					want.ID, err.Error())
+			}
+
+			compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+			if diff := cmp.Diff(want, got, compareCreatedAt); diff != "" {
+				t.Errorf(`accountRepo.Get(context.Background(), %v) returned unexpected difference (-want +got):\n%s"`,
+					want.ID, diff)
+			}
+		})
+	}
 }
 
 func TestDelete(t *testing.T) {
-	testUser := createRandomUser(t)
-	testAccount := createRandomAccount(t, testUser)
+	testCases := []struct {
+		name        string
+		wantAccount func(tx *sql.Tx) domain.Account
+		wantErr     error
+	}{
+		{
+			name: "OK",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000USDBalance(t, tx, user.Username)
+				return account
+			},
+		},
+		{
+			name: "ErrAccountNotFound",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				return domain.Account{ID: 0}
+			},
+			wantErr: domain.ErrAccountNotFound,
+		},
+	}
 
-	err := testRepo.Delete(context.Background(), testAccount.ID)
-	require.NoError(t, err)
+	for i := range testCases {
+		tc := testCases[i]
 
-	accountDeleted, err := testRepo.Get(context.Background(), testAccount.ID)
-	require.Error(t, err)
-	require.EqualError(t, err, domain.ErrAccountNotFound.Error())
-	require.Empty(t, accountDeleted)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Prepare test transaction and seed database
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			want := tc.wantAccount(tx)
+			accountRepo := accountrepo.NewRepoPGS(tx)
+
+			// Run test
+			err := accountRepo.Delete(context.Background(), want.ID)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+				t.Fatalf(`accountRepo.Delete(context.Background(), %v) returned error: %v`,
+					want.ID, err.Error())
+			}
+		})
+	}
 }
 
 func TestList(t *testing.T) {
-	var lastAccount domain.Account
-
-	for i := 0; i < 10; i++ {
-		testUser := createRandomUser(t)
-		lastAccount = createRandomAccount(t, testUser)
+	testCases := []struct {
+		name         string
+		limit        int32
+		offset       int32
+		wantAccounts func(tx *sql.Tx) []domain.Account
+		wantErr      error
+	}{
+		{
+			name:   "ListAll",
+			limit:  100,
+			offset: 0,
+			wantAccounts: func(tx *sql.Tx) []domain.Account {
+				user := helpers.SeedUser(t, tx)
+				accounts := helpers.SeedAllCurrenciesAccountsWith1000Balance(t, tx, user.Username)
+				return accounts
+			},
+		},
+		{
+			name:   "Limit10",
+			limit:  2,
+			offset: 0,
+			wantAccounts: func(tx *sql.Tx) []domain.Account {
+				user := helpers.SeedUser(t, tx)
+				accounts := helpers.SeedAllCurrenciesAccountsWith1000Balance(t, tx, user.Username)
+				return accounts[:2]
+			},
+		},
+		{
+			name:   "Limit10Offset10",
+			limit:  2,
+			offset: 1,
+			wantAccounts: func(tx *sql.Tx) []domain.Account {
+				user := helpers.SeedUser(t, tx)
+				accounts := helpers.SeedAllCurrenciesAccountsWith1000Balance(t, tx, user.Username)
+				return accounts[1:3]
+			},
+		},
+		{
+			name:   "NegativeLimit",
+			limit:  -100,
+			offset: 0,
+			wantAccounts: func(tx *sql.Tx) []domain.Account {
+				user := helpers.SeedUser(t, tx)
+				accounts := helpers.SeedAllCurrenciesAccountsWith1000Balance(t, tx, user.Username)
+				return accounts[1:3]
+			},
+			wantErr: errorspkg.ErrInternal,
+		},
 	}
 
-	accounts, err := testRepo.List(context.Background(), lastAccount.Owner, 5, 0)
-	require.NoError(t, err)
-	require.NotEmpty(t, accounts)
+	for i := range testCases {
+		tc := testCases[i]
 
-	for _, account := range accounts {
-		require.NotEmpty(t, account)
-		require.Equal(t, lastAccount.Owner, account.Owner)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Prepare test transaction and seed database
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			want := tc.wantAccounts(tx)
+			wantOwner := want[0].Owner
+			accountRepo := accountrepo.NewRepoPGS(tx)
+
+			// Run test
+			got, err := accountRepo.List(context.Background(), wantOwner, tc.limit, tc.offset)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+				t.Fatalf(`accountRepo.List(context.Background(), %v, %v, %v) returned unexpected error: %v`,
+					wantOwner, tc.limit, tc.offset, err)
+			}
+
+			compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+			if diff := cmp.Diff(want, got, compareCreatedAt); diff != "" {
+				t.Errorf(`accountRepo.List(context.Background(), %v, %v, %v) returned unexpected difference (-want +got):\n%s"`,
+					wantOwner, tc.limit, tc.offset, diff)
+			}
+		})
 	}
 }
 
 func TestAddBalance(t *testing.T) {
-	testUser := createRandomUser(t)
-	testAccount := createRandomAccount(t, testUser)
-	testAmount := randompkg.MoneyAmountBetween(100, 1_000)
+	testCases := []struct {
+		name        string
+		amount      string
+		wantAccount func(tx *sql.Tx) domain.Account
+		wantErr     error
+	}{
+		{
+			name:   "OK",
+			amount: "100",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000Balance(t, tx, user.Username, randompkg.Currency())
+				account.Balance = "1100"
+				return account
+			},
+		},
+		{
+			name:   "ErrAccountNotFound",
+			amount: "100",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				return domain.Account{ID: 0}
+			},
+			wantErr: domain.ErrAccountNotFound,
+		},
+		{
+			name:   "IvalidAmount",
+			amount: "",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				return domain.Account{ID: 0}
+			},
+			wantErr: errorspkg.ErrInternal,
+		},
+	}
 
-	account1Balance, err := decimal.NewFromString(testAccount.Balance)
-	require.NoError(t, err)
-	deltaBalance, err := decimal.NewFromString(testAmount)
-	require.NoError(t, err)
+	for i := range testCases {
+		tc := testCases[i]
 
-	account2, err := testRepo.AddBalance(context.Background(), testAmount, testAccount.ID)
-	require.NoError(t, err)
-	require.NotEmpty(t, account2)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	account2Balance, err := decimal.NewFromString(account2.Balance)
-	require.NoError(t, err)
+			// Prepare test transaction and seed database
+			tx := integrationtest.SetupTX(t, dbDriver, dbSource)
+			want := tc.wantAccount(tx)
+			accountRepo := accountrepo.NewRepoPGS(tx)
 
-	require.Equal(t, testAccount.ID, account2.ID)
-	require.Equal(t, testAccount.Owner, account2.Owner)
-	require.Equal(t, account1Balance.Add(deltaBalance), account2Balance)
-	require.Equal(t, testAccount.Currency, account2.Currency)
-	require.Equal(t, testAccount.CreatedAt, account2.CreatedAt, time.Second)
+			// Run test
+			got, err := accountRepo.AddBalance(context.Background(), tc.amount, want.ID)
+			if err != nil {
+				if err == tc.wantErr {
+					return
+				}
+				t.Fatalf(`accountRepo.AddBalance(context.Background(), %v, %v) returned error: %v`,
+					tc.amount, want.ID, err.Error())
+			}
+
+			compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
+			if diff := cmp.Diff(want, got, compareCreatedAt); diff != "" {
+				t.Errorf(`accountRepo.AddBalance(context.Background(), %v, %v) returned unexpected difference (-want +got):\n%s"`,
+					tc.amount, want.ID, diff)
+			}
+
+			if got.ID == 0 {
+				t.Error("got.ID = 0, want non-zero")
+			}
+		})
+	}
 }

@@ -45,7 +45,7 @@ func (s *Service) Get(ctx context.Context, id int32) (domain.Account, error) {
 }
 
 // List returns accounts that are owned by the given user.
-func (s *Service) List(ctx context.Context, owner string, pageSize, pageID int32) ([]domain.Account, error) {
+func (s *Service) List(ctx context.Context, owner string, pageID, pageSize int32) ([]domain.Account, error) {
 	limit := pageSize
 	offset := (pageID - 1) * pageSize
 

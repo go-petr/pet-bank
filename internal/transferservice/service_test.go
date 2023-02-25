@@ -26,13 +26,6 @@ func randomAccount(id int32, balance, currency string) domain.Account {
 }
 
 func TestTransfer(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	tranferRepo := NewMockRepo(ctrl)
-	accountService := accountdelivery.NewMockService(ctrl)
-	transferService := New(tranferRepo, accountService)
-
 	testAccount1 := randomAccount(1, "1000", currencypkg.USD)
 	testAccount2 := randomAccount(2, "1000", currencypkg.USD)
 	testAccount3 := randomAccount(1, "1000", currencypkg.EUR)
@@ -298,6 +291,15 @@ func TestTransfer(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			tranferRepo := NewMockRepo(ctrl)
+			accountService := accountdelivery.NewMockService(ctrl)
+			transferService := New(tranferRepo, accountService)
+
 			tc.buildStubs(tranferRepo, accountService)
 
 			tc.checkResponse(transferService.Transfer(

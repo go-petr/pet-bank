@@ -3,10 +3,12 @@ package entryrepo
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
@@ -36,15 +38,17 @@ func (r *RepoPGS) Create(ctx context.Context, amount string, account int32) (dom
 
 	var e domain.Entry
 
-	err := row.Scan(
-		&e.ID,
-		&e.AccountID,
-		&e.Amount,
-		&e.CreatedAt,
-	)
+	err := row.Scan(&e.ID, &e.AccountID, &e.Amount, &e.CreatedAt)
 
 	if err != nil {
 		l.Error().Err(err).Send()
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Constraint == "entries_account_id_fkey" {
+				return e, domain.ErrAccountNotFound
+			}
+		}
+
 		return e, errorspkg.ErrInternal
 	}
 
@@ -64,15 +68,15 @@ func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Entry, error) {
 
 	var e domain.Entry
 
-	err := row.Scan(
-		&e.ID,
-		&e.AccountID,
-		&e.Amount,
-		&e.CreatedAt,
-	)
+	err := row.Scan(&e.ID, &e.AccountID, &e.Amount, &e.CreatedAt)
 
 	if err != nil {
 		l.Error().Err(err).Send()
+
+		if err == sql.ErrNoRows {
+			return e, domain.ErrEntryNotFound
+		}
+
 		return e, errorspkg.ErrInternal
 	}
 
@@ -80,8 +84,10 @@ func (r *RepoPGS) Get(ctx context.Context, id int64) (domain.Entry, error) {
 }
 
 const listQuery = `
-SELECT id, account_id, amount, created_at FROM entries
+SELECT id, account_id, amount, created_at 
+FROM entries
 WHERE account_id = $1
+ORDER BY id
 LIMIT $2 OFFSET $3
 `
 
@@ -91,7 +97,8 @@ func (r *RepoPGS) List(ctx context.Context, accountID int32, limit, offset int32
 
 	rows, err := r.db.QueryContext(ctx, listQuery, accountID, limit, offset)
 	if err != nil {
-		return nil, err
+		l.Error().Err(err).Send()
+		return nil, errorspkg.ErrInternal
 	}
 	defer rows.Close()
 
@@ -99,13 +106,9 @@ func (r *RepoPGS) List(ctx context.Context, accountID int32, limit, offset int32
 
 	for rows.Next() {
 		var e domain.Entry
-		if err := rows.Scan(
-			&e.ID,
-			&e.AccountID,
-			&e.Amount,
-			&e.CreatedAt,
-		); err != nil {
-			return nil, err
+		if err := rows.Scan(&e.ID, &e.AccountID, &e.Amount, &e.CreatedAt); err != nil {
+			l.Error().Err(err).Send()
+			return nil, errorspkg.ErrInternal
 		}
 
 		items = append(items, e)

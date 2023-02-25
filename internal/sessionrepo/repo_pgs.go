@@ -6,6 +6,7 @@ import (
 	"database/sql"
 
 	"github.com/go-petr/pet-bank/internal/domain"
+	"github.com/go-petr/pet-bank/pkg/dbpkg"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -14,11 +15,11 @@ import (
 
 // RepoPGS facilitates session repository layer logic.
 type RepoPGS struct {
-	db *sql.DB
+	db dbpkg.SQLInterface
 }
 
 // NewRepoPGS returns account RepoPGS.
-func NewRepoPGS(db *sql.DB) *RepoPGS {
+func NewRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	return &RepoPGS{
 		db: db,
 	}
@@ -33,12 +34,12 @@ INSERT INTO sessions (
 	client_ip,
 	is_blocked,
 	expires_at
-	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7
-	) RETURNING id, username, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at;
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7
+) RETURNING id, username, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at;
 `
 
-// Create creates the session and then returns it.
+// Create creates a session and then returns it.
 func (r *RepoPGS) Create(ctx context.Context, arg domain.CreateSessionParams) (domain.Session, error) {
 	l := zerolog.Ctx(ctx)
 
@@ -115,6 +116,12 @@ func (r *RepoPGS) Get(ctx context.Context, id uuid.UUID) (domain.Session, error)
 
 	if err != nil {
 		l.Error().Err(err).Send()
+
+		if err == sql.ErrNoRows {
+			return s, domain.ErrSessionNotFound
+		}
+
+		return s, errorspkg.ErrInternal
 	}
 
 	return s, nil

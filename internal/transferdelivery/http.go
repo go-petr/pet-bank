@@ -3,16 +3,18 @@ package transferdelivery
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/middleware"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
-	"github.com/go-petr/pet-bank/pkg/jsonresponse"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
+	"github.com/go-petr/pet-bank/pkg/web"
 )
 
 // Service provides service layer interface needed by transfer delivery layer.
@@ -40,14 +42,6 @@ type request struct {
 	Amount        string `json:"amount" binding:"required"`
 }
 
-type data struct {
-	Transfer domain.TransferTxResult `json:"transfer"`
-}
-
-type response struct {
-	Data data `json:"data,omitempty"`
-}
-
 // Create handles http request to create a transfer between two accounts.
 func (h *Handler) Create(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
@@ -55,8 +49,15 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	var req request
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		l.Info().Err(err).Send()
-		gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			gctx.JSON(http.StatusBadRequest, web.Response{Error: web.GetErrorMsg(ve)})
+
+			return
+		}
+
+		l.Error().Err(err).Send()
+		gctx.JSON(http.StatusBadRequest, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
@@ -76,7 +77,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 		switch err {
 		case
 			domain.ErrInvalidOwner:
-			gctx.JSON(http.StatusUnauthorized, jsonresponse.Error(err))
+			gctx.JSON(http.StatusUnauthorized, web.Error(err))
 
 			return
 		case
@@ -84,18 +85,22 @@ func (h *Handler) Create(gctx *gin.Context) {
 			domain.ErrNegativeAmount,
 			domain.ErrInsufficientBalance,
 			domain.ErrCurrencyMismatch:
-			gctx.JSON(http.StatusBadRequest, jsonresponse.Error(err))
+			gctx.JSON(http.StatusBadRequest, web.Error(err))
 
 			return
 		}
 
-		gctx.JSON(http.StatusInternalServerError, jsonresponse.Error(errorspkg.ErrInternal))
+		gctx.JSON(http.StatusInternalServerError, web.Error(errorspkg.ErrInternal))
 
 		return
 	}
 
-	res := response{
-		Data: data{result},
+	res := web.Response{
+		Data: struct {
+			Transfer domain.TransferTxResult `json:"transfer"`
+		}{
+			Transfer: result,
+		},
 	}
 
 	gctx.JSON(http.StatusOK, res)

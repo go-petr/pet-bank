@@ -76,7 +76,10 @@ func TestAuthMiddleware(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			server := gin.Default()
+			t.Parallel()
+
+			gin.SetMode(gin.ReleaseMode)
+			server := gin.New()
 
 			authPath := "/auth"
 			server.GET(
