@@ -148,7 +148,7 @@ func TestRenewAccessToken(t *testing.T) {
 			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
 				require.Empty(t, accessToken)
 				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, errorspkg.ErrInternal.Error())
+				require.EqualError(t, err, domain.ErrExpiredToken.Error())
 			},
 		},
 		{

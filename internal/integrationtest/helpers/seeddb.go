@@ -8,6 +8,7 @@ import (
 	"github.com/go-petr/pet-bank/internal/accountrepo"
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/internal/entryrepo"
+	"github.com/go-petr/pet-bank/internal/sessionrepo"
 	"github.com/go-petr/pet-bank/internal/userrepo"
 	"github.com/go-petr/pet-bank/pkg/currencypkg"
 	"github.com/go-petr/pet-bank/pkg/dbpkg"
@@ -105,8 +106,8 @@ func SeedAccountWith1000USDBalance(t *testing.T, tx dbpkg.SQLInterface, username
 
 	account, err := accountRepo.Create(context.Background(), username, balance, currencypkg.USD)
 	if err != nil {
-		stmt := `accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`
-		t.Fatalf(stmt, username, balance, currencypkg.USD, err)
+		t.Fatalf(`accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`,
+			username, balance, currencypkg.USD, err)
 	}
 
 	return account
@@ -122,8 +123,8 @@ func SeedAccountWith1000Balance(t *testing.T, tx dbpkg.SQLInterface, username, c
 
 	account, err := accountRepo.Create(context.Background(), username, balance, currency)
 	if err != nil {
-		stmt := `accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`
-		t.Fatalf(stmt, username, balance, currencypkg.USD, err)
+		t.Fatalf(`accountRepo.Create(context.Background(), %v, %v, %v) returned error: %v`,
+			username, balance, currencypkg.USD, err)
 	}
 
 	return account
@@ -140,4 +141,18 @@ func SeedAllCurrenciesAccountsWith1000Balance(t *testing.T, tx dbpkg.SQLInterfac
 	}
 
 	return accounts
+}
+
+// SeedSession creates Session inside a test transaction.
+func SeedSession(t *testing.T, tx dbpkg.SQLInterface, arg domain.CreateSessionParams) domain.Session {
+	t.Helper()
+
+	sessionRepo := sessionrepo.NewRepoPGS(tx)
+
+	session, err := sessionRepo.Create(context.Background(), arg)
+	if err != nil {
+		t.Fatalf("sessionRepo.Create(context.Background(), %+v) returned error: %v", arg, err)
+	}
+
+	return session
 }

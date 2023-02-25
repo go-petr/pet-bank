@@ -12,10 +12,12 @@ var (
 	ErrBlockedSession = errors.New("blocked session")
 	// ErrMismatchedRefreshToken indicates mismatch between the given token and the session token.
 	ErrMismatchedRefreshToken = errors.New("mismatched session token")
-	// ErrInvalidUser indicates that the session is not related to the given domain.
+	// ErrInvalidUser indicates that the session is not related to the given user.
 	ErrInvalidUser = errors.New("incorrect session user")
-	// ErrExpiredSession indicates that the expired session.
+	// ErrExpiredSession indicates the expired session.
 	ErrExpiredSession = errors.New("expired session")
+	// ErrExpiredToken indicates the expired token.
+	ErrExpiredToken = errors.New("expired token")
 	// ErrSessionNotFound indicates that the session is not found.
 	ErrSessionNotFound = errors.New("session not found")
 )
