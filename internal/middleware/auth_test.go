@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,66 +10,62 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
-	"github.com/stretchr/testify/require"
+	"github.com/go-petr/pet-bank/pkg/web"
 )
 
 func TestAuthMiddleware(t *testing.T) {
-	tokenMaker, err := tokenpkg.NewPasetoMaker(randompkg.String(32))
-	require.NoError(t, err)
+	tokenSymmetricKey := randompkg.String(32)
+
+	tokenMaker, err := tokenpkg.NewPasetoMaker(tokenSymmetricKey)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", tokenSymmetricKey, err)
+	}
 
 	testCases := []struct {
-		name          string
-		setupAuth     func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker)
-		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+		name           string
+		setupAuth      func(t *testing.T, r *http.Request) error
+		wantStatusCode int
+		wantError      string
+		checkResponse  func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "NoAuthorization",
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return nil
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      ErrAuthHeaderNotFound.Error(),
 		},
 		{
 			name: "InvalidAuthorizationHeader",
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := AddAuthorization(request, tokenMaker, "", "user", time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return AddAuthorization(r, tokenMaker, "", "user", time.Minute)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      ErrBadAuthHeaderFormat.Error(),
 		},
 		{
 			name: "UnsupportedAuthorization",
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := AddAuthorization(request, tokenMaker, "unsupported", "user", time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return AddAuthorization(r, tokenMaker, "unsupported", "user", time.Minute)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      ErrUnsupportedAuthType.Error(),
 		},
 		{
 			name: "ExpiredToken",
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := AddAuthorization(request, tokenMaker, AuthTypeBearer, "user", -time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return AddAuthorization(r, tokenMaker, AuthTypeBearer, "user", -time.Minute)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantError:      tokenpkg.ErrExpiredToken.Error(),
 		},
 		{
 			name: "OK",
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker tokenpkg.Maker) {
-				err := AddAuthorization(request, tokenMaker, AuthTypeBearer, "user", time.Minute)
-				require.NoError(t, err)
+			setupAuth: func(t *testing.T, r *http.Request) error {
+				return AddAuthorization(r, tokenMaker, AuthTypeBearer, "user", time.Minute)
 			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-			},
+			wantStatusCode: http.StatusOK,
 		},
 	}
 
@@ -82,21 +79,36 @@ func TestAuthMiddleware(t *testing.T) {
 			server := gin.New()
 
 			authPath := "/auth"
-			server.GET(
-				authPath,
-				AuthMiddleware(tokenMaker),
-				func(ctx *gin.Context) {
-					ctx.JSON(http.StatusOK, gin.H{})
-				},
-			)
+			handler := func(ctx *gin.Context) {
+				ctx.JSON(http.StatusOK, gin.H{})
+			}
+			server.GET(authPath, AuthMiddleware(tokenMaker), handler)
 
 			recorder := httptest.NewRecorder()
 			request, err := http.NewRequest(http.MethodGet, authPath, nil)
-			require.NoError(t, err)
+			if err != nil {
+				t.Fatalf("tokenpkg.NewPasetoMaker(%v) returned error: %v", tokenSymmetricKey, err)
+			}
 
-			tc.setupAuth(t, request, tokenMaker)
+			if err = tc.setupAuth(t, request); err != nil {
+				t.Fatalf("tc.setupAuth(t, %v) returned error: %v", request, err)
+			}
+
 			server.ServeHTTP(recorder, request)
-			tc.checkResponse(t, recorder)
+
+			if recorder.Code != tc.wantStatusCode {
+				t.Errorf("recorder.Code = %v, tc.wantStatusCode = %v, want equal",
+					recorder.Code, tc.wantStatusCode)
+			}
+
+			got := web.Response{}
+			if err := json.NewDecoder(recorder.Body).Decode(&got); err != nil {
+				t.Fatalf("Decoding response body error: %v", err)
+			}
+
+			if got.Error != tc.wantError {
+				t.Errorf("got.Error = %v, tc.wantError = %v, want equal", got.Error, tc.wantError)
+			}
 		})
 	}
 }
