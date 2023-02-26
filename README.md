@@ -1,5 +1,9 @@
 # Description
 
+## Key skills practiced
+
+Clean Architecture; REST API (inc. OpenAPI); Unit and Integration tests; Go Style Best Practices (inc. [Google Go Style](https://google.github.io/styleguide/go/index), [Standard Go Project Layout](https://github.com/golang-standards/project-layout)); CI/CD (Run tests, linters and deploy the containerized app to Amazon Elastic Container Registry (ECR))
+
 ## Features
 
 This bank service provides APIs for the frontend to do the following things:
@@ -24,7 +28,7 @@ https://go-petr.github.io/pet-bank/
 
 # How to run
 
-## Localy
+## Locally
 
 ```
 docker-compose -f deployments/docker-compose.yaml up
