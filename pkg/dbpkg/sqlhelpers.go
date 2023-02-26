@@ -20,7 +20,7 @@ func Setup(driver, source string) (*sql.DB, error) {
 	return db, nil
 }
 
-// SQLInterface provides neccessary db methods to perform queries.
+// SQLInterface provides necessary db methods to perform queries.
 type SQLInterface interface {
 	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
 	PrepareContext(context.Context, string) (*sql.Stmt, error)

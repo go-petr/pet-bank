@@ -130,7 +130,7 @@ func SeedAccountWith1000Balance(t *testing.T, tx dbpkg.SQLInterface, username, c
 	return account
 }
 
-// SeedAllCurrenciesAccountsWith1000Balance creates all currencies accounts wiht 1000 on balance.
+// SeedAllCurrenciesAccountsWith1000Balance creates all currencies accounts with 1000 on balance.
 func SeedAllCurrenciesAccountsWith1000Balance(t *testing.T, tx dbpkg.SQLInterface, username string) []domain.Account {
 	t.Helper()
 

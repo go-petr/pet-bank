@@ -27,7 +27,7 @@ func NewTxRepoPGS(db dbpkg.SQLInterface) *RepoPGS {
 	}
 }
 
-// NewRepoPGS returns account RepoPGS wiht connection to start transactions.
+// NewRepoPGS returns account RepoPGS with connection to start transactions.
 func NewRepoPGS(db *sql.DB) *RepoPGS {
 	return &RepoPGS{
 		db:   db,

@@ -38,6 +38,7 @@ linters: # https://golangci-lint.run/usage/linters/
     - whitespace # Tool for detection of leading and trailing whitespace.
     - wsl # Whitespace Linter - Forces you to use empty lines.
     - sqlclosecheck # Checks that sql.Rows and sql.Stmt are closed.
+    - misspell # Finds commonly misspelled English words in comments.
 
 linters-settings:
   revive:

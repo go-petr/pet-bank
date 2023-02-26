@@ -15,25 +15,25 @@ import (
 func main() {
 	config, err := configpkg.Load("./configs")
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot load config")
+		log.Fatal().Err(err).Msg("Cannot load config")
 	}
 
 	logger := middleware.CreateLogger(config)
 
 	db, err := dbpkg.Setup(config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot connect to database")
+		logger.Fatal().Err(err).Msg("Cannot connect to database")
 	}
 
 	server, err := httpserver.New(db, logger, config)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot create server")
+		logger.Fatal().Err(err).Msg("Cannot create server")
 	}
 
 	logger.Info().Msg("BANK API SERVER HAS STARTED")
 
 	err = server.Engine.Run(config.ServerAddress)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot start server")
+		logger.Fatal().Err(err).Msg("Cannot start server")
 	}
 }

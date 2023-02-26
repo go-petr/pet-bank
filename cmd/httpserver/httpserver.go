@@ -29,7 +29,7 @@ import (
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 )
 
-// Server is the struct that contains the server router.
+// Server holds db connection, handlers router and configuration.
 type Server struct {
 	DB     *sql.DB
 	Engine *gin.Engine
@@ -41,7 +41,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Engine.ServeHTTP(w, r)
 }
 
-// New creates Server type wiht instantiated domains and routes.
+// New creates Server type with instantiated domains and routes.
 func New(conn *sql.DB, logger zerolog.Logger, config configpkg.Config) (*Server, error) {
 	userRepo := userrepo.NewRepoPGS(conn)
 	accountRepo := accountrepo.NewRepoPGS(conn)
