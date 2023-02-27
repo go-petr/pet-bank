@@ -2,7 +2,7 @@ package transferservice
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
 )
 
 func randomAccount(id int32, balance, currency string) domain.Account {
@@ -26,27 +26,21 @@ func randomAccount(id int32, balance, currency string) domain.Account {
 }
 
 func TestTransfer(t *testing.T) {
-	testAccount1 := randomAccount(1, "1000", currencypkg.USD)
-	testAccount2 := randomAccount(2, "1000", currencypkg.USD)
-	testAccount3 := randomAccount(1, "1000", currencypkg.EUR)
-	testAmount := "100"
+	accountUSD1 := randomAccount(1, "1000", currencypkg.USD)
+	accountUSD2 := randomAccount(2, "1000", currencypkg.USD)
+	accountEUR3 := randomAccount(1, "1000", currencypkg.EUR)
+	amount := "100"
 
-	testTxResult := domain.TransferTxResult{
+	want := domain.TransferTxResult{
 		Transfer: domain.Transfer{
-			FromAccountID: testAccount1.ID,
-			ToAccountID:   testAccount2.ID,
-			Amount:        testAmount,
+			FromAccountID: accountUSD1.ID,
+			ToAccountID:   accountUSD2.ID,
+			Amount:        amount,
 		},
-		FromAccount: testAccount1,
-		ToAccount:   testAccount2,
-		FromEntry: domain.Entry{
-			AccountID: testAccount1.ID,
-			Amount:    "-" + testAmount,
-		},
-		ToEntry: domain.Entry{
-			AccountID: testAccount2.ID,
-			Amount:    testAmount,
-		},
+		FromAccount: accountUSD1,
+		ToAccount:   accountUSD2,
+		FromEntry:   domain.Entry{AccountID: accountUSD1.ID, Amount: "-" + amount},
+		ToEntry:     domain.Entry{AccountID: accountUSD2.ID, Amount: amount},
 	}
 
 	type input struct {
@@ -58,15 +52,52 @@ func TestTransfer(t *testing.T) {
 		name          string
 		input         input
 		buildStubs    func(repo *MockRepo, accountService *accountdelivery.MockService)
-		checkResponse func(res domain.TransferTxResult, err error)
+		checkResponse func(t *testing.T, res domain.TransferTxResult)
+		wantError     string
 	}{
 		{
-			name: "Invalid amount",
+			name: "OK",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
+					Amount:        amount,
+				},
+			},
+			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
+				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(want, nil)
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
+					Times(1).
+					Return(domain.Account{
+						ID:       accountUSD1.ID,
+						Owner:    accountUSD1.Owner,
+						Balance:  accountUSD1.Balance,
+						Currency: accountUSD1.Currency,
+					}, nil)
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD2.ID)).
+					Times(1).
+					Return(domain.Account{
+						Currency: accountUSD2.Currency,
+					}, nil)
+			},
+			checkResponse: func(t *testing.T, got domain.TransferTxResult) {
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("Response returned unexpected diff: %s", diff)
+				}
+			},
+		},
+		{
+			name: "ErrInvalidAmount",
+			input: input{
+				fromUsername: accountUSD1.Owner,
+				arg: domain.CreateTransferParams{
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
 					Amount:        "!@#$",
 				},
 			},
@@ -74,18 +105,15 @@ func TestTransfer(t *testing.T) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Any()).Times(0)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, domain.ErrInvalidAmount.Error())
-			},
+			wantError: domain.ErrInvalidAmount.Error(),
 		},
 		{
-			name: "Negative amount",
+			name: "ErrNegativeAmount",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
 					Amount:        "-100",
 				},
 			},
@@ -93,197 +121,181 @@ func TestTransfer(t *testing.T) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
 				accountService.EXPECT().Get(gomock.Any(), gomock.Any()).Times(0)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, domain.ErrNegativeAmount.Error())
-			},
+			wantError: domain.ErrNegativeAmount.Error(),
 		},
 		{
-			name: "Account service err",
+			name: "AccountServiceInternalError",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
-					Amount:        testAmount,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
+					Amount:        amount,
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
 					Times(1).
 					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, errorspkg.ErrInternal.Error())
-			},
+			wantError: errorspkg.ErrInternal.Error(),
 		},
 		{
-			name: "Invalid owner",
+			name: "ErrInvalidOwner",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount2.ID,
-					ToAccountID:   testAccount1.ID,
-					Amount:        testAmount,
+					FromAccountID: accountUSD2.ID,
+					ToAccountID:   accountUSD1.ID,
+					Amount:        amount,
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount2.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD2.ID)).
 					Times(1).
 					Return(domain.Account{
-						Owner: testAccount2.Owner,
+						Owner: accountUSD2.Owner,
 					}, nil)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, domain.ErrInvalidOwner.Error())
-			},
+			wantError: domain.ErrInvalidOwner.Error(),
 		},
 		{
-			name: "From account internal balance error",
+			name: "FromAccountServiceInternalError",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
-					Amount:        testAmount,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
+					Amount:        amount,
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
 					Times(1).
 					Return(domain.Account{
-						Owner:   testAccount1.Owner,
+						Owner:   accountUSD1.Owner,
 						Balance: "invalid",
 					}, nil)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, errors.New("can't convert invalid to decimal").Error())
-			},
+			wantError: fmt.Errorf("can't convert %s to decimal", "invalid").Error(),
 		},
 		{
-			name: "Insufficient balance",
+			name: "ErrInsufficientBalance",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
 					Amount:        "10000",
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
 					Times(1).
 					Return(domain.Account{
-						ID:       testAccount1.ID,
-						Owner:    testAccount1.Owner,
-						Balance:  testAccount1.Balance,
-						Currency: testAccount1.Currency,
+						ID:       accountUSD1.ID,
+						Owner:    accountUSD1.Owner,
+						Balance:  accountUSD1.Balance,
+						Currency: accountUSD1.Currency,
 					}, nil)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, domain.ErrInsufficientBalance.Error())
-			},
+			wantError: domain.ErrInsufficientBalance.Error(),
 		},
 		{
-			name: "ToAccount service err",
+			name: "ToAccountServiceInternalError",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
-					Amount:        testAmount,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
+					Amount:        amount,
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
 					Times(1).
 					Return(domain.Account{
-						ID:       testAccount1.ID,
-						Owner:    testAccount1.Owner,
-						Balance:  testAccount1.Balance,
-						Currency: testAccount1.Currency,
+						ID:       accountUSD1.ID,
+						Owner:    accountUSD1.Owner,
+						Balance:  accountUSD1.Balance,
+						Currency: accountUSD1.Currency,
 					}, nil)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount2.ID)).
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD2.ID)).
 					Times(1).
 					Return(domain.Account{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, errorspkg.ErrInternal.Error())
-			},
+			wantError: errorspkg.ErrInternal.Error(),
 		},
 		{
-			name: "Accounts currency mismatch",
+			name: "ErrCurrencyMismatch",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount3.ID,
-					Amount:        testAmount,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountEUR3.ID,
+					Amount:        amount,
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).Times(0)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
 					Times(1).
 					Return(domain.Account{
-						ID:       testAccount1.ID,
-						Owner:    testAccount1.Owner,
-						Balance:  testAccount1.Balance,
-						Currency: testAccount1.Currency,
+						ID:       accountUSD1.ID,
+						Owner:    accountUSD1.Owner,
+						Balance:  accountUSD1.Balance,
+						Currency: accountUSD1.Currency,
 					}, nil)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount3.ID)).
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountEUR3.ID)).
 					Times(1).
 					Return(domain.Account{
-						Currency: testAccount3.Currency,
+						Currency: accountEUR3.Currency,
 					}, nil)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Empty(t, res)
-				require.EqualError(t, err, domain.ErrCurrencyMismatch.Error())
-			},
+			wantError: domain.ErrCurrencyMismatch.Error(),
 		},
 		{
-			name: "OK",
+			name: "RepoInternalError",
 			input: input{
-				fromUsername: testAccount1.Owner,
+				fromUsername: accountUSD1.Owner,
 				arg: domain.CreateTransferParams{
-					FromAccountID: testAccount1.ID,
-					ToAccountID:   testAccount2.ID,
-					Amount:        testAmount,
+					FromAccountID: accountUSD1.ID,
+					ToAccountID:   accountUSD2.ID,
+					Amount:        amount,
 				},
 			},
 			buildStubs: func(repo *MockRepo, accountService *accountdelivery.MockService) {
 				repo.EXPECT().Transfer(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(testTxResult, nil)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount1.ID)).
+					Return(domain.TransferTxResult{}, errorspkg.ErrInternal)
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD1.ID)).
 					Times(1).
 					Return(domain.Account{
-						ID:       testAccount1.ID,
-						Owner:    testAccount1.Owner,
-						Balance:  testAccount1.Balance,
-						Currency: testAccount1.Currency,
+						ID:       accountUSD1.ID,
+						Owner:    accountUSD1.Owner,
+						Balance:  accountUSD1.Balance,
+						Currency: accountUSD1.Currency,
 					}, nil)
-				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(testAccount2.ID)).
+
+				accountService.EXPECT().Get(gomock.Any(), gomock.Eq(accountUSD2.ID)).
 					Times(1).
 					Return(domain.Account{
-						Currency: testAccount2.Currency,
+						Currency: accountUSD2.Currency,
 					}, nil)
 			},
-			checkResponse: func(res domain.TransferTxResult, err error) {
-				require.Equal(t, testTxResult, res)
-				require.NoError(t, err)
-			},
+			wantError: errorspkg.ErrInternal.Error(),
 		},
 	}
 
@@ -302,10 +314,17 @@ func TestTransfer(t *testing.T) {
 
 			tc.buildStubs(tranferRepo, accountService)
 
-			tc.checkResponse(transferService.Transfer(
-				context.Background(),
-				tc.input.fromUsername,
-				tc.input.arg))
+			got, err := transferService.Transfer(context.Background(), tc.input.fromUsername, tc.input.arg)
+			if err != nil {
+				if err.Error() == tc.wantError {
+					return
+				}
+
+				t.Fatalf("transferService.Transfer(context.Background(), %v, %+v) got error: %v, want: %v",
+					tc.input.fromUsername, tc.input.arg, err, tc.wantError)
+			}
+
+			tc.checkResponse(t, got)
 		})
 	}
 }

@@ -79,7 +79,7 @@ func (s *Service) validRequest(ctx context.Context, fromUsername string, fromAcc
 	return nil
 }
 
-// Transfer checks if transfer request is valid and then executes transfer.
+// Transfer checks if a transfer request is valid and then executes transfer.
 func (s Service) Transfer(ctx context.Context, fromUsername string, arg domain.CreateTransferParams) (domain.TransferTxResult, error) {
 	if err := s.validRequest(ctx, fromUsername, arg.FromAccountID, arg.ToAccountID, arg.Amount); err != nil {
 		return domain.TransferTxResult{}, err
