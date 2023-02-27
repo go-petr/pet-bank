@@ -44,12 +44,12 @@ func NewUserWihtoutPassword(u domain.User) domain.UserWihtoutPassword {
 func (s *Service) Create(ctx context.Context, username, password, fullname, email string) (domain.UserWihtoutPassword, error) {
 	l := zerolog.Ctx(ctx)
 
-	var response domain.UserWihtoutPassword
+	var result domain.UserWihtoutPassword
 
 	hashedPassword, err := passpkg.Hash(password)
 	if err != nil {
 		l.Error().Err(err).Send()
-		return response, errorspkg.ErrInternal
+		return result, errorspkg.ErrInternal
 	}
 
 	arg := domain.CreateUserParams{
@@ -61,12 +61,12 @@ func (s *Service) Create(ctx context.Context, username, password, fullname, emai
 
 	gotUser, err := s.repo.Create(ctx, arg)
 	if err != nil {
-		return response, err
+		return result, err
 	}
 
-	response = NewUserWihtoutPassword(gotUser)
+	result = NewUserWihtoutPassword(gotUser)
 
-	return response, nil
+	return result, nil
 }
 
 // CheckPassword checks if the password is valid for the given username.

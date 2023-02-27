@@ -12,14 +12,16 @@ import (
 	"github.com/go-petr/pet-bank/pkg/passpkg"
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
 )
 
 func randomUser(t *testing.T) (domain.User, string) {
 	password := randompkg.String(10)
 
 	hashedPassword, err := passpkg.Hash(password)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("passpkg.Hash(%v) failed: %v", password, err)
+	}
 
 	user := domain.User{
 		Username:       randompkg.Owner(),
@@ -61,7 +63,9 @@ func EqCreateUserParams(arg domain.CreateUserParams, password string) gomock.Mat
 }
 
 func TestCreate(t *testing.T) {
-	testUser, testPassword := randomUser(t)
+	t.Parallel()
+
+	user, password := randomUser(t)
 
 	type input struct {
 		Username string
@@ -74,78 +78,73 @@ func TestCreate(t *testing.T) {
 		name          string
 		input         input
 		buildStubs    func(userRepo *MockRepo)
-		checkResponse func(response domain.UserWihtoutPassword, err error)
+		checkResponse func(t *testing.T, got domain.UserWihtoutPassword)
+		wantError     error
 	}{
+		{
+			name: "OK",
+			input: input{
+				user.Username,
+				password,
+				user.FullName,
+				user.Email,
+			},
+			buildStubs: func(userRepo *MockRepo) {
+				userRepo.EXPECT().
+					Create(gomock.Any(), EqCreateUserParams(
+						domain.CreateUserParams{
+							Username:       user.Username,
+							HashedPassword: user.HashedPassword,
+							FullName:       user.FullName,
+							Email:          user.Email,
+						}, password)).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, got domain.UserWihtoutPassword) {
+				want := NewUserWihtoutPassword(user)
+
+				if !cmp.Equal(got, want) {
+					t.Errorf("domain.UserWihtoutPassword = %+v, want %+v", got, want)
+				}
+			},
+		},
 		{
 			name: "HashPasswordErr",
 			input: input{
-				testUser.Username,
+				user.Username,
 				strings.Repeat("long", 100),
-				testUser.FullName,
-				testUser.Email,
+				user.FullName,
+				user.Email,
 			},
 			buildStubs: func(userRepo *MockRepo) {
 				userRepo.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(response domain.UserWihtoutPassword, err error) {
-				require.Equal(t, domain.UserWihtoutPassword{}, response)
-				require.NotEmpty(t, err)
-			},
+			wantError: errorspkg.ErrInternal,
 		},
 		{
 			name: "CreateUserRepoErr",
 			input: input{
-				testUser.Username,
-				testPassword,
-				testUser.FullName,
-				testUser.Email,
+				user.Username,
+				password,
+				user.FullName,
+				user.Email,
 			},
 			buildStubs: func(userRepo *MockRepo) {
 				userRepo.EXPECT().
 					Create(gomock.Any(), EqCreateUserParams(
 						domain.CreateUserParams{
-							Username:       testUser.Username,
-							HashedPassword: testUser.HashedPassword,
-							FullName:       testUser.FullName,
-							Email:          testUser.Email,
-						}, testPassword)).
+							Username:       user.Username,
+							HashedPassword: user.HashedPassword,
+							FullName:       user.FullName,
+							Email:          user.Email,
+						}, password)).
 					Times(1).
 					Return(domain.User{}, errorspkg.ErrInternal)
 			},
-			checkResponse: func(response domain.UserWihtoutPassword, err error) {
-				require.Equal(t, domain.UserWihtoutPassword{}, response)
-				require.NotEmpty(t, err)
-			},
-		},
-		{
-			name: "OK",
-			input: input{
-				testUser.Username,
-				testPassword,
-				testUser.FullName,
-				testUser.Email,
-			},
-			buildStubs: func(userRepo *MockRepo) {
-				userRepo.EXPECT().
-					Create(gomock.Any(), EqCreateUserParams(
-						domain.CreateUserParams{
-							Username:       testUser.Username,
-							HashedPassword: testUser.HashedPassword,
-							FullName:       testUser.FullName,
-							Email:          testUser.Email,
-						}, testPassword)).
-					Times(1).
-					Return(testUser, nil)
-			},
-			checkResponse: func(response domain.UserWihtoutPassword, err error) {
-				require.NoError(t, err)
-
-				require.Equal(t, testUser.Username, response.Username)
-				require.Equal(t, testUser.FullName, response.FullName)
-				require.Equal(t, testUser.Email, response.Email)
-			},
+			wantError: errorspkg.ErrInternal,
 		},
 	}
 
@@ -163,20 +162,30 @@ func TestCreate(t *testing.T) {
 
 			tc.buildStubs(userRepo)
 
-			response, err := userService.Create(context.Background(),
+			got, err := userService.Create(context.Background(),
 				tc.input.Username,
 				tc.input.Password,
 				tc.input.Fullname,
 				tc.input.Email,
 			)
+			if err != nil {
+				if err == tc.wantError {
+					return
+				}
 
-			tc.checkResponse(response, err)
+				t.Fatalf("userService.Create(context.Background(), %v, %v, %v, %v) got error %v, want %v",
+					tc.input.Username, tc.input.Password, tc.input.Fullname, tc.input.Email, err, tc.wantError)
+			}
+
+			tc.checkResponse(t, got)
 		})
 	}
 }
 
 func TestCheckPassword(t *testing.T) {
-	testUser, testPassword := randomUser(t)
+	t.Parallel()
+
+	user, password := randomUser(t)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -189,54 +198,50 @@ func TestCheckPassword(t *testing.T) {
 		username      string
 		password      string
 		buildStubs    func(userRepo *MockRepo)
-		checkResponse func(response domain.UserWihtoutPassword, err error)
+		checkResponse func(t *testing.T, got domain.UserWihtoutPassword)
+		wantError     error
 	}{
 		{
-			name:     "GetUserError",
-			username: testUser.Username,
-			password: testPassword,
+			name:     "OK",
+			username: user.Username,
+			password: password,
 			buildStubs: func(userRepo *MockRepo) {
 				userRepo.EXPECT().
-					Get(gomock.Any(), testUser.Username).
+					Get(gomock.Any(), user.Username).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, got domain.UserWihtoutPassword) {
+				want := NewUserWihtoutPassword(user)
+
+				if !cmp.Equal(got, want) {
+					t.Errorf("domain.UserWihtoutPassword = %+v, want %+v", got, want)
+				}
+			},
+		},
+		{
+			name:     "GetUserError",
+			username: user.Username,
+			password: password,
+			buildStubs: func(userRepo *MockRepo) {
+				userRepo.EXPECT().
+					Get(gomock.Any(), user.Username).
 					Times(1).
 					Return(domain.User{}, domain.ErrUsernameAlreadyExists)
 			},
-			checkResponse: func(response domain.UserWihtoutPassword, err error) {
-				require.Equal(t, domain.UserWihtoutPassword{}, response)
-				require.EqualError(t, domain.ErrUsernameAlreadyExists, err.Error())
-			},
+			wantError: domain.ErrUsernameAlreadyExists,
 		},
-
 		{
 			name:     "WrongPassword",
-			username: testUser.Username,
+			username: user.Username,
 			password: "wrong",
 			buildStubs: func(userRepo *MockRepo) {
 				userRepo.EXPECT().
-					Get(gomock.Any(), testUser.Username).
+					Get(gomock.Any(), user.Username).
 					Times(1).
-					Return(testUser, nil)
+					Return(user, nil)
 			},
-			checkResponse: func(response domain.UserWihtoutPassword, err error) {
-				require.Equal(t, domain.UserWihtoutPassword{}, response)
-				require.EqualError(t, domain.ErrWrongPassword, err.Error())
-			},
-		},
-
-		{
-			name:     "OK",
-			username: testUser.Username,
-			password: testPassword,
-			buildStubs: func(userRepo *MockRepo) {
-				userRepo.EXPECT().
-					Get(gomock.Any(), testUser.Username).
-					Times(1).
-					Return(testUser, nil)
-			},
-			checkResponse: func(response domain.UserWihtoutPassword, err error) {
-				require.Equal(t, NewUserWihtoutPassword(testUser), response)
-				require.NoError(t, err)
-			},
+			wantError: domain.ErrWrongPassword,
 		},
 	}
 
@@ -244,14 +249,24 @@ func TestCheckPassword(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			tc.buildStubs(userRepo)
 
-			response, err := userService.CheckPassword(context.Background(),
+			got, err := userService.CheckPassword(context.Background(),
 				tc.username,
 				tc.password,
 			)
+			if err != nil {
+				if err == tc.wantError {
+					return
+				}
 
-			tc.checkResponse(response, err)
+				t.Fatalf("userService.CheckPassword(context.Background(), %v, %v) got error %v, want %v",
+					tc.username, tc.password, err, tc.wantError)
+			}
+
+			tc.checkResponse(t, got)
 		})
 	}
 }
