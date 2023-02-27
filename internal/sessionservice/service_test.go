@@ -12,13 +12,10 @@ import (
 	"github.com/go-petr/pet-bank/pkg/randompkg"
 	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
 )
 
-var (
-	config     configpkg.Config
-	tokenMaker tokenpkg.Maker
-)
+var config configpkg.Config
 
 func TestMain(m *testing.M) {
 	config = configpkg.Config{
@@ -31,12 +28,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreate(t *testing.T) {
-	var err error
-	tokenMaker, err = tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
-	require.NoError(t, err)
+	t.Parallel()
+
+	tokenMaker, err := tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) failed: %v", config.TokenSymmetricKey, err)
+	}
 
 	username := randompkg.Owner()
-	testSession := domain.Session{
+	want := domain.Session{
 		Username: username,
 	}
 
@@ -44,26 +44,9 @@ func TestCreate(t *testing.T) {
 		name          string
 		arg           domain.CreateSessionParams
 		buildStubs    func(repo *MockRepo)
-		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error)
+		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session)
+		wantError     error
 	}{
-		{
-			name: "repo.CreateSession error",
-			arg: domain.CreateSessionParams{
-				Username: username,
-			},
-			buildStubs: func(repo *MockRepo) {
-				repo.EXPECT().
-					Create(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
-					Times(1).
-					Return(domain.Session{}, errorspkg.ErrInternal)
-			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.Empty(t, sess)
-				require.EqualError(t, err, errorspkg.ErrInternal.Error())
-			},
-		},
 		{
 			name: "OK",
 			arg: domain.CreateSessionParams{
@@ -73,15 +56,34 @@ func TestCreate(t *testing.T) {
 				repo.EXPECT().
 					Create(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
 					Times(1).
-					Return(testSession, nil)
+					Return(want, nil)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, sess domain.Session, err error) {
-				require.NotEmpty(t, accessToken)
-				require.NotEmpty(t, accessTokenExpiresAt)
-				require.Equal(t, testSession.ID, sess.ID)
-				require.Equal(t, testSession.Username, sess.Username)
-				require.NoError(t, err)
+			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, got domain.Session) {
+				if accessToken == "" {
+					t.Error(`accessToken = "", want non empty`)
+				}
+
+				if accessTokenExpiresAt.IsZero() {
+					t.Error(`accessTokenExpiresAt is zero, want non zero`)
+				}
+
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("session returned unexpected diff: %s", diff)
+				}
 			},
+		},
+		{
+			name: "RepoInternalError",
+			arg: domain.CreateSessionParams{
+				Username: username,
+			},
+			buildStubs: func(repo *MockRepo) {
+				repo.EXPECT().
+					Create(gomock.Any(), gomock.AssignableToTypeOf(domain.CreateSessionParams{})).
+					Times(1).
+					Return(domain.Session{}, errorspkg.ErrInternal)
+			},
+			wantError: errorspkg.ErrInternal,
 		},
 	}
 
@@ -95,165 +97,167 @@ func TestCreate(t *testing.T) {
 			defer ctrl.Finish()
 
 			sessionRepoMock := NewMockRepo(ctrl)
-			testSessionService, err := New(sessionRepoMock, config, tokenMaker)
-			require.NoError(t, err)
-			require.NotEmpty(t, testSessionService)
+			sessionService, err := New(sessionRepoMock, config, tokenMaker)
+			if err != nil {
+				t.Fatalf("New(%v, %v, %v) failed: %v", sessionRepoMock, config, tokenMaker, err)
+			}
 
 			tc.buildStubs(sessionRepoMock)
 
-			accessToken, accessTokenExpiresAt, sess, err := testSessionService.Create(
-				context.Background(),
-				tc.arg,
-			)
+			accessToken, accessTokenExpiresAt, sess, err := sessionService.Create(context.Background(), tc.arg)
+			if err != nil {
+				if err == tc.wantError {
+					return
+				}
 
-			tc.checkResponse(accessToken, accessTokenExpiresAt, sess, err)
+				t.Fatalf("sessionService.Create(context.Background(), %v) returned unexpected error: %v",
+					tc.arg, err)
+			}
+
+			tc.checkResponse(accessToken, accessTokenExpiresAt, sess)
 		})
 	}
 }
 
 func TestRenewAccessToken(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Parallel()
 
 	tokenMaker, err := tokenpkg.NewPasetoMaker(config.TokenSymmetricKey)
-	require.NoError(t, err)
-
-	sessionRepoMock := NewMockRepo(ctrl)
-	testSessionService, err := New(sessionRepoMock, config, tokenMaker)
-	require.NoError(t, err)
-	require.NotEmpty(t, testSessionService)
+	if err != nil {
+		t.Fatalf("tokenpkg.NewPasetoMaker(%v) failed: %v", config.TokenSymmetricKey, err)
+	}
 
 	username := randompkg.Owner()
-	refreshToken, tokenPayload, err := tokenMaker.CreateToken(username, config.RefreshTokenDuration)
-	require.NoError(t, err)
+
+	token1, payload1, err := tokenMaker.CreateToken(username, config.RefreshTokenDuration)
+	if err != nil {
+		t.Fatalf("tokenpkg.CreateToken(%v, %v) failed: %v",
+			username, config.RefreshTokenDuration, err)
+	}
+
+	expired, _, err := tokenMaker.CreateToken(username, time.Nanosecond)
+	if err != nil {
+		t.Fatalf("tokenpkg.CreateToken(%v, %v) failed: %v",
+			username, time.Nanosecond, err)
+	}
 
 	unauthUsername := randompkg.Owner()
-	unauthRefreshToken, unauthRefreshTokenPayload, err := tokenMaker.CreateToken(unauthUsername, config.RefreshTokenDuration)
-	require.NoError(t, err)
+
+	token2, payload2, err := tokenMaker.CreateToken(unauthUsername, config.RefreshTokenDuration)
+	if err != nil {
+		t.Fatalf("tokenpkg.CreateToken(%v, %v) failed: %v",
+			username, config.RefreshTokenDuration, err)
+	}
 
 	testCases := []struct {
 		name          string
-		refreshToken  string
+		token         string
 		buildStubs    func(repo *MockRepo)
-		checkResponse func(accessToken string, accessTokenExpiresAt time.Time, err error)
+		checkResponse func(t *testing.T, accessToken string, accessTokenExpiresAt time.Time)
+		wantError     error
 	}{
 		{
-			name:         "Ivalid refresh token",
-			refreshToken: "invalid",
+			name:  "OK",
+			token: token1,
+			buildStubs: func(repo *MockRepo) {
+				s := domain.Session{
+					Username:     username,
+					RefreshToken: token1,
+					ExpiresAt:    payload1.ExpiredAt,
+				}
+				repo.EXPECT().
+					Get(gomock.Any(), gomock.Eq(payload1.ID)).
+					Times(1).
+					Return(s, nil)
+			},
+			checkResponse: func(t *testing.T, accessToken string, accessTokenExpiresAt time.Time) {
+				if accessToken == "" {
+					t.Error(`accessToken = "", want non empty`)
+				}
+
+				if accessTokenExpiresAt.IsZero() {
+					t.Error(`accessTokenExpiresAt is zero, want non zero`)
+				}
+			},
+		},
+		{
+			name:  "ErrExpiredToken",
+			token: expired,
 			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
 					Get(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, domain.ErrExpiredToken.Error())
-			},
+			wantError: tokenpkg.ErrExpiredToken,
 		},
 		{
-			name:         "repo.GetSession error",
-			refreshToken: refreshToken,
+			name:  "ErrInvalidToken",
+			token: "invalid",
 			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
+					Get(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			wantError: tokenpkg.ErrInvalidToken,
+		},
+		{
+			name:  "ErrSessionNotFound",
+			token: token1,
+			buildStubs: func(repo *MockRepo) {
+				repo.EXPECT().
+					Get(gomock.Any(), gomock.Eq(payload1.ID)).
 					Times(1).
 					Return(domain.Session{}, domain.ErrSessionNotFound)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, domain.ErrSessionNotFound.Error())
-			},
+			wantError: domain.ErrSessionNotFound,
 		},
-
 		{
-			name:         "repo.GetSession blocked session",
-			refreshToken: refreshToken,
+			name:  "ErrBlockedSession",
+			token: token1,
 			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(payload1.ID)).
 					Times(1).
 					Return(domain.Session{IsBlocked: true}, nil)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, domain.ErrBlockedSession.Error())
-			},
+			wantError: domain.ErrBlockedSession,
 		},
 		{
-			name:         "repo.GetSession unauthRefreshToken",
-			refreshToken: unauthRefreshToken,
+			name:  "sess.Username!=refreshPayload.Username",
+			token: token2,
 			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					Get(gomock.Any(), gomock.Eq(unauthRefreshTokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(payload2.ID)).
 					Times(1).
-					Return(domain.Session{
-						Username: username,
-					}, nil)
+					Return(domain.Session{Username: username}, nil)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, domain.ErrInvalidUser.Error())
-			},
+			wantError: domain.ErrInvalidUser,
 		},
 		{
-			name:         "repo.GetSession blocked session",
-			refreshToken: refreshToken,
+			name:  "ErrMismatchedRefreshToken",
+			token: token1,
 			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(payload1.ID)).
 					Times(1).
-					Return(domain.Session{
-						Username:     username,
-						RefreshToken: unauthRefreshToken,
-					}, nil)
+					Return(domain.Session{Username: username, RefreshToken: token2}, nil)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, domain.ErrMismatchedRefreshToken.Error())
-			},
+			wantError: domain.ErrMismatchedRefreshToken,
 		},
 		{
-			name:         "expired session",
-			refreshToken: refreshToken,
+			name:  "ErrExpiredSession",
+			token: token1,
 			buildStubs: func(repo *MockRepo) {
 				repo.EXPECT().
-					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
+					Get(gomock.Any(), gomock.Eq(payload1.ID)).
 					Times(1).
 					Return(domain.Session{
 						Username:     username,
-						RefreshToken: refreshToken,
+						RefreshToken: token1,
 						ExpiresAt:    time.Now().Add(-time.Hour),
 					}, nil)
 			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.Empty(t, accessToken)
-				require.Empty(t, accessTokenExpiresAt)
-				require.EqualError(t, err, domain.ErrExpiredSession.Error())
-			},
-		},
-		{
-			name:         "OK",
-			refreshToken: refreshToken,
-			buildStubs: func(repo *MockRepo) {
-				repo.EXPECT().
-					Get(gomock.Any(), gomock.Eq(tokenPayload.ID)).
-					Times(1).
-					Return(domain.Session{
-						Username:     username,
-						RefreshToken: refreshToken,
-						ExpiresAt:    tokenPayload.ExpiredAt,
-					}, nil)
-			},
-			checkResponse: func(accessToken string, accessTokenExpiresAt time.Time, err error) {
-				require.NotEmpty(t, accessToken)
-				require.NotEmpty(t, accessTokenExpiresAt)
-				require.NoError(t, err)
-			},
+			wantError: domain.ErrExpiredSession,
 		},
 	}
 
@@ -261,14 +265,28 @@ func TestRenewAccessToken(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			sessionRepoMock := NewMockRepo(ctrl)
+			sessionService, err := New(sessionRepoMock, config, tokenMaker)
+			if err != nil {
+				t.Fatalf("New(%v, %v, %v) failed: %v", sessionRepoMock, config, tokenMaker, err)
+			}
+
 			tc.buildStubs(sessionRepoMock)
 
-			accessToken, accessTokenExpiresAt, err := testSessionService.RenewAccessToken(
-				context.Background(),
-				tc.refreshToken,
-			)
+			accessToken, expires, err := sessionService.RenewAccessToken(context.Background(), tc.token)
+			if err != nil {
+				if err == tc.wantError {
+					return
+				}
+				t.Fatalf("sessionService.RenewAccessToken(context.Background(),  %v) failed: %v", tc.token, err)
+			}
 
-			tc.checkResponse(accessToken, accessTokenExpiresAt, err)
+			tc.checkResponse(t, accessToken, expires)
 		})
 	}
 }

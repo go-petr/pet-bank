@@ -80,7 +80,7 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 			requestBody: func(t *testing.T) requestBody {
 				user := helpers.SeedUser(t, server.DB)
 
-				refreshToken, _, err := tokenMaker.CreateToken(user.Username, -time.Minute)
+				refreshToken, _, err := tokenMaker.CreateToken(user.Username, time.Nanosecond)
 				if err != nil {
 					t.Fatalf("tokenMaker.CreateToken(%v, %v) returned error: %v",
 						user.Username, duration, err)
@@ -91,7 +91,7 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 				}
 			},
 			wantStatusCode: http.StatusForbidden,
-			wantError:      domain.ErrExpiredToken.Error(),
+			wantError:      tokenpkg.ErrExpiredToken.Error(),
 		},
 		{
 			name: "ErrSessionNotFound",

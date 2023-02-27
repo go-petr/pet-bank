@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-petr/pet-bank/internal/domain"
 	"github.com/go-petr/pet-bank/pkg/errorspkg"
+	"github.com/go-petr/pet-bank/pkg/tokenpkg"
 	"github.com/go-petr/pet-bank/pkg/web"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
@@ -66,7 +67,8 @@ func (h *Handler) RenewAccessToken(gctx *gin.Context) {
 			gctx.JSON(http.StatusUnauthorized, web.Error(err))
 			return
 		case
-			domain.ErrExpiredToken,
+			tokenpkg.ErrExpiredToken,
+			tokenpkg.ErrInvalidToken,
 			domain.ErrBlockedSession,
 			domain.ErrInvalidUser,
 			domain.ErrMismatchedRefreshToken,

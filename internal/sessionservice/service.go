@@ -74,14 +74,18 @@ func (s *Service) RenewAccessToken(ctx context.Context, refreshToken string) (st
 
 	refreshPayload, err := s.TokenMaker.VerifyToken(refreshToken)
 	if err != nil {
+		if err == tokenpkg.ErrExpiredToken || err == tokenpkg.ErrInvalidToken {
+			return "", time.Time{}, err
+		}
+
 		l.Error().Err(err).Send()
-		return "", time.Time{}, domain.ErrExpiredToken
+
+		return "", time.Time{}, errorspkg.ErrInternal
 	}
 
 	sess, err := s.repo.Get(ctx, refreshPayload.ID)
 	if err != nil {
-		l.Error().Err(err).Send()
-		return "", time.Time{}, domain.ErrSessionNotFound
+		return "", time.Time{}, err
 	}
 
 	if sess.IsBlocked {

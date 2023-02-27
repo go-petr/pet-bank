@@ -16,8 +16,6 @@ var (
 	ErrInvalidUser = errors.New("incorrect session user")
 	// ErrExpiredSession indicates the expired session.
 	ErrExpiredSession = errors.New("expired session")
-	// ErrExpiredToken indicates the expired token.
-	ErrExpiredToken = errors.New("expired token")
 	// ErrSessionNotFound indicates that the session is not found.
 	ErrSessionNotFound = errors.New("session not found")
 )
