@@ -1,28 +1,48 @@
 package passpkg
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestPassword(t *testing.T) {
 	password := "abcdefghijklmnopqrstuvwxyz"
+
+	// OK
 	hashedPassword1, err := Hash(password)
-	require.NoError(t, err)
-	require.NotEmpty(t, hashedPassword1)
+	if err != nil {
+		t.Errorf("Hash(%v) returned unexpected error: %v", password, err)
+	}
 
-	err = Check(password, hashedPassword1)
-	require.NoError(t, err)
+	if err := Check(password, hashedPassword1); err != nil {
+		t.Errorf("Check(%v, %v) returned unexpected error: %v", password, hashedPassword1, err)
+	}
 
+	// WrongPassword
 	wrongPassword := "abc"
-	err = Check(wrongPassword, hashedPassword1)
-	require.EqualError(t, err, bcrypt.ErrMismatchedHashAndPassword.Error())
 
-	// Test for random salt generation
+	if err := Check(wrongPassword, hashedPassword1); err != bcrypt.ErrMismatchedHashAndPassword {
+		t.Errorf("Check(%v, %v), returned unexpected error: %v", wrongPassword, hashedPassword1, err)
+	}
+
+	// LongPassword
+	longPassword := strings.Repeat("abc", 100)
+	want := "failed to hash password: bcrypt: password length exceeds 72 bytes"
+
+	hashedPassword1, err = Hash(longPassword)
+	if err.Error() != want {
+		t.Errorf("Hash(%v) returned unexpected error: %v", password, err)
+	}
+
+	// RandomSaltGeneration
 	hashedPassword2, err := Hash(password)
-	require.NoError(t, err)
-	require.NotEmpty(t, hashedPassword1)
-	require.NotEqual(t, hashedPassword1, hashedPassword2)
+	if err != nil {
+		t.Errorf("Hash(%v) returned error: %v", password, err)
+	}
+
+	if hashedPassword1 == hashedPassword2 {
+		t.Error("hashedPassword1 == hashedPassword2, want unequal")
+	}
 }
