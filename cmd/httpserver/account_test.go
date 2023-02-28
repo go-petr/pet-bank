@@ -120,6 +120,8 @@ func TestCreateAccountAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Send request
 			body, err := json.Marshal(tc.requestBody)
 			if err != nil {
@@ -253,6 +255,8 @@ func TestGetAccountAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Send request
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
 			req, err := http.NewRequest(http.MethodGet, url, nil)

@@ -173,7 +173,7 @@ func TestGet(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			// t.Parallel()
+			t.Parallel()
 
 			// Prepare test transaction and seed database
 			tx := integrationtest.SetupTX(t, dbDriver, dbSource)

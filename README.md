@@ -2,7 +2,7 @@
 
 ## Key skills practiced
 
-Clean Architecture; REST API (inc. OpenAPI); Unit and Integration tests; Go Style Best Practices (inc. [Google Go Style](https://google.github.io/styleguide/go/index), [Standard Go Project Layout](https://github.com/golang-standards/project-layout)); CI/CD (Run tests, linters and deploy the containerized app to Amazon Elastic Container Registry (ECR))
+Clean Architecture; REST API (inc. OpenAPI, [API design guide](https://cloud.google.com/apis/design)); Unit and Integration tests; Go Style Best Practices (inc. [Google Go Style](https://google.github.io/styleguide/go/index), [Standard Go Project Layout](https://github.com/golang-standards/project-layout)); CI/CD (Run tests, linters and deploy the containerized app to Amazon Elastic Container Registry (ECR))
 
 ## Features
 
@@ -13,11 +13,11 @@ This bank service provides APIs for the frontend to do the following things:
 
 ## Authorization rules 
 
-1. The user can create an account only for him/herself
-2. The user can get accounts that only he/she owns 
-3. The user can list accounts that only belong to him/her
-4. The user can send money only from his/her own account 
-5. The user can only refresh his/her own access token
+1. Users can create an account only for themselves
+2. Users can get accounts that only they own
+3. Users can list accounts that only belong to them
+4. Users can send money only from their own account 
+5. Users can only refresh their own access token
 
 ## Data model
 <img src='./docs/bank.png'/>
