@@ -5,45 +5,67 @@ import (
 	"time"
 
 	"github.com/go-petr/pet-bank/pkg/randompkg"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestPasetoMaker(t *testing.T) {
-	maker, err := NewPasetoMaker(randompkg.String(32))
-	require.NoError(t, err)
+	t.Parallel()
+
+	secretKey := randompkg.String(32)
+
+	maker, err := NewPasetoMaker(secretKey)
+	if err != nil {
+		t.Fatalf("NewPasetoMaker(%v) returned error: %v", secretKey, err)
+	}
 
 	username := randompkg.Owner()
 	duration := time.Minute
 
-	issuedAt := time.Now()
-	expiredAt := issuedAt.Add(duration)
-
 	token, payload, err := maker.CreateToken(username, duration)
-	require.NoError(t, err)
-	require.NotEmpty(t, token)
-	require.NotEmpty(t, payload)
+	if err != nil {
+		t.Errorf("maker.CreateToken(%v, %v) returned error: %v", username, duration, err)
+	}
 
-	payload, err = maker.VerifyToken(token)
-	require.NoError(t, err)
-	require.NotEmpty(t, payload)
+	_, err = maker.VerifyToken(token)
+	if err != nil {
+		t.Errorf("maker.VerifyToken(%v) returned error: %v", token, err)
+	}
 
-	require.NotZero(t, payload.ID)
-	require.Equal(t, username, payload.Username)
-	require.WithinDuration(t, issuedAt, payload.IssuedAt, time.Second)
-	require.WithinDuration(t, expiredAt, payload.ExpiredAt, time.Second)
+	want := &Payload{
+		Username:  username,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(duration),
+	}
+
+	ignore := cmpopts.IgnoreFields(Payload{}, "ID")
+	delta := cmpopts.EquateApproxTime(time.Minute)
+
+	if diff := cmp.Diff(payload, want, ignore, delta); diff != "" {
+		t.Errorf("maker.CreateToken(%v, %v) returned unexpected diff: %v", username, duration, diff)
+	}
 }
 
 func TestExpiredPasetoToken(t *testing.T) {
+	t.Parallel()
+
+	secretKey := randompkg.String(32)
+
 	maker, err := NewPasetoMaker(randompkg.String(32))
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("NewPasetoMaker(%v) returned error: %v", secretKey, err)
+	}
 
-	token, payload, err := maker.CreateToken(randompkg.Owner(), -time.Minute)
-	require.NoError(t, err)
-	require.NotEmpty(t, token)
-	require.NotEmpty(t, payload)
+	username := randompkg.Owner()
+	duration := -time.Minute
 
-	payload, err = maker.VerifyToken(token)
-	require.Error(t, err)
-	require.EqualError(t, err, ErrExpiredToken.Error())
-	require.Nil(t, payload)
+	token, _, err := maker.CreateToken(username, duration)
+	if err != nil {
+		t.Errorf("maker.CreateToken(%v, %v) returned error: %v", username, duration, err)
+	}
+
+	_, err = maker.VerifyToken(token)
+	if err != ErrExpiredToken {
+		t.Errorf("maker.VerifyToken(%v) returned unexpected error: %v", token, err)
+	}
 }

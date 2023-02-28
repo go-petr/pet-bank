@@ -198,7 +198,7 @@ func TestCreateTranferAPI(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			// Send request
 			body, err := json.Marshal(tc.requestBody)
 			if err != nil {

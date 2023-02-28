@@ -7,7 +7,7 @@ github.com/aead/chacha20poly1305
 # github.com/aead/poly1305 v0.0.0-20180717145839-3fee0db0b635
 ## explicit
 github.com/aead/poly1305
-# github.com/bytedance/sonic v1.8.0
+# github.com/bytedance/sonic v1.8.2
 ## explicit; go 1.15
 github.com/bytedance/sonic
 github.com/bytedance/sonic/ast
@@ -31,9 +31,6 @@ github.com/bytedance/sonic/utf8
 # github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311
 ## explicit; go 1.15
 github.com/chenzhuoyu/base64x
-# github.com/davecgh/go-spew v1.1.1
-## explicit
-github.com/davecgh/go-spew/spew
 # github.com/fsnotify/fsnotify v1.6.0
 ## explicit; go 1.16
 github.com/fsnotify/fsnotify
@@ -100,11 +97,11 @@ github.com/hashicorp/hcl/json/token
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/cpuid/v2 v2.0.9
-## explicit; go 1.13
+# github.com/klauspost/cpuid/v2 v2.2.4
+## explicit; go 1.15
 github.com/klauspost/cpuid/v2
-# github.com/leodido/go-urn v1.2.1
-## explicit; go 1.13
+# github.com/leodido/go-urn v1.2.2
+## explicit; go 1.16
 github.com/leodido/go-urn
 # github.com/lib/pq v1.10.7
 ## explicit; go 1.13
@@ -132,7 +129,7 @@ github.com/modern-go/reflect2
 # github.com/o1egl/paseto v1.0.0
 ## explicit
 github.com/o1egl/paseto
-# github.com/pelletier/go-toml/v2 v2.0.6
+# github.com/pelletier/go-toml/v2 v2.0.7
 ## explicit; go 1.16
 github.com/pelletier/go-toml/v2
 github.com/pelletier/go-toml/v2/internal/characters
@@ -142,9 +139,6 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pmezard/go-difflib v1.0.0
-## explicit
-github.com/pmezard/go-difflib/difflib
 # github.com/rs/zerolog v1.29.0
 ## explicit; go 1.15
 github.com/rs/zerolog
@@ -155,7 +149,7 @@ github.com/rs/zerolog/pkgerrors
 # github.com/shopspring/decimal v1.3.1
 ## explicit; go 1.13
 github.com/shopspring/decimal
-# github.com/spf13/afero v1.9.3
+# github.com/spf13/afero v1.9.4
 ## explicit; go 1.16
 github.com/spf13/afero
 github.com/spf13/afero/internal/common
@@ -180,10 +174,6 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/stretchr/testify v1.8.1
-## explicit; go 1.13
-github.com/stretchr/testify/assert
-github.com/stretchr/testify/require
 # github.com/subosito/gotenv v1.4.2
 ## explicit; go 1.18
 github.com/subosito/gotenv
@@ -209,7 +199,7 @@ github.com/twitchyliquid64/golang-asm/unsafeheader
 # github.com/ugorji/go/codec v1.2.10
 ## explicit; go 1.11
 github.com/ugorji/go/codec
-# golang.org/x/arch v0.0.0-20210923205945-b76863e36670
+# golang.org/x/arch v0.2.0
 ## explicit; go 1.17
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.6.0
