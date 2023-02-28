@@ -187,12 +187,6 @@ func TestCheckPassword(t *testing.T) {
 
 	user, password := randomUser(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	userRepo := NewMockRepo(ctrl)
-	userService := New(userRepo)
-
 	testCases := []struct {
 		name          string
 		username      string
@@ -250,6 +244,12 @@ func TestCheckPassword(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			userRepo := NewMockRepo(ctrl)
+			userService := New(userRepo)
 
 			tc.buildStubs(userRepo)
 
