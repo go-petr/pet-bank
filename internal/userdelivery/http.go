@@ -103,9 +103,9 @@ func (h *Handler) Create(gctx *gin.Context) {
 
 	res := web.Response{
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessTokenExpiresAt,
+		AccessTokenExpiresAt:  &accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
-		RefreshTokenExpiresAt: session.ExpiresAt,
+		RefreshTokenExpiresAt: &session.ExpiresAt,
 		Data: struct {
 			User domain.UserWihtoutPassword `json:"user,omitempty"`
 		}{
@@ -174,9 +174,9 @@ func (h *Handler) Login(gctx *gin.Context) {
 
 	res := web.Response{
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessTokenExpiresAt,
+		AccessTokenExpiresAt:  &accessTokenExpiresAt,
 		RefreshToken:          session.RefreshToken,
-		RefreshTokenExpiresAt: session.ExpiresAt,
+		RefreshTokenExpiresAt: &session.ExpiresAt,
 		Data: struct {
 			User domain.UserWihtoutPassword `json:"user,omitempty"`
 		}{

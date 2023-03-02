@@ -85,7 +85,7 @@ func (h *Handler) RenewAccessToken(gctx *gin.Context) {
 
 	res := web.Response{
 		AccessToken:          accessToken,
-		AccessTokenExpiresAt: accessTokenExpiresAt,
+		AccessTokenExpiresAt: &accessTokenExpiresAt,
 	}
 	gctx.JSON(http.StatusOK, res)
 }

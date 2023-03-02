@@ -63,7 +63,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				want := web.Response{
 					AccessToken:          token,
-					AccessTokenExpiresAt: payload.ExpiredAt,
+					AccessTokenExpiresAt: &payload.ExpiredAt,
 				}
 
 				compareCreatedAt := cmpopts.EquateApproxTime(time.Second)
