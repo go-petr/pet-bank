@@ -13,8 +13,6 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-// type requestIDKey struct{}
-
 // CreateLogger returns logger depending on config environement.
 func CreateLogger(config configpkg.Config) zerolog.Logger {
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
