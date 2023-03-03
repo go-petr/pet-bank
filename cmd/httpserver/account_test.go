@@ -55,7 +55,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user.Username, duration)
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(req requestBody, res web.Response) {
 				gotData, ok := res.Data.(*struct {
 					Account domain.Account `json:"account"`

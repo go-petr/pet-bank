@@ -97,7 +97,7 @@ func TestCreate(t *testing.T) {
 					Times(1).
 					Return("accessToken", time.Now().Add(time.Hour), createdSession, nil)
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(reqBody requestBody, resp web.Response) {
 				if resp.AccessToken == "" {
 					t.Error(`resp.AccessToken="", want not empty`)

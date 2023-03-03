@@ -65,7 +65,7 @@ func TestRenewAccessTokenAPI(t *testing.T) {
 					RefreshToken: refreshToken,
 				}
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(t *testing.T, got web.Response) {
 				t.Helper()
 

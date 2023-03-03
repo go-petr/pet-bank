@@ -87,7 +87,7 @@ func (h *Handler) Create(gctx *gin.Context) {
 		},
 	}
 
-	gctx.JSON(http.StatusOK, res)
+	gctx.JSON(http.StatusCreated, res)
 }
 
 type getRequest struct {

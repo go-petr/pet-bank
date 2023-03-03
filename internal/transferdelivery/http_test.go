@@ -107,7 +107,7 @@ func TestCreate(t *testing.T) {
 					Times(1).
 					Return(want, nil)
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(req requestBody, data any) {
 				got, ok := data.(*struct {
 					Transfer domain.TransferTxResult `json:"transfer"`

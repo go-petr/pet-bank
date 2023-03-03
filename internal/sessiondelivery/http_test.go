@@ -57,7 +57,7 @@ func TestRenewAccessToken(t *testing.T) {
 					Times(1).
 					Return(token, payload.ExpiredAt, nil)
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(t *testing.T, got web.Response) {
 				t.Helper()
 

@@ -48,7 +48,7 @@ func TestCreateUserAPI(t *testing.T) {
 				"fullname": fullname,
 				"email":    email,
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(reqBody gin.H, resp web.Response) {
 				if resp.AccessToken == "" {
 					t.Error(`resp.AccessToken="", want not empty`)

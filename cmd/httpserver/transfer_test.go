@@ -63,7 +63,7 @@ func TestCreateTranferAPI(t *testing.T) {
 			setupAuth: func(r *http.Request) error {
 				return middleware.AddAuthorization(r, tokenMaker, authType, user1.Username, duration)
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(req requestBody, data any) {
 				got, ok := data.(*struct {
 					Transfer domain.TransferTxResult `json:"transfer"`

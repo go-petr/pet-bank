@@ -277,7 +277,7 @@ paths:
               fullname: "Foo Boo"
               email: "foo@boo.email"
       responses:
-        "200":
+        "201":
           $ref: "#/components/responses/User"
         "400":
           $ref: "#/components/responses/BadRequestError"
@@ -342,7 +342,7 @@ paths:
               example:
                 currency: USD
       responses:
-        "200":
+        "201":
           $ref: "#/components/responses/Account"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
@@ -442,7 +442,7 @@ paths:
                 amount: "100"
 
       responses:
-        "200":
+        "201":
           $ref: "#/components/responses/TransferTxResult"
         "400":
           $ref: "#/components/responses/BadRequestError"
@@ -468,7 +468,7 @@ paths:
                   type: string
 
       responses:
-        "200":
+        "201":
           $ref: "#/components/responses/AccessToken"
         "400":
           $ref: "#/components/responses/BadRequestError"

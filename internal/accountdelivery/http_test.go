@@ -80,7 +80,7 @@ func TestCreate(t *testing.T) {
 					Times(1).
 					Return(account, nil)
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusCreated,
 			checkData: func(req requestBody, data any) {
 				got, ok := data.(*struct {
 					Account domain.Account `json:"account"`
