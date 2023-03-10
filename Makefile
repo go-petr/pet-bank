@@ -35,9 +35,6 @@ test.integration.repo:
 test.unit:
 	go test -count 1 -cover -coverprofile cover.out ./...
 
-test.api:
-	go test -count 1 -tags=integration ./cmd/httpserver/tests 
-
 server:
 	go run cmd/main.go
 

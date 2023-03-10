@@ -92,7 +92,7 @@ func (r *RepoPGS) Create(ctx context.Context, owner, balance, currency string) (
 			switch pqErr.Constraint {
 			case "accounts_owner_fkey":
 				return a, domain.ErrOwnerNotFound
-			case "accounts_owner_currency_idx":
+			case "accounts_owner_currency_key":
 				return a, domain.ErrCurrencyAlreadyExists
 			}
 		}

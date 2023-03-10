@@ -9,7 +9,6 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=simple_bank
-
   api:
     container_name: bankapi
     build:

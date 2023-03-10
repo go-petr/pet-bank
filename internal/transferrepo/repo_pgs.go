@@ -170,7 +170,7 @@ func (r *RepoPGS) List(ctx context.Context, arg domain.ListTransfersParams) ([]d
 	return items, nil
 }
 
-// Transfer performs a money between two accounts.
+// Transfer performs a money transfer between two accounts.
 //
 // It creates a transfer record, add account entries, and update accounts' balance
 // within a single dbpkg transaction.

@@ -11,5 +11,3 @@ ALTER TABLE "accounts"
 ADD FOREIGN KEY ("owner") 
 REFERENCES "users" ("username")
 ON DELETE CASCADE;
-
-CREATE UNIQUE INDEX ON "accounts" ("owner", "currency");
