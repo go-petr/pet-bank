@@ -349,6 +349,17 @@ func TestAddBalance(t *testing.T) {
 			},
 			wantErr: errorspkg.ErrInternal,
 		},
+		{
+			name:   "ErrInsufficientBalance",
+			amount: "-2000",
+			wantAccount: func(tx *sql.Tx) domain.Account {
+				user := helpers.SeedUser(t, tx)
+				account := helpers.SeedAccountWith1000Balance(t, tx, user.Username, randompkg.Currency())
+				account.Balance = "1000"
+				return account
+			},
+			wantErr: domain.ErrInsufficientBalance,
+		},
 	}
 
 	for i := range testCases {

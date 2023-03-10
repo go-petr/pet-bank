@@ -55,6 +55,12 @@ func (r *RepoPGS) AddBalance(ctx context.Context, amount string, id int32) (doma
 			return a, domain.ErrAccountNotFound
 		}
 
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Constraint == "accounts_balance_check" {
+				return a, domain.ErrInsufficientBalance
+			}
+		}
+
 		return a, errorspkg.ErrInternal
 	}
 

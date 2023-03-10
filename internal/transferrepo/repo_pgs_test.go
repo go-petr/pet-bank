@@ -487,6 +487,35 @@ func TestTransferTx(t *testing.T) {
 	}
 }
 
+func TestTransferFromAccountInsuffisientBalanceTx(t *testing.T) {
+	db := integrationtest.SetupDB(t, dbDriver, dbSource)
+
+	user1 := helpers.SeedUser(t, db)
+	account1 := helpers.SeedAccountWith1000USDBalance(t, db, user1.Username)
+	user2 := helpers.SeedUser(t, db)
+	account2 := helpers.SeedAccountWith1000USDBalance(t, db, user2.Username)
+
+	transferRepo := transferrepo.NewRepoPGS(db)
+
+	amount := "10000"
+
+	arg := domain.CreateTransferParams{
+		FromAccountID: account1.ID,
+		ToAccountID:   account2.ID,
+		Amount:        amount,
+	}
+
+	_, err := transferRepo.Transfer(ctx, arg)
+
+	if err == nil {
+		t.Error("got nil, want error")
+	}
+
+	if err != domain.ErrInsufficientBalance {
+		t.Errorf("transferRepo.Transfer(ctx, %+v) returned unexpected error: %v", arg, err)
+	}
+}
+
 func TestTransferTxDeadlock(t *testing.T) {
 	db := integrationtest.SetupDB(t, dbDriver, dbSource)
 

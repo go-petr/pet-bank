@@ -187,7 +187,9 @@ func (r *RepoPGS) Transfer(ctx context.Context, arg domain.CreateTransferParams)
 
 	defer func() {
 		if err := tx.Rollback(); err != nil {
-			l.Error().Err(err).Send()
+			if err != sql.ErrTxDone {
+				l.Error().Err(err).Send()
+			}
 		}
 	}()
 
